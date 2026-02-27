@@ -133,6 +133,19 @@ Licensed under **GPL-3.0-or-later**. See the [LICENSE](./LICENSE) file for detai
 > You should have received a copy of the GNU General Public License
 > along with this program. If not, see <http://www.gnu.org/licenses/>.
 
+# Building for Production Vs Development:
+At time we might need both Production and Development build to run in parallel, unless we segregate their data, else we might break one another. Therefore for production it create `Privitty` data directory where as for development it creates `Privitty-test`, this can be achieved using runtime option. 
+
+## For Production:
+```
+pnpm -w dev:electron
+```
+
+## For Development
+```
+pnpm -w build:electron && pnpm --filter=@deltachat-desktop/target-electron exec electron . --disable-http-cache
+```
+
 # Build DMG for macOS
 
 ```sh

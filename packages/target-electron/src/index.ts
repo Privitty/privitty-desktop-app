@@ -72,6 +72,16 @@ protocol.registerSchemesAsPrivileged([
 const app = rawApp as ExtendedAppMainProcess
 app.rc = rc
 
+// Use our config path for userData so dev (Privitty-test) and production (Privitty)
+// have separate single-instance locks and can run side by side
+import {
+  getConfigPath,
+  getLogsPath,
+  getAccountsPath,
+  getCustomThemesPath,
+} from './application-constants.js'
+app.setPath('userData', getConfigPath())
+
 // requestSingleInstanceLock always returns false on mas (mac app store) builds
 // due to electron issue https://github.com/electron/electron/issues/35540
 // dc-desktop issue: https://github.com/deltachat/deltachat-desktop/issues/3938
@@ -87,12 +97,6 @@ if (
 }
 
 // Setup folders
-import {
-  getConfigPath,
-  getLogsPath,
-  getAccountsPath,
-  getCustomThemesPath,
-} from './application-constants.js'
 mkdirSync(getConfigPath(), { recursive: true })
 mkdirSync(getLogsPath(), { recursive: true })
 mkdirSync(getCustomThemesPath(), { recursive: true })

@@ -10,7 +10,9 @@ if (process.env.NODE_ENV !== 'production') {
   }
 }
 
-const appConfig = applicationConfig('Privitty')
+// Use separate data dir for dev builds so production and development can coexist
+const appName = process.argv.includes('--devmode') ? 'Privitty-test' : 'Privitty'
+const appConfig = applicationConfig(appName)
 
 import { join } from 'path'
 
