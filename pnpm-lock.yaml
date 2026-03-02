@@ -38,10 +38,10 @@ overrides:
   lodash: '>=4.17.23'
   js-yaml: '>=4.1.1'
   minimatch@>=9.0.0 <10.2.1: 10.2.1
-  '@privitty/privitty-core-darwin-arm64': 0.3.5
-  '@privitty/privitty-core-darwin-x64': 0.3.5
-  '@privitty/privitty-core-linux-x64': 0.3.5
-  '@privitty/privitty-core-win32-x64': 0.3.5
+  '@privitty/privitty-core-darwin-arm64': 0.3.8
+  '@privitty/privitty-core-darwin-x64': 0.3.8
+  '@privitty/privitty-core-linux-x64': 0.3.8
+  '@privitty/privitty-core-win32-x64': 0.3.8
 
 importers:
 
@@ -342,8 +342,8 @@ importers:
         specifier: 1.160.0
         version: 1.160.0(@deltachat/jsonrpc-client@1.159.5(ws@7.5.10))
       '@privitty/privitty-core':
-        specifier: 0.3.5
-        version: 0.3.5
+        specifier: 0.3.8
+        version: 0.3.8
       mime-types:
         specifier: 'catalog:'
         version: 2.1.35
@@ -1519,28 +1519,33 @@ packages:
     peerDependencies:
       '@deltachat/jsonrpc-client': '*'
 
-  '@privitty/privitty-core-darwin-arm64@0.3.5':
-    resolution: {integrity: sha512-bm0JdsLn+RlGXfdAozUJcvIXFlRiXnHPWjvefAD4JP7rDl3UU55+RDnrHYICvqJkox8y+N/fuiDGvi6FgYh+xQ==}
+  '@privitty/privitty-core-darwin-arm64@0.3.8':
+    resolution: {integrity: sha512-9G+mAMqD0TQUrsBwayxv61oUzz6/d5+3mD9MGsfIm0+nXsvler7NMqz1B2ZyYWjbAKaKGy4MIHwxhspb8zGnUA==}
     cpu: [arm64]
     os: [darwin]
 
-  '@privitty/privitty-core-darwin-x64@0.3.5':
-    resolution: {integrity: sha512-rWVS+7SumBBLMJzqNWRNdT7jMf0GPaWqTx5HEk8gtBs1QT4rMHv6Acc/zYYku/0wXxM3oW8eWuI0Exz1KZFsbw==}
+  '@privitty/privitty-core-darwin-universal@0.3.8':
+    resolution: {integrity: sha512-n3npNtXcDPL6nBOzq2eviWWc4YkNsZvAUnzYFgv2AQapRrEUdjxAzbzFXbiJG4q+S+qPgSsH4i2fPL/NNqfBlQ==}
+    cpu: [arm64, x64]
+    os: [darwin]
+
+  '@privitty/privitty-core-darwin-x64@0.3.8':
+    resolution: {integrity: sha512-6d9724dIBbkzdOqPHy1tEY9SuzcmwCqBokKk8MKujmo0G0r9zyuWuWS3qeIitMTb6HX0TtGSJExy0flH0Pq3Ow==}
     cpu: [x64]
     os: [darwin]
 
-  '@privitty/privitty-core-linux-x64@0.3.5':
-    resolution: {integrity: sha512-Hs9OfCCB++g5AidX4S7IJnqJW8I//fbT5rhnlhRKUdhTClTaINJnyyuu6Ks2GbE5CBSGPlcu1cm7IJ3zTF1k7Q==}
+  '@privitty/privitty-core-linux-x64@0.3.8':
+    resolution: {integrity: sha512-Fg8uxLxA1qe2oq5b3530fu9XRP6qTXXHtq76p6PU4i5bpNYigHJ7cPIUxlZnzrK1ovtfEXUI5z7o5ax4voErcw==}
     cpu: [x64]
     os: [linux]
 
-  '@privitty/privitty-core-win32-x64@0.3.5':
-    resolution: {integrity: sha512-LPxAAap2qOkBMcernqHRzgA2dvCTgYyIp/y9m2yIP62O4CGe4qc7Y8JfSmOs8ero5nthC6VeJtNo05rBtYiBhg==}
+  '@privitty/privitty-core-win32-x64@0.3.8':
+    resolution: {integrity: sha512-BsqtBxyNrxxbMAq44gKCIR3E2bj04N141QUVmgRJQ1eQ0PnLennn/uNLT9ZNjyD898RtipPRmD69yGUT7HZp7Q==}
     cpu: [x64]
     os: [win32]
 
-  '@privitty/privitty-core@0.3.5':
-    resolution: {integrity: sha512-rfR1edqA3fdNHBwnoVM5Fu1LKceUbynlgJf+XCV18sczEcOazK6C/Sdy3jNIRktSe5sRXfrs8S3HbozbmuQ41g==}
+  '@privitty/privitty-core@0.3.8':
+    resolution: {integrity: sha512-rXM+/a5fXg2n8RKLRxor3TRGjp11OTjk9C1UyxLmRiKzmJkLtuoREk8KZar9i8RqTEGrAfhoPiZld6HjisJs+Q==}
     engines: {node: '>=14.0.0'}
     cpu: [x64, arm64]
     os: [darwin, linux, win32]
@@ -5102,24 +5107,28 @@ snapshots:
       '@privitty/deltachat-rpc-server-win32-ia32': 1.160.0
       '@privitty/deltachat-rpc-server-win32-x64': 1.160.0
 
-  '@privitty/privitty-core-darwin-arm64@0.3.5':
+  '@privitty/privitty-core-darwin-arm64@0.3.8':
     optional: true
 
-  '@privitty/privitty-core-darwin-x64@0.3.5':
+  '@privitty/privitty-core-darwin-universal@0.3.8':
     optional: true
 
-  '@privitty/privitty-core-linux-x64@0.3.5':
+  '@privitty/privitty-core-darwin-x64@0.3.8':
     optional: true
 
-  '@privitty/privitty-core-win32-x64@0.3.5':
+  '@privitty/privitty-core-linux-x64@0.3.8':
     optional: true
 
-  '@privitty/privitty-core@0.3.5':
+  '@privitty/privitty-core-win32-x64@0.3.8':
+    optional: true
+
+  '@privitty/privitty-core@0.3.8':
     optionalDependencies:
-      '@privitty/privitty-core-darwin-arm64': 0.3.5
-      '@privitty/privitty-core-darwin-x64': 0.3.5
-      '@privitty/privitty-core-linux-x64': 0.3.5
-      '@privitty/privitty-core-win32-x64': 0.3.5
+      '@privitty/privitty-core-darwin-arm64': 0.3.8
+      '@privitty/privitty-core-darwin-universal': 0.3.8
+      '@privitty/privitty-core-darwin-x64': 0.3.8
+      '@privitty/privitty-core-linux-x64': 0.3.8
+      '@privitty/privitty-core-win32-x64': 0.3.8
 
   '@sindresorhus/is@4.6.0': {}
 
