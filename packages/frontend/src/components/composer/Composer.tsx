@@ -964,7 +964,7 @@ export function useDraft(
       allowForward: false,
       allowedTime: '',
       FileDirectory: '',
-      oneTimeKey:'',
+      oneTimeKey: '',
       encryptedFilePath: '',
     })
     saveDraft()

@@ -41,7 +41,7 @@ export default function SecureImageViewer(props: Props & DialogProps) {
       setLoading(false)
     }
   }, [filePath, tx])
-  
+
   useEffect(() => {
     loadImage()
   }, [loadImage])

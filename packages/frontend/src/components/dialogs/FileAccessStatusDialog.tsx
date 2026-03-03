@@ -10,7 +10,9 @@ import useDialog from '../../hooks/dialog/useDialog'
 import { selectedAccountId } from '../../ScreenController'
 import { BackendRemote } from '../../backend-com'
 import { T } from '@deltachat/jsonrpc-client'
-import SmallSelectDialogPrivitty, { SelectedValue } from '../SmallSelectDialogPrivitty'
+import SmallSelectDialogPrivitty, {
+  SelectedValue,
+} from '../SmallSelectDialogPrivitty'
 
 interface FileAccessUser {
   email: string

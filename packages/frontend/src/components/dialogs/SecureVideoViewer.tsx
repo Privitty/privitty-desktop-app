@@ -148,8 +148,7 @@ export default function SecureVideoViewer(props: Props & DialogProps) {
         )}
 
         {!error && (
-          <div className='video-container'
-          >
+          <div className='video-container'>
             <video
               ref={videoRef}
               src={videoUrl || ''}

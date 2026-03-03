@@ -167,7 +167,7 @@ export default function MenuAttachment({
         allowedTime: fileAttribute.allowedTime,
         FileDirectory: filePathName,
         oneTimeKey: oneTimeKey,
-        encryptedFilePath: fileName
+        encryptedFilePath: fileName,
       })
 
       // Don't delete the file immediately - it will be deleted after the message is sent
@@ -272,6 +272,32 @@ export default function MenuAttachment({
         extensions: ['*'],
       },
     ]
+
+    // Group chats: skip Privitty attribute dialog, go straight to file selection
+    if (selectedChat) {
+      try {
+        const basicChat = await BackendRemote.rpc.getBasicChatInfo(
+          accountId,
+          selectedChat.id
+        )
+        if (basicChat.chatType === C.DC_CHAT_TYPE_GROUP) {
+          fileAttribute = {
+            allowDownload: false,
+            allowForward: false,
+            allowedTime: '',
+          }
+          await addFilenameFileMod()
+          return
+        }
+      } catch (e) {
+        console.error(
+          'Failed to determine chat type in addFilenameFile, falling back to openPrivittyProcess',
+          e
+        )
+      }
+    }
+
+    // One-to-one (and fallback): keep existing behavior
     await openPrivittyProcess()
   }
 
@@ -285,6 +311,31 @@ export default function MenuAttachment({
       },
     ]
 
+    // Group chats: skip Privitty attribute dialog, go straight to file selection
+    if (selectedChat) {
+      try {
+        const basicChat = await BackendRemote.rpc.getBasicChatInfo(
+          accountId,
+          selectedChat.id
+        )
+        if (basicChat.chatType === C.DC_CHAT_TYPE_GROUP) {
+          fileAttribute = {
+            allowDownload: false,
+            allowForward: false,
+            allowedTime: '',
+          }
+          await addFilenameFileMod()
+          return
+        }
+      } catch (e) {
+        console.error(
+          'Failed to determine chat type in addFilenameMedia, falling back to openPrivittyProcess',
+          e
+        )
+      }
+    }
+
+    // One-to-one (and fallback): keep existing behavior
     await openPrivittyProcess()
   }
 

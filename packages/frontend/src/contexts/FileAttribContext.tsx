@@ -35,7 +35,7 @@ export const SharedDataProvider: React.FC<SharedDataProviderProps> = ({
     allowedTime: '',
     FileDirectory: '',
     oneTimeKey: '',
-    encryptedFilePath: ''
+    encryptedFilePath: '',
   })
 
   return (
@@ -65,7 +65,7 @@ export function useSharedDataOptional(): FileAttributeContextType {
         allowedTime: '',
         FileDirectory: '',
         oneTimeKey: '',
-        encryptedFilePath: ''
+        encryptedFilePath: '',
       },
       // no-op setter outside provider (typed as any)
       setSharedData: (() => {}) as any,
