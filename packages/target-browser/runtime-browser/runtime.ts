@@ -504,7 +504,7 @@ class BrowserRuntime implements Runtime {
     })
   }
   setBadgeCounter(value: number): void {
-    document.title = `DeltaChat${value ? `(${value})` : ''}`
+    document.title = `Privitty Chat${value ? ` (${value})` : ''}`
   }
   deleteWebxdcAccountData(_accountId: number): Promise<void> {
     // not applicable in browser

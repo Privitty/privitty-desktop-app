@@ -30,7 +30,15 @@ export default function SecureImageViewer(props: Props & DialogProps) {
       setLoading(true)
       setError(null)
 
-      const url = `file://${filePath}`
+      // Build a valid file:// URL for both macOS and Windows.
+      // On macOS filePath starts with '/' (/Users/...) → file:///Users/...  (3 slashes)
+      // On Windows filePath starts with a drive letter (C:/...) → file:///C:/...
+      // Using just `file://${filePath}` on Windows produces file://C:/... where
+      // "C:" is parsed as the hostname — the third slash is required.
+      const normalizedPath = filePath.replace(/\\/g, '/')
+      const url = normalizedPath.startsWith('/')
+        ? `file://${normalizedPath}` // POSIX: /path → file:///path
+        : `file:///${normalizedPath}` // Windows: C:/path → file:///C:/path
       log.info('Loading image in secure viewer', { filePath, url })
 
       setImageUrl(url)
@@ -41,7 +49,7 @@ export default function SecureImageViewer(props: Props & DialogProps) {
       setLoading(false)
     }
   }, [filePath, tx])
-  
+
   useEffect(() => {
     loadImage()
   }, [loadImage])

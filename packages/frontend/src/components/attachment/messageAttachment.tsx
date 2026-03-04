@@ -194,14 +194,31 @@ export default function Attachment({
             // Handle .prv files (encrypted files)
             const isForwarded =
               Boolean(message.isForwarded) && message.viewType === 'File'
-            const response = await runtime.PrivittySendMessage('sendEvent', {
-              event_type: 'getFileAccessStatus',
-              event_data: {
-                chat_id: String(message.chatId),
-                file_path: message.file,
-              },
-            })
-            const fileAccessStatus = JSON.parse(response).result?.data?.status
+
+            // Normalize message.file to forward-slashes before sending to Privitty.
+            // On Windows, DeltaChat returns backslash paths (C:\...) which may not
+            // match the forward-slash paths stored in Privitty's internal database,
+            // causing getFileAccessStatus to return 'not_found' instead of 'active'.
+            const blobFilePath = (message.file || '').replace(/\\/g, '/')
+
+            const accessStatusResp = await runtime.PrivittySendMessage(
+              'sendEvent',
+              {
+                event_type: 'getFileAccessStatus',
+                event_data: {
+                  chat_id: String(message.chatId),
+                  file_path: blobFilePath,
+                },
+              }
+            )
+            const accessStatusData = JSON.parse(accessStatusResp).result?.data
+            const fileAccessStatus = accessStatusData?.status
+            // Use message metadata (isForwarded + viewType) to choose decrypt API.
+            // Do NOT use accessStatusData.is_forward — on Windows the API incorrectly
+            // returns is_forward: true for non-forwarded files, causing the wrong
+            // handler (forwardedFileDecryptRequest) to be called.
+            let decryptError: string | null = null
+
             if (!isForwarded) {
               if (direction === 'outgoing') {
                 const response = await runtime.PrivittySendMessage(
@@ -216,7 +233,16 @@ export default function Attachment({
                 )
 
                 const newResponse = JSON.parse(response)
-                filePathName = String(newResponse.result?.data?.file_path)
+                if (!newResponse.result?.success) {
+                  decryptError =
+                    newResponse.result?.message ||
+                    'File decryption failed.'
+                } else {
+                  const decryptedPath = newResponse.result?.data?.file_path
+                  if (decryptedPath && typeof decryptedPath === 'string') {
+                    filePathName = decryptedPath.replace(/\\/g, '/')
+                  }
+                }
               } else {
                 // EXPIRED
                 if (fileAccessStatus === 'expired') {
@@ -283,8 +309,6 @@ export default function Attachment({
 
                 // REVOKED
                 if (fileAccessStatus === 'revoked') {
-                  console.log(message.viewType, direction)
-
                   await confirmDialog(
                     openDialog,
                     'This file is no longer accessible. This file is revoked',
@@ -293,47 +317,63 @@ export default function Attachment({
 
                   return
                 }
-                // ACTIVE
-                if (fileAccessStatus === 'active') {
+                // ACTIVE (or not yet registered with Privitty on this device)
+                // 'not_found' / undefined means Privitty has not seen the file yet
+                // (common on Windows on first open). Attempt decryption anyway —
+                // the server will process the file during the decrypt call.
+                if (
+                  fileAccessStatus === 'active' ||
+                  !fileAccessStatus ||
+                  fileAccessStatus === 'not_found'
+                ) {
                   const basicChat = await BackendRemote.rpc.getBasicChatInfo(
-                selectedAccountId(),
-                message.chatId
-              )
+                    selectedAccountId(),
+                    message.chatId
+                  )
 
-              let decryptRequest
+                  let decryptRequest
 
-              if (basicChat.chatType === C.DC_CHAT_TYPE_GROUP) {
-                decryptRequest = await runtime.PrivittySendMessage(
-                  'sendEvent',
-                  {
-                    event_type: 'groupFileDecryptRequest',
-                    event_data: {
-                      group_chat_id: String(message.chatId),
-                      prv_file: filePathName,
-                    },
+                  if (basicChat.chatType === C.DC_CHAT_TYPE_GROUP) {
+                    decryptRequest = await runtime.PrivittySendMessage(
+                      'sendEvent',
+                      {
+                        event_type: 'groupFileDecryptRequest',
+                        event_data: {
+                          group_chat_id: String(message.chatId),
+                          prv_file: filePathName,
+                        },
+                      }
+                    )
+                  } else {
+                    decryptRequest = await runtime.PrivittySendMessage(
+                      'sendEvent',
+                      {
+                        event_type: 'fileDecryptRequest',
+                        event_data: {
+                          chat_id: String(message.chatId),
+                          prv_file: filePathName,
+                        },
+                      }
+                    )
                   }
-                )
-              } else {
-                decryptRequest = await runtime.PrivittySendMessage(
-                  'sendEvent',
-                  {
-                    event_type: 'fileDecryptRequest',
-                    event_data: {
-                      chat_id: String(message.chatId),
-                      prv_file: filePathName,
-                    },
-                  }
-                )
-              }
 
-              const newResponse = JSON.parse(decryptRequest)
-              filePathName = String(newResponse.result?.data?.file_path)
+                  const newResponse = JSON.parse(decryptRequest)
+                  if (!newResponse.result?.success) {
+                    decryptError =
+                      newResponse.result?.message ||
+                      'File decryption failed.'
+                  } else {
+                    const decryptedPath =
+                      newResponse.result?.data?.file_path
+                    if (decryptedPath && typeof decryptedPath === 'string') {
+                      filePathName = decryptedPath.replace(/\\/g, '/')
+                    }
+                  }
                 }
               }
             } else if (isForwarded) {
               // ACTIVE
               if (fileAccessStatus === 'active') {
-                console.log('This is forwarded file', fileAccessStatus)
                 const response = await runtime.PrivittySendMessage(
                   'sendEvent',
                   {
@@ -346,11 +386,20 @@ export default function Attachment({
                 )
 
                 const newResponse = JSON.parse(response)
-                filePathName = String(newResponse.result?.data?.file_path)
+                if (!newResponse.result?.success) {
+                  decryptError =
+                    newResponse.result?.message ||
+                    'File decryption failed.'
+                } else {
+                  const decryptedPath =
+                    newResponse.result?.data?.file_path
+                  if (decryptedPath && typeof decryptedPath === 'string') {
+                    filePathName = decryptedPath.replace(/\\/g, '/')
+                  }
+                }
               }
 
               if (fileAccessStatus === 'expired') {
-                console.log('This is forwarded file', fileAccessStatus)
                 const yes = await confirmDialog(
                   openDialog,
                   'This file is no longer accessible. You can request access from the owner to view it again.',
@@ -414,7 +463,6 @@ export default function Attachment({
 
               // REVOKED
               if (fileAccessStatus === 'revoked') {
-                console.log('This is forwarded file', fileAccessStatus)
                 await confirmDialog(
                   openDialog,
                   'This file is no longer accessible. This file is revoked',
@@ -423,6 +471,18 @@ export default function Attachment({
 
                 return
               }
+            }
+
+            // Safety guard: if the path still points to the encrypted .prv file
+            // it means decryption did not return a valid output path (e.g. Privitty
+            // service error, or file not yet registered).  Opening the encrypted
+            // bytes in SecurePDFViewer would give "Invalid PDF structure".
+            if (filePathName.toLowerCase().endsWith('.prv')) {
+              const errorMsg =
+                decryptError ||
+                'The file could not be decrypted. The Privitty service may not have completed the key exchange for this file yet. Please try again in a moment.'
+              await confirmDialog(openDialog, errorMsg, 'OK')
+              return
             }
 
             // Determine the correct viewer type based on file extension

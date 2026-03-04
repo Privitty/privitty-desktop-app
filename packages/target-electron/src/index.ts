@@ -108,7 +108,7 @@ import { getLogger, setLogHandler } from '../../shared/logger.js'
 const log = getLogger('main/index')
 setLogHandler(logHandler.log, rc)
 log.info(
-  `Deltachat Version ${BuildInfo.VERSION} ${BuildInfo.GIT_REF} ${BuildInfo.BUILD_TIMESTAMP}`
+  `PrivittyChat Version ${BuildInfo.VERSION} ${BuildInfo.GIT_REF} ${BuildInfo.BUILD_TIMESTAMP}`
 )
 process.on('exit', logHandler.end)
 
@@ -160,7 +160,7 @@ Promise.all([
       `[Version: ${BuildInfo.VERSION} | ${platform()} | ${arch()}]]
 ${error}
 
-Also make sure you are not trying to run multiple instances of deltachat.`
+Also make sure you are not trying to run multiple instances of Privitty Chat.`
     )
     process.exit(1)
   })
@@ -263,7 +263,7 @@ async function onReady([_appReady, _loadedState, _appx, _webxdc_cleanup]: [
           )
           hideDeltaChat()
         } else {
-          log.debug("mainWindow.window.on('close') Quitting deltachat")
+          log.debug("mainWindow.window.on('close') Quitting Privitty Chat")
           quit(e)
         }
       }
