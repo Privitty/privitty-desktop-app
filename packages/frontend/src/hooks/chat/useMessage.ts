@@ -178,7 +178,10 @@ export default function useMessage() {
           try {
             if (await runtime.checkFileExists(sharedData.encryptedFilePath)) {
               await runtime.deleteEncryptedFile(sharedData.encryptedFilePath)
-              log.debug('Encrypted file deleted after send:', sharedData.encryptedFilePath)
+              log.debug(
+                'Encrypted file deleted after send:',
+                sharedData.encryptedFilePath
+              )
             }
           } catch (err) {
             log.error('Failed to delete encrypted file after send:', err)
@@ -207,7 +210,7 @@ export default function useMessage() {
         allowedTime: '',
         FileDirectory: '',
         oneTimeKey: '',
-        encryptedFilePath: ''
+        encryptedFilePath: '',
       })
     },
     [jumpToMessage, sharedData, setSharedData]

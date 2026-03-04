@@ -221,16 +221,34 @@ export default function Attachment({
 
             if (!isForwarded) {
               if (direction === 'outgoing') {
-                const response = await runtime.PrivittySendMessage(
-                  'sendEvent',
-                  {
-                    event_type: 'fileDecryptRequest',
-                    event_data: {
-                      chat_id: String(message.chatId),
-                      prv_file: filePathName,
-                    },
-                  }
+                const basicChat = await BackendRemote.rpc.getBasicChatInfo(
+                  selectedAccountId(),
+                  message.chatId
                 )
+                let decryptRequest
+                if (basicChat.chatType === C.DC_CHAT_TYPE_GROUP) {
+                  decryptRequest = await runtime.PrivittySendMessage(
+                    'sendEvent',
+                    {
+                      event_type: 'groupFileDecryptRequest',
+                      event_data: {
+                        group_chat_id: String(message.chatId),
+                        prv_file: filePathName,
+                      },
+                    }
+                  )
+                } else {
+                  decryptRequest = await runtime.PrivittySendMessage(
+                    'sendEvent',
+                    {
+                      event_type: 'fileDecryptRequest',
+                      event_data: {
+                        chat_id: String(message.chatId),
+                        prv_file: filePathName,
+                      },
+                    }
+                  )
+                }
 
                 const newResponse = JSON.parse(response)
                 if (!newResponse.result?.success) {
