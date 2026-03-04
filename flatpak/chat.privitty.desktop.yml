@@ -1,0 +1,46 @@
+# Flatpak manifest for PrivittyChat (Electron).
+# Flathub builds from this. Uses pre-built linux-unpacked from GitHub Release
+# (your CI must produce that tarball; see docs/FLATHUB.md).
+#
+# Build: flatpak run --command=flathub-build org.flatpak.Builder --install flatpak/chat.privitty.desktop.yml
+# Lint:  flatpak run --command=flatpak-builder-lint org.flatpak.Builder manifest flatpak/chat.privitty.desktop.yml
+
+app-id: chat.privitty.desktop
+runtime: org.freedesktop.Platform
+runtime-version: '24.08'
+sdk: org.freedesktop.Sdk
+base: org.electronjs.Electron2.BaseApp
+base-version: '24.08'
+
+build-options:
+  cflags: -O2 -g
+  cxxflags: -O2 -g
+  env:
+    NPM_CONFIG_LOGLEVEL: info
+
+command: run.sh
+
+finish-args:
+  - --share=ipc
+  - --device=dri
+  - --socket=x11
+  - --socket=pulseaudio
+  - --share=network
+  - --env=ELECTRON_TRASH=gio
+  - --env=XCURSOR_PATH=/run/host/user-share/icons:/run/host/share/icons
+
+modules:
+  - name: privitty-desktop
+    buildsystem: simple
+    sources:
+      - type: script
+        dest-filename: run.sh
+        commands:
+          - zypak-wrapper /app/main/privittychat "$@"
+      - type: archive
+        url: https://github.com/YOUR_ORG/YOUR_REPO/releases/download/v1.0.0/PrivittyChat-1.0.0-linux-unpacked.tar.gz
+        sha256: PUT_SHA256_OF_LINUX_UNPACKED_TARBALL_HERE
+        dest: linux-unpacked
+    build-commands:
+      - cp -a linux-unpacked /app/main
+      - install -Dm755 -t /app/bin run.sh

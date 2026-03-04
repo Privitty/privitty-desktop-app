@@ -251,8 +251,18 @@ jobs:
         run: |
           pnpm exec electron-builder \
             --config ./electron-builder.json5 \
-            --linux AppImage deb \
+            --linux dir AppImage deb \
             --publish never
+
+      - name: Create linux-unpacked tarball for Flathub
+        working-directory: packages/target-electron
+        run: |
+          VERSION=$(node -p "require('./package.json').version")
+          DIR="dist/linux-unpacked"
+          TARBALL="dist/PrivittyChat-${VERSION}-linux-unpacked.tar.gz"
+          tar -czf "$TARBALL" -C dist linux-unpacked
+          echo "TARBALL=$TARBALL" >> $GITHUB_ENV
+          echo "Created $TARBALL for Flathub manifest"
 
       - name: Upload Linux artifacts
         uses: actions/upload-artifact@v4
@@ -261,4 +271,5 @@ jobs:
           path: |
             packages/target-electron/dist/*.AppImage
             packages/target-electron/dist/*.deb
+            packages/target-electron/dist/PrivittyChat-*-linux-unpacked.tar.gz
           retention-days: 45
