@@ -28,6 +28,7 @@
     "translations:update": "pnpm translations:pull && pnpm translations:convert && node ./bin/find_complete_translations.js",
     "update:target-versions": "node ./bin/update_desktop_version.js && prettier --write --log-level=silent \"packages/target**/package.json\"",
     "check:target-versions": "node ./bin/update_desktop_version.js --check",
+    "validate:images": "node ./bin/validate-privitty-images.js",
     "test": "pnpm -r --no-bail test",
     "test-and-check": "pnpm test && pnpm check",
     "e2e": "pnpm build:browser && pnpm --filter=e2e-tests e2e",
