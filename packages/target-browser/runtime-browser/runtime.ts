@@ -419,7 +419,7 @@ class BrowserRuntime implements Runtime {
 
     let icon = (() => {
       const url = new URL(location.origin)
-      url.pathname = 'images/deltachat.png'
+      url.pathname = 'images/privittychat.png'
       return url.toString()
     })()
 

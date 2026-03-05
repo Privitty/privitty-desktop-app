@@ -88,7 +88,7 @@ app.use(express.static(DIST_DIR))
 app.use('/locales', express.static(LOCALES_DIR))
 
 app.get('/favicon.ico', (_req, res) =>
-  res.sendFile(join(DIST_DIR, 'images/deltachat.ico'))
+  res.sendFile(join(DIST_DIR, 'images/privittychat.ico'))
 )
 
 app.post(

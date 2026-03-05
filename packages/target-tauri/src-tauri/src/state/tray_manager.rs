@@ -119,8 +119,8 @@ impl TrayManager {
         let lock = self.tray.read().await;
         if let Some(tray) = lock.as_ref() {
             let image_name = match counter {
-                0 => "deltachat",
-                _ => "deltachat-unread",
+                0 => "privittychat",
+                _ => "privittychat-unread",
             };
             let asset = format!("images/tray/{image_name}.{ending}");
 
