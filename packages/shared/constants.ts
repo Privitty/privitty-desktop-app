@@ -1,9 +1,9 @@
-export const appName = 'Delta Chat'
-export const homePageUrl = 'https://delta.chat'
-export const gitHubUrl = 'https://github.com/deltachat/deltachat-desktop'
+export const appName = 'Privitty Chat'
+export const homePageUrl = 'https://privittytech.com'
+export const gitHubUrl = 'https://github.com/Privitty/privitty-desktop'
 export const gitHubIssuesUrl = gitHubUrl + '/issues'
 export const gitHubLicenseUrl = gitHubUrl + '/blob/main/LICENSE'
-export const donationUrl = 'https://delta.chat/donate'
+export const donationUrl = 'https://privittytech.com/donate'
 
 export const appWindowTitle = appName
 

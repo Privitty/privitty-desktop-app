@@ -100,12 +100,15 @@ export default function SecurePDFViewer(props: Props & DialogProps) {
         // eslint-disable-next-line @typescript-eslint/no-require-imports -- Node.js path in Electron
         const path = require('path')
 
-        // Normalize file path
-        let normalizedPath = filePath.replace(/^file:\/\//, '')
-        if (normalizedPath.startsWith('/')) {
-          normalizedPath = normalizedPath.substring(1)
-        }
-        normalizedPath = path.resolve(normalizedPath)
+        // Strip any file:// or file:/// prefix, then resolve to an absolute path.
+        // NOTE: do NOT strip the leading '/' from POSIX absolute paths — doing so
+        // would make the path relative and path.resolve() would resolve it from
+        // cwd instead of the filesystem root.
+        const stripped = filePath
+          .replace(/^file:\/\/\//, '') // file:///C:/... or file:////...
+          .replace(/^file:\/\//, '') // file:// (no third slash)
+          .replace(/\\/g, '/') // normalise Windows back-slashes
+        const normalizedPath = path.resolve(stripped)
 
         // Check if file exists and read it
         if (!fs.existsSync(normalizedPath)) {
