@@ -7,6 +7,19 @@ import { isImage, isVideo } from '../attachment/Attachment'
 import { msgStatus } from '../../types-app'
 import useTranslationFunction from '../../hooks/useTranslationFunction'
 
+type PrivittyStatus =
+  | 'active'
+  | 'requested'
+  | 'expired'
+  | 'revoked'
+  | 'deleted'
+  | 'waiting_owner_action'
+  | 'denied'
+  | 'not_found'
+  | 'none'
+  | 'error'
+  | undefined
+
 type Props = {
   padlock: boolean
   fileMime: string | null
@@ -20,17 +33,44 @@ type Props = {
   tabindexForInteractiveContents: -1 | 0
   viewType: T.Viewtype
   isSavedMessage: boolean
-  privittyStatus:
-    | 'invalid state'
-    | 'active'
-    | 'blocked'
-    | 'requested'
-    | 'relay'
-    | 'none'
-    | 'revoked'
-    | undefined
+  privittyStatus?: PrivittyStatus
 }
 
+function getPrivittyStatusIcon(
+  privittyStatus: PrivittyStatus,
+  hasText: boolean,
+  direction?: 'incoming' | 'outgoing'
+): 'active' | 'loading' | 'error' | 'blocked' | null {
+  const isFile = !hasText
+
+  // All outgoing messages → active
+  if (direction === 'outgoing') {
+    return 'active'
+  }
+
+  // Incoming text → active
+  if (!isFile) {
+    return 'active'
+  }
+
+  // Incoming file → check privitty status
+  switch (privittyStatus) {
+    case 'active':
+      return 'active'
+
+    case 'expired':
+      return 'error'
+
+    case 'requested':
+      return 'loading'
+
+    case 'revoked':
+      return 'blocked'
+
+    default:
+      return null
+  }
+}
 export default function MessageMetaData(props: Props) {
   const tx = useTranslationFunction()
 
@@ -50,6 +90,10 @@ export default function MessageMetaData(props: Props) {
     privittyStatus,
   } = props
 
+  console.log('Privitty Status:', privittyStatus)
+
+  const privittyIcon = getPrivittyStatusIcon(privittyStatus, hasText, direction)
+
   return (
     <div
       className={classNames('metadata', {
@@ -60,17 +104,6 @@ export default function MessageMetaData(props: Props) {
         ),
       })}
     >
-      {/* FYI the padlock doesn't need `aria-live`
-      as we don't expect it to get removed. See
-      https://github.com/deltachat/deltachat-desktop/pull/5023#discussion_r2059382983 */}
-      {privittyStatus != 'none' && privittyStatus != undefined && (
-        <div
-          aria-label='Privitty status'
-          aria-hidden={true}
-          className={classNames('privitty-status-icon', privittyStatus)}
-        />
-      )}
-
       {padlock && (
         <div
           aria-label={tx('a11y_encryption_padlock')}
@@ -107,6 +140,17 @@ export default function MessageMetaData(props: Props) {
         module='date'
       />
       <span className='spacer' />
+
+      {privittyIcon && (
+        <div
+          aria-label='Privitty status'
+          aria-hidden={true}
+          className={classNames('privitty-status-icon', privittyIcon)}
+        />
+      )}
+
+      <span className='spacer' />
+
       {direction === 'outgoing' && (
         <button
           className={classNames('status-icon', status)}

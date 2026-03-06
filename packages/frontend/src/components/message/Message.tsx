@@ -236,7 +236,11 @@ const ForwardedTitle = ({
           }}
           aria-label='File Access Status'
         >
-          <Icon icon='bell' size={20} />
+          <div
+            aria-label='Privitty status'
+            aria-hidden={true}
+            className={classNames('privitty-bell-icon')}
+          />
         </button>
       )}
     </div>
@@ -1267,7 +1271,7 @@ export default function Message(props: {
             onClickError={openMessageInfo.bind(null, openDialog, message)}
             viewType={'VideochatInvitation'}
             tabindexForInteractiveContents={tabindexForInteractiveContents}
-            privittyStatus='none'
+            privittyStatus={privittyStatus}
           />
         </div>
       </div>
@@ -1558,6 +1562,7 @@ export default function Message(props: {
             onClickError={openMessageInfo.bind(null, openDialog, message)}
             viewType={message.viewType}
             tabindexForInteractiveContents={tabindexForInteractiveContents}
+            privittyStatus={privittyStatus}
           />
           <div
             // TODO the "+1" count aria-live announcment is perhaps not great

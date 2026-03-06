@@ -5,7 +5,7 @@ import useTranslationFunction from '../../hooks/useTranslationFunction'
 import { avatarInitial } from '../Avatar'
 import { basename } from 'path'
 import type { DialogProps } from '../../contexts/DialogContext'
-import Icon from '../Icon'
+import classNames from 'classnames'
 import useDialog from '../../hooks/dialog/useDialog'
 import { selectedAccountId } from '../../ScreenController'
 import { BackendRemote } from '../../backend-com'
@@ -601,7 +601,11 @@ export default function FileAccessStatusDialog({
                   cursor: 'pointer',
                 }}
               >
-                <Icon icon='blocked' size={20} coloring='#fff' />
+                <div
+                  aria-label='Blocked'
+                  aria-hidden={true}
+                  className={classNames('privitty-blocked-icon')}
+                />
               </button>
             )}
             {/* Lock button — shown for pending access requests */}
@@ -622,7 +626,11 @@ export default function FileAccessStatusDialog({
                   cursor: 'pointer',
                 }}
               >
-                <Icon icon='lock' size={20} coloring='#fff' />
+                <div
+                  aria-label='Lock'
+                  aria-hidden={true}
+                  className={classNames('privitty-lock-icon')}
+                />
               </button>
             )}
           </div>

@@ -5,6 +5,7 @@ import styles from './styles.module.scss'
 
 export type IconName =
   | 'apps'
+  | 'active'
   | 'arrow-left'
   | 'blocked'
   | 'leave'
@@ -27,6 +28,7 @@ export type IconName =
   | 'devices'
   | 'download'
   | 'edit'
+  | 'error'
   | 'eye-off'
   | 'eye-open'
   | 'favorite'
