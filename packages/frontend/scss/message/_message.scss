@@ -4,6 +4,7 @@
 .message-wrapper {
   --shortcut-menu-visibility: hidden;
   --shortcut-menu-multiplier: 0;
+
   &:hover {
     --shortcut-menu-visibility: visible;
     --shortcut-menu-multiplier: 1;
@@ -18,7 +19,7 @@
   align-items: stretch;
   max-width: 75%;
 
-  & > .author-avatar {
+  &>.author-avatar {
     @include mixins.button-reset;
 
     align-self: flex-end;
@@ -39,7 +40,7 @@
       // text letter version
       text-align: center;
 
-      & > .label {
+      &>.label {
         user-select: none;
         color: var(--avatarLabelColor);
         --local-avatar-color: #bcbac9;
@@ -54,21 +55,16 @@
         line-height: 36px;
         cursor: pointer;
 
-        @supports (
-          // text-wrap was introduced in 2023 slightly after color-mix,
+        @supports ( // text-wrap was introduced in 2023 slightly after color-mix,
+
           // since we can't test for color-mix support directly we use this instead.
-          text-wrap: wrap
-        ) {
+          text-wrap: wrap) {
           // make avatars look slightly 3D
-          background: linear-gradient(
-            var(--avatarGradientAngle),
-            var(--local-avatar-color),
-            color-mix(
-              in srgb,
-              var(--local-avatar-color) var(--avatarGradientMixFactor),
-              white
-            )
-          );
+          background: linear-gradient(var(--avatarGradientAngle),
+              var(--local-avatar-color),
+              color-mix(in srgb,
+                var(--local-avatar-color) var(--avatarGradientMixFactor),
+                white));
         }
       }
     }
@@ -91,12 +87,12 @@
         @include mixins.button-reset;
         display: block;
 
-        > .text {
+        >.text {
           cursor: pointer;
         }
       }
 
-      & > .text {
+      &>.text {
         // color: var(--messageText);
         font-size: 14px;
         line-height: 18px;
@@ -121,10 +117,12 @@
         // firefox does not support this, but chromium and webkit do https://caniuse.com/?search=user-drag
         -webkit-user-drag: none;
       }
+
       div.name {
         font-size: medium;
         font-weight: 300;
       }
+
       div.experimental {
         color: var(--colorDanger);
         background: var(--contextMenuBg);
@@ -152,6 +150,7 @@
     background-color: transparent;
     padding-left: 0;
     color: var(--colorPrimary);
+
     &:hover {
       cursor: pointer;
     }
@@ -174,69 +173,94 @@
 
 // States that modify the message bubble appearance
 
+.privitty-bell-icon {
+  width: 16px;
+  height: 16px;
+  display: inline-block;
+
+  @include mixins.color-svg('./images/icons/bell.svg',
+    #fff,
+    125%);
+}
+
+.privitty-lock-icon,
+.privitty-blocked-icon {
+  width: 20px;
+  height: 20px;
+  display: inline-block;
+}
+
+.privitty-lock-icon {
+  margin-left: -3px;
+}
+
+.privitty-lock-icon {
+  @include mixins.color-svg('./images/icons/lock.svg',
+    #fff,
+    100%);
+}
+
+.privitty-blocked-icon {
+  @include mixins.color-svg('./images/icons/blocked.svg',
+    #fff,
+    100%);
+}
+
+/* Icon uses mask + background-color (not fill) - override so bell is white */
+.file-access-bell-button>span {
+  background-color: #fff !important;
+}
+
 .message.incoming {
   margin-left: 0;
 
   .metadata:not(.with-image-no-caption) {
     .privitty-status-icon.active {
-      @include mixins.color-svg(
-        './images/active.svg',
+      @include mixins.color-svg('./images/active.svg',
         var(--messageMetadataIconColorIncoming),
-        125%
-      );
+        100%);
     }
-    .privitty-status-icon.revoked {
-      @include mixins.color-svg(
-        './images/blocked.svg',
+
+    .privitty-status-icon.error {
+      @include mixins.color-svg('./images/error.svg',
         var(--messageMetadataIconColorIncoming),
-        125%
-      );
+        100%);
     }
+
     .privitty-status-icon.blocked {
-      @include mixins.color-svg(
-        './images/blocked.svg',
+      @include mixins.color-svg('./images/blocked.svg',
         var(--messageMetadataIconColorIncoming),
-        125%
-      );
+        100%);
     }
-    .privitty-status-icon.requested {
-      @include mixins.color-svg(
-        './images/progress.svg',
+
+    .privitty-status-icon.loading {
+      @include mixins.color-svg('./images/loading.svg',
         var(--messageMetadataIconColorIncoming),
-        125%
-      );
+        100%);
     }
 
     .privitty-status-icon.relay {
-      @include mixins.color-svg(
-        './images/relay.svg',
+      @include mixins.color-svg('./images/relay.svg',
         var(--messageMetadataIconColorIncoming),
-        125%
-      );
+        100%);
     }
 
     .padlock-icon {
-      @include mixins.color-svg(
-        './images/padlock.svg',
+      @include mixins.color-svg('./images/padlock.svg',
         var(--messageMetadataIconColorIncoming),
-        125%
-      );
+        100%);
     }
 
     .location-icon {
-      @include mixins.color-svg(
-        './images/map-marker.svg',
+      @include mixins.color-svg('./images/map-marker.svg',
         var(--messageMetadataIconColorIncoming),
-        100%
-      );
+        100%);
     }
 
     .saved-message-icon {
-      @include mixins.color-svg(
-        './images/icons/bookmark-filled.svg',
+      @include mixins.color-svg('./images/icons/bookmark-filled.svg',
         var(--messageMetadataIconColorIncoming),
-        100%
-      );
+        100%);
     }
 
     .date,
@@ -253,6 +277,7 @@
     .message-attachment-media {
       border-bottom-left-radius: 1px;
     }
+
     .msg-body {
       color: var(--messageIncomingTextColor);
 
@@ -266,6 +291,7 @@
             .name {
               color: white;
             }
+
             .size {
               color: white;
             }
@@ -282,70 +308,58 @@
   margin-right: 0;
 
   .metadata:not(.with-image-no-caption) {
+
     .date,
     .edited {
       color: var(--messageOutgoingStatusColor);
     }
 
     .privitty-status-icon.active {
-      @include mixins.color-svg(
-        './images/active.svg',
+      @include mixins.color-svg('./images/active.svg',
         var(--messageMetadataIconColorOutgoing),
-        125%
-      );
+        100%);
     }
-    .privitty-status-icon.revoked {
-      @include mixins.color-svg(
-        './images/blocked.svg',
+
+    .privitty-status-icon.error {
+      @include mixins.color-svg('./images/error.svg',
         var(--messageMetadataIconColorOutgoing),
-        125%
-      );
+        100%);
     }
+
     .privitty-status-icon.blocked {
-      @include mixins.color-svg(
-        './images/blocked.svg',
+      @include mixins.color-svg('./images/blocked.svg',
         var(--messageMetadataIconColorOutgoing),
-        125%
-      );
+        100%);
     }
-    .privitty-status-icon.requested {
-      @include mixins.color-svg(
-        './images/progress.svg',
+
+    .privitty-status-icon.loading {
+      @include mixins.color-svg('./images/loading.svg',
         var(--messageMetadataIconColorOutgoing),
-        125%
-      );
+        100%);
     }
 
     .privitty-status-icon.relay {
-      @include mixins.color-svg(
-        './images/relay.svg',
+      @include mixins.color-svg('./images/relay.svg',
         var(--messageMetadataIconColorIncoming),
-        125%
-      );
+        100%);
     }
 
     .padlock-icon {
-      @include mixins.color-svg(
-        './images/padlock.svg',
+      @include mixins.color-svg('./images/padlock.svg',
         var(--messageMetadataIconColorIncoming),
-        125%
-      );
+        100%);
     }
 
     .location-icon {
-      @include mixins.color-svg(
-        './images/map-marker.svg',
+      @include mixins.color-svg('./images/map-marker.svg',
         var(--messageMetadataIconColorOutgoing),
-        100%
-      );
+        100%);
     }
 
     .saved-message-icon {
-      @include mixins.color-svg(
-        './images/icons/bookmark-filled.svg',
+      @include mixins.color-svg('./images/icons/bookmark-filled.svg',
         var(--messageMetadataIconColorOutgoing),
-        100%
-      );
+        100%);
     }
 
     .status-icon.read,
@@ -353,7 +367,8 @@
       background-color: var(--messageOutgoingStatusColor);
     }
   }
-  .metadata.with-image-no-caption > .status-icon {
+
+  .metadata.with-image-no-caption>.status-icon {
     background-color: white;
   }
 
@@ -365,6 +380,7 @@
     .file-access-bell-button {
       color: #fff;
     }
+
     .msg-body {
       color: var(--messageOutgoingTextColor);
 
@@ -379,6 +395,7 @@
             .name {
               color: #010101;
             }
+
             .size {
               color: #010101;
             }
@@ -407,7 +424,7 @@
       padding-left: 6px;
       border-radius: 7px;
 
-      & > .quote {
+      &>.quote {
         margin: 0;
       }
     }
@@ -417,7 +434,8 @@
     background-color: transparent;
     // no border radius for stickers
     border-radius: 0px;
-    & > .attachment-content {
+
+    &>.attachment-content {
       // Make space for the footer, which is `position: absolute;`.
       // However, this does not account for the case
       // where the footer text wraps.
@@ -437,33 +455,35 @@
   }
 
   .metadata {
+
     .date,
     .edited {
       font-size: 11px;
       color: white;
     }
+
     .privitty-status-icon.active {
-      @include mixins.color-svg('./images/active.svg', rgb(0, 0, 0), 125%);
+      @include mixins.color-svg('./images/active.svg', rgb(0, 0, 0), 100%);
     }
 
     .privitty-status-icon.blocked {
-      @include mixins.color-svg('./images/blocked.svg', rgb(0, 0, 0), 125%);
+      @include mixins.color-svg('./images/blocked.svg', rgb(0, 0, 0), 100%);
     }
 
-    .privitty-status-icon.revoked {
-      @include mixins.color-svg('./images/blocked.svg', rgb(0, 0, 0), 125%);
+    .privitty-status-icon.error {
+      @include mixins.color-svg('./images/error.svg', rgb(0, 0, 0), 100%);
     }
 
-    .privitty-status-icon.requested {
-      @include mixins.color-svg('./images/progress.svg', rgb(0, 0, 0), 125%);
+    .privitty-status-icon.loading {
+      @include mixins.color-svg('./images/loading.svg', rgb(0, 0, 0), 100%);
     }
 
     .privitty-status-icon.relay {
-      @include mixins.color-svg('./images/relay.svg', rgb(0, 0, 0), 125%);
+      @include mixins.color-svg('./images/relay.svg', rgb(0, 0, 0), 100%);
     }
 
     .padlock-icon {
-      @include mixins.color-svg('./images/padlock.svg', white, 125%);
+      @include mixins.color-svg('./images/padlock.svg', white, 100%);
     }
 
     .location-icon {
@@ -471,11 +491,9 @@
     }
 
     .saved-message-icon {
-      @include mixins.color-svg(
-        './images/icons/bookmark-filled.svg',
+      @include mixins.color-svg('./images/icons/bookmark-filled.svg',
         white,
-        100%
-      );
+        100%);
     }
   }
 
@@ -570,7 +588,7 @@
     }
   }
 
-  &.interactive > .bubble {
+  &.interactive>.bubble {
     cursor: pointer;
 
     &:hover,
@@ -580,8 +598,9 @@
     }
   }
 
-  &.webxdc-info > .bubble {
+  &.webxdc-info>.bubble {
     padding: 7px 8px;
+
     img {
       height: 18px;
       width: 18px;
@@ -592,7 +611,7 @@
     }
   }
 
-  &.big > .bubble {
+  &.big>.bubble {
     max-width: 550px;
     font-size: 1rem;
     padding: 2rem;
@@ -712,7 +731,7 @@
 }
 
 .quoted-text,
-.msg-body > .text {
+.msg-body>.text {
   a {
     text-decoration: underline;
     color: var(--messageTextLink);
@@ -721,7 +740,7 @@
 
 /* This is for making links in quoted texts unclickable and
    have an appereance like the rest of text in there */
-.quoted-text > a {
+.quoted-text>a {
   pointer-events: none;
   text-decoration: none;
   color: var(--messageQuotedText);
@@ -731,6 +750,7 @@
   &.can-hide {
     display: none;
   }
+
   .author {
     @include mixins.button-reset;
 
@@ -747,6 +767,7 @@
     cursor: pointer;
   }
 }
+
 .videochat-invitation {
   display: flex;
   flex-wrap: wrap;
@@ -760,6 +781,7 @@
     margin: 8px 0px;
     margin-right: 10px;
   }
+
   .break {
     flex-basis: 100%;
     height: 0;
@@ -780,6 +802,7 @@
     border-radius: 10px;
 
     cursor: pointer;
+
     .join-button {
       @include mixins.button-reset;
 
@@ -827,11 +850,9 @@
       }
 
       .saved-message-icon {
-        @include mixins.color-svg(
-          './images/icons/bookmark-filled.svg',
+        @include mixins.color-svg('./images/icons/bookmark-filled.svg',
           white,
-          100%
-        );
+          100%);
       }
 
       .date,

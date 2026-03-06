@@ -250,11 +250,10 @@ export default function Attachment({
                   )
                 }
 
-                const newResponse = JSON.parse(response)
+                const newResponse = JSON.parse(decryptRequest)
                 if (!newResponse.result?.success) {
                   decryptError =
-                    newResponse.result?.message ||
-                    'File decryption failed.'
+                    newResponse.result?.message || 'File decryption failed.'
                 } else {
                   const decryptedPath = newResponse.result?.data?.file_path
                   if (decryptedPath && typeof decryptedPath === 'string') {
@@ -378,11 +377,9 @@ export default function Attachment({
                   const newResponse = JSON.parse(decryptRequest)
                   if (!newResponse.result?.success) {
                     decryptError =
-                      newResponse.result?.message ||
-                      'File decryption failed.'
+                      newResponse.result?.message || 'File decryption failed.'
                   } else {
-                    const decryptedPath =
-                      newResponse.result?.data?.file_path
+                    const decryptedPath = newResponse.result?.data?.file_path
                     if (decryptedPath && typeof decryptedPath === 'string') {
                       filePathName = decryptedPath.replace(/\\/g, '/')
                     }
@@ -406,11 +403,9 @@ export default function Attachment({
                 const newResponse = JSON.parse(response)
                 if (!newResponse.result?.success) {
                   decryptError =
-                    newResponse.result?.message ||
-                    'File decryption failed.'
+                    newResponse.result?.message || 'File decryption failed.'
                 } else {
-                  const decryptedPath =
-                    newResponse.result?.data?.file_path
+                  const decryptedPath = newResponse.result?.data?.file_path
                   if (decryptedPath && typeof decryptedPath === 'string') {
                     filePathName = decryptedPath.replace(/\\/g, '/')
                   }

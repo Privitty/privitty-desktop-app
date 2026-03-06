@@ -21,35 +21,33 @@
     }
 
     .privitty-status-icon.active {
-      @include mixins.color-svg('./images/active.svg', rgb(0, 0, 0), 125%);
+      @include mixins.color-svg('./images/active.svg', rgb(0, 0, 0), 100%);
+    }
+
+    .privitty-status-icon.error {
+      @include mixins.color-svg('./images/error.svg', rgb(0, 0, 0), 100%);
     }
 
     .privitty-status-icon.blocked {
-      @include mixins.color-svg('./images/blocked.svg', rgb(0, 0, 0), 125%);
+      @include mixins.color-svg('./images/blocked.svg', rgb(0, 0, 0), 100%);
     }
 
-    .privitty-status-icon.revoked {
-      @include mixins.color-svg('./images/blocked.svg', rgb(0, 0, 0), 125%);
-    }
-
-    .privitty-status-icon.requested {
-      @include mixins.color-svg('./images/progress.png', rgb(0, 0, 0), 125%);
+    .privitty-status-icon.loading {
+      @include mixins.color-svg('./images/icons/loading.svg', rgb(0, 0, 0), 100%);
     }
 
     .privitty-status-icon.relay {
-      @include mixins.color-svg('./images/relay.png', rgb(0, 0, 0), 125%);
+      @include mixins.color-svg('./images/relay.png', rgb(0, 0, 0), 100%);
     }
 
     .padlock-icon {
-      @include mixins.color-svg('./images/padlock.svg', white, 125%);
+      @include mixins.color-svg('./images/padlock.svg', white, 100%);
     }
 
     .saved-message-icon {
-      @include mixins.color-svg(
-        './images/icons/bookmark-filled.svg',
+      @include mixins.color-svg('./images/icons/bookmark-filled.svg',
         white,
-        100%
-      );
+        100%);
     }
 
     .status-icon.sending {
@@ -74,6 +72,7 @@
     letter-spacing: 0.3px;
     color: var(--messageMetadataDate);
   }
+
   .edited {
     // Assumes that there is always a date after it.
     margin-inline-end: 0.5ch;
@@ -84,10 +83,10 @@
   }
 
   .privitty-status-icon.active,
-  .privitty-status-icon.blocked,
-  .privitty-status-icon.requested,
+  .privitty-status-icon.error,
+  .privitty-status-icon.loading,
   .privitty-status-icon.relay,
-  .privitty-status-icon.revoked,
+  .privitty-status-icon.blocked,
   .padlock-icon,
   .location-icon,
   .saved-message-icon {
@@ -95,6 +94,7 @@
     height: 12px;
     display: inline-block;
     margin-right: 2px;
+    margin-left: 2px;
     margin-bottom: 3px;
   }
 
