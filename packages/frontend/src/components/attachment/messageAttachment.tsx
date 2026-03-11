@@ -211,8 +211,11 @@ export default function Attachment({
                 },
               }
             )
+
             const accessStatusData = JSON.parse(accessStatusResp).result?.data
             const fileAccessStatus = accessStatusData?.status
+            const canDownload =
+              !!accessStatusData && accessStatusData.is_download === true
             // Use message metadata (isForwarded + viewType) to choose decrypt API.
             // Do NOT use accessStatusData.is_forward — on Windows the API incorrectly
             // returns is_forward: true for non-forwarded files, causing the wrong
@@ -535,7 +538,8 @@ export default function Attachment({
               openDialog,
               filePathName,
               message.fileName || '',
-              viewerType
+              viewerType,
+              canDownload
             )
           } catch (error) {
             console.error('Error opening media in secure viewer:', error)

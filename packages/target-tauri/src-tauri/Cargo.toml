@@ -1,7 +1,7 @@
 [package]
 name = "deltachat-tauri"
 version = "1.0.1"
-description = "Delta Chat Desktop: Tauri Edition. Secure, cross-platform, decentralized super-app messenger."
+description = "Privitty Chat Desktop: Tauri Edition. Secure, cross-platform, decentralized super-app messenger."
 authors = ["DeltaChat Contributors"]
 edition = "2021"
 rust-version = "1.85"

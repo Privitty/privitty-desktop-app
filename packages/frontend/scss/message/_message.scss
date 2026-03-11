@@ -149,7 +149,7 @@
     border: none;
     background-color: transparent;
     padding-left: 0;
-    color: var(--colorPrimary);
+    color: #fff;
 
     &:hover {
       cursor: pointer;
@@ -377,6 +377,10 @@
     --messageBg: var(--messageOutgoingBg);
 
     &,
+    .message-attachment-media {
+      border-bottom-right-radius: 1px;
+    }
+
     .file-access-bell-button {
       color: #fff;
     }

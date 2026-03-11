@@ -4,18 +4,21 @@ import Dialog from '../Dialog'
 import { IconButton } from '../Icon'
 import { getLogger } from '../../../../shared/logger'
 import useTranslationFunction from '../../hooks/useTranslationFunction'
+import { runtime } from '@deltachat-desktop/runtime-interface'
 
 import type { DialogProps } from '../../contexts/DialogContext'
+import { basename } from 'path'
 
 const log = getLogger('renderer/secure_image_viewer')
 
 type Props = {
   filePath: string
   fileName: string
+  canDownload?: boolean
 }
 
 export default function SecureImageViewer(props: Props & DialogProps) {
-  const { filePath, fileName, onClose } = props
+  const { filePath, fileName, canDownload, onClose } = props
   const tx = useTranslationFunction()
 
   const [loading, setLoading] = useState(true)
@@ -85,6 +88,24 @@ export default function SecureImageViewer(props: Props & DialogProps) {
     setLoading(false)
   }
 
+  const cleanFileName = (name: string) => name.replace(/\.prv(?=\.)/, '')
+
+  const onDownload = async () => {
+    try {
+      const cleanPath = cleanFileName(filePath)
+
+      const ext = cleanPath.split('.').pop() || 'png'
+      const base = basename(cleanPath, `.${ext}`)
+      const name = `${base}.${ext}`
+
+      await runtime.downloadFile(filePath, name)
+
+      log.info('Secure image downloaded', { filePath, name })
+    } catch (err) {
+      log.error('Secure image download failed', err)
+    }
+  }
+
   const handleKeyDown = (e: React.KeyboardEvent) => {
     // Prevent copy shortcuts
     if ((e.ctrlKey || e.metaKey) && (e.key === 'c' || e.key === 'a')) {
@@ -100,7 +121,17 @@ export default function SecureImageViewer(props: Props & DialogProps) {
     <Dialog onClose={onClose} className='secure-image-viewer'>
       <div className='secure-image-viewer-header'>
         <h2>{fileName}</h2>
-        <IconButton icon='cross' onClick={onClose} aria-label={tx('close')} />
+
+        <div className='secure-image-viewer-header-actions'>
+          {canDownload && (
+            <IconButton
+              icon='download'
+              onClick={onDownload}
+              aria-label={tx('download')}
+            />
+          )}
+          <IconButton icon='cross' onClick={onClose} aria-label={tx('close')} />
+        </div>
       </div>
 
       <div

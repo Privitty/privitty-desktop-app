@@ -6,6 +6,8 @@ import Icon from '../Icon'
 import { getLogger } from '../../../../shared/logger'
 import { useInitEffect } from '../helpers/hooks'
 import useTranslationFunction from '../../hooks/useTranslationFunction'
+import { runtime } from '@deltachat-desktop/runtime-interface'
+import { basename } from 'path'
 
 import type { DialogProps } from '../../contexts/DialogContext'
 
@@ -39,10 +41,11 @@ interface PDFRenderTask {
 type Props = {
   filePath: string
   fileName: string
+  canDownload?: boolean
 }
 
 export default function SecurePDFViewer(props: Props & DialogProps) {
-  const { filePath, fileName, onClose } = props
+  const { filePath, fileName, canDownload, onClose } = props
   const tx = useTranslationFunction()
 
   const [pdf, setPdf] = useState<PDFDocumentProxy | null>(null)
@@ -282,6 +285,26 @@ export default function SecurePDFViewer(props: Props & DialogProps) {
     setScale(1)
   }, [])
 
+  const onDownload = async () => {
+    try {
+      let name = fileName || basename(filePath) || 'document.pdf'
+
+      // remove all .prv
+      name = name.replace(/\.prv/g, '')
+
+      // ensure pdf extension
+      if (!name.endsWith('.pdf')) {
+        name = `${name}.pdf`
+      }
+
+      await runtime.downloadFile(filePath, name)
+
+      log.info('Secure PDF downloaded', { filePath, name })
+    } catch (err) {
+      log.error('Secure PDF download failed', err)
+    }
+  }
+
   if (loading) {
     return (
       <Dialog onClose={onClose} className='secure-pdf-viewer-dialog'>
@@ -318,7 +341,16 @@ export default function SecurePDFViewer(props: Props & DialogProps) {
           </span>
         </div>
 
-        <IconButton icon='cross' onClick={onClose} aria-label='Close' />
+        <div className='secure-pdf-viewer-header-actions'>
+          {canDownload && (
+            <IconButton
+              icon='download'
+              onClick={onDownload}
+              aria-label={tx('download')}
+            />
+          )}
+          <IconButton icon='cross' onClick={onClose} aria-label='Close' />
+        </div>
       </div>
 
       <div className='secure-pdf-viewer-content'>
@@ -445,7 +477,8 @@ export default function SecurePDFViewer(props: Props & DialogProps) {
         <div className='secure-notice'>
           <IconButton icon='info' size={16} aria-label='Secure viewer notice' />
           <span>
-            This is a secure viewer. PDF content cannot be copied or saved.
+            This is a secure viewer. PDF content cannot be copied, and printing
+            is disabled.
           </span>
         </div>
       </div>

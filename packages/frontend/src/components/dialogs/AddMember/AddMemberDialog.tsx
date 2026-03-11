@@ -12,12 +12,14 @@ import styles from './styles.module.scss'
 export function AddMemberDialog({
   onClose,
   onOk,
+  groupChatId,
   groupMembers,
   listFlags,
   isBroadcast = false,
   isVerificationRequired = false,
 }: {
-  onOk: (members: number[]) => void
+  onOk: (members: number[]) => void | Promise<void>
+  groupChatId?: number
   groupMembers: number[]
   listFlags: number
   isBroadcast?: boolean
@@ -56,6 +58,7 @@ export function AddMemberDialog({
         refreshContacts,
 
         groupMembers,
+        groupChatId,
         isBroadcast,
         isVerificationRequired,
       })}

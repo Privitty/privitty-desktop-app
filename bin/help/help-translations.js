@@ -10,7 +10,7 @@ const translations = {
     "search_no_result_for_x": "No results for \"%s\"",
     "search_result_for_x": "Result for \"%s\"",
     "menu_help": "Help",
-    "app_name": "Delta Chat",
+    "app_name": "Privitty Chat",
 }
 
 async function main() {

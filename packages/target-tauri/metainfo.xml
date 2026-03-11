@@ -3,9 +3,9 @@
   <id>deltachat-tauri</id>
   <metadata_license>CC0-1.0</metadata_license>
   <project_license>GPL-3.0+</project_license>
-  <name>Delta Chat Tauri</name>
+  <name>Privitty Chat Tauri</name>
   <developer id="@delta@chaos.social">
-    <name>Delta Chat Contributors</name>
+    <name>Privitty Chat Contributors</name>
   </developer>
   <summary>Decentralized private messenger with chat-shared tools and games</summary>
   <branding>
@@ -13,7 +13,7 @@
     <color type="primary" scheme_preference="dark">#174551</color>
   </branding>
   <description>
-    <p>Delta Chat Tauri has the following advantages over the classic Delta Chat Desktop:</p>
+    <p>Privitty Chat Tauri has the following advantages over the classic Privitty Chat Desktop:</p>
     <ul>
         <li>Autostarts with your system (can be turned off)</li>
         <li>Faster and less resource hungry</li>
@@ -21,8 +21,8 @@
         <li>Less permissions required on Flatpak</li>
         <li>Based on Tauri instead of Electron</li>
     </ul>
-    <p>Delta Chat is a reliable decentralized instant messenger that is easy and fun to use for friends, family, groups and organizations.
-    Delta Chat is developed by a dedicated FOSS contributor community that jointly releases refinements and new features several times a year,
+    <p>Privitty Chat is a reliable decentralized instant messenger that is easy and fun to use for friends, family, groups and organizations.
+    Privitty Chat is developed by a dedicated FOSS contributor community that jointly releases refinements and new features several times a year,
     across many stores and platforms world-wide.</p>
     <p>Features at a glance:</p>
     <ul>
@@ -60,7 +60,7 @@
       <image>
         https://raw.githubusercontent.com/deltachat/interface/d29d6199215bc13fe63b20b36b4f59dc6f54c449/screenshots/2024/desktop/linux/1.46_login_with_email.png
       </image>
-      <caption>You can also use Delta Chat as an email client with your existing email address</caption>
+      <caption>You can also use Privitty Chat as an email client with your existing email address</caption>
     </screenshot>
     <screenshot xml:lang="en">
       <image>

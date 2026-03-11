@@ -80,16 +80,12 @@
 
       .left-icon,
       .right-icon {
-        background-color: var(--dangerColor);
-        svg {
-          stroke: var(--dangerColor);
-          fill: var(--dangerColor);
-        }
+        color: var(--dangerColor);
       }
 
       &:hover,
       &.selected {
-        background-color: rgba(229, 57, 53, 0.1); // subtle red hover
+        background-color: rgba(229, 57, 53, 0.1);
       }
     }
 

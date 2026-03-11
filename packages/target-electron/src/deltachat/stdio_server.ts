@@ -95,12 +95,15 @@ Error: ${err.message}
       if (code !== null) {
         log.info(`child process exited with code ${code}`)
         if (code !== 0) {
-          log.critical('Fatal: The Delta Chat Core exited unexpectedly', code)
+          log.critical(
+            'Fatal: The Privitty Chat Core exited unexpectedly',
+            code
+          )
           dialog.showErrorBox(
             'Fatal Error',
             `[Version: ${
               BuildInfo.VERSION
-            } | ${platform()} | ${arch()}]\nThe Delta Chat Core exited unexpectedly with code ${code}\n${errorLog}`
+            } | ${platform()} | ${arch()}]\nThe Privitty Chat Core exited unexpectedly with code ${code}\n${errorLog}`
           )
           app.exit(1)
         }

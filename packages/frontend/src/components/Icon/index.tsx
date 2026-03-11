@@ -33,6 +33,7 @@ export type IconName =
   | 'eye-open'
   | 'favorite'
   | 'forum'
+  | 'file'
   | 'image'
   | 'image_outline'
   | 'info'
