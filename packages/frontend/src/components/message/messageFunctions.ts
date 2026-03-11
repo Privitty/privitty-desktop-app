@@ -555,42 +555,46 @@ export function openMessageInfo(openDialog: OpenDialog, message: Type.Message) {
 export function openSecurePDFViewer(
   openDialog: OpenDialog,
   filePath: string,
-  fileName: string
+  fileName: string,
+  canDownload?: boolean
 ) {
-  openDialog(SecurePDFViewer, { filePath, fileName })
+  openDialog(SecurePDFViewer, { filePath, fileName, canDownload })
 }
 
 export function openSecureImageViewer(
   openDialog: OpenDialog,
   filePath: string,
-  fileName: string
+  fileName: string,
+  canDownload?: boolean
 ) {
-  openDialog(SecureImageViewer, { filePath, fileName })
+  openDialog(SecureImageViewer, { filePath, fileName, canDownload })
 }
 
 export function openSecureVideoViewer(
   openDialog: OpenDialog,
   filePath: string,
-  fileName: string
+  fileName: string,
+  canDownload?: boolean
 ) {
-  openDialog(SecureVideoViewer, { filePath, fileName })
+  openDialog(SecureVideoViewer, { filePath, fileName, canDownload })
 }
 
 export function openSecureViewer(
   openDialog: OpenDialog,
   filePath: string,
   fileName: string,
-  viewerType: 'pdf' | 'image' | 'video'
+  viewerType: 'pdf' | 'image' | 'video',
+  canDownload?: boolean
 ) {
   switch (viewerType) {
     case 'pdf':
-      openSecurePDFViewer(openDialog, filePath, fileName)
+      openSecurePDFViewer(openDialog, filePath, fileName, canDownload)
       break
     case 'image':
-      openSecureImageViewer(openDialog, filePath, fileName)
+      openSecureImageViewer(openDialog, filePath, fileName, canDownload)
       break
     case 'video':
-      openSecureVideoViewer(openDialog, filePath, fileName)
+      openSecureVideoViewer(openDialog, filePath, fileName, canDownload)
       break
   }
 }

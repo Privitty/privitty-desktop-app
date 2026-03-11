@@ -1,6 +1,13 @@
-import React, { useEffect, useState } from 'react'
+import React, { useEffect, useMemo, useState } from 'react'
 import { runtime } from '@deltachat-desktop/runtime-interface'
-import { DialogBody, DialogContent, DialogWithHeader } from '../Dialog'
+import {
+  DialogBody,
+  DialogContent,
+  DialogFooter,
+  DialogWithHeader,
+  FooterActionButton,
+  FooterActions,
+} from '../Dialog'
 import useTranslationFunction from '../../hooks/useTranslationFunction'
 import { avatarInitial } from '../Avatar'
 import { basename } from 'path'
@@ -13,6 +20,9 @@ import { T } from '@deltachat/jsonrpc-client'
 import SmallSelectDialogPrivitty, {
   SelectedValue,
 } from '../SmallSelectDialogPrivitty'
+import Icon from '../Icon'
+
+import styles from './FileAccessStatusDialog.module.scss'
 
 interface FileAccessUser {
   email: string
@@ -21,7 +31,8 @@ interface FileAccessUser {
   status: string
   expiry?: string | number | null
   timestamp?: string | number | null
-  permissions?: string[]
+  allowDownload?: boolean
+  allowForward?: boolean
 }
 
 interface FileAccessStatusDialogProps extends DialogProps {
@@ -69,9 +80,10 @@ export default function FileAccessStatusDialog({
   const [error, setError] = useState<string | null>(null)
   const [sharedUsers, setSharedUsers] = useState<FileAccessUser[]>([])
   const [forwardedUsers, setForwardedUsers] = useState<FileAccessUser[]>([])
-  const [, setDisplayFileName] = useState<string>('')
+  const [displayFileName, setDisplayFileName] = useState<string>('')
   const { openDialog, closeAllDialogs } = useDialog()
   const [isOwner, setIsOwner] = useState<boolean>(false)
+  const [searchQuery, setSearchQuery] = useState('')
   const accountId = selectedAccountId()
 
   const isAccessRequested = (status?: string) => {
@@ -120,9 +132,14 @@ export default function FileAccessStatusDialog({
           name: s.contact_name,
           role: 'Relay',
           status: s.status || 'active',
-          expiry: s.expiry_time || null,
-          timestamp: s.timestamp || null,
-          permissions: [],
+          expiry: s.expiry_time ?? null,
+          timestamp: s.timestamp ?? null,
+          allowDownload: Boolean(
+            s.download_allowed ?? s.allow_download ?? s.allowDownload ?? false
+          ),
+          allowForward: Boolean(
+            s.forward_allowed ?? s.allow_forward ?? s.allowForward ?? false
+          ),
         })
       }
 
@@ -138,7 +155,12 @@ export default function FileAccessStatusDialog({
             status: u.status || 'active',
             expiry: u.expiry_time ?? null,
             timestamp: u.timestamp ?? null,
-            permissions: [],
+            allowDownload: Boolean(
+              u.download_allowed ?? u.allow_download ?? u.allowDownload ?? false
+            ),
+            allowForward: Boolean(
+              u.forward_allowed ?? u.allow_forward ?? u.allowForward ?? false
+            ),
           })
         })
       }
@@ -464,6 +486,61 @@ export default function FileAccessStatusDialog({
     return `${month} ${day}, ${year} ${hours}:${minutes}`
   }
 
+  // API sends expiry_time in milliseconds (13 digits); support seconds too
+  const parseExpiryDate = (
+    expiry: string | number | null | undefined
+  ): Date | null => {
+    if (expiry == null) return null
+    const ms =
+      typeof expiry === 'string'
+        ? new Date(expiry).getTime()
+        : typeof expiry === 'number' && expiry > 1e12
+          ? expiry
+          : Number(expiry) * 1000
+    const date = new Date(ms)
+    return isNaN(date.getTime()) ? null : date
+  }
+
+  const formatExpiryWithRelative = (
+    expiry: string | number | null | undefined,
+    status?: string
+  ): { text: string; isExpired: boolean; isRelative: boolean } => {
+    if (status?.toLowerCase() === 'expired') {
+      return { text: 'Expired', isExpired: true, isRelative: false }
+    }
+    const date = parseExpiryDate(expiry)
+    if (!date) return { text: 'Never', isExpired: false, isRelative: false }
+    const now = Date.now()
+    const msLeft = date.getTime() - now
+    if (msLeft <= 0) {
+      return { text: 'Expired', isExpired: true, isRelative: false }
+    }
+    const hours = Math.floor(msLeft / (1000 * 60 * 60))
+    const minutes = Math.floor((msLeft % (1000 * 60 * 60)) / (1000 * 60))
+    if (hours >= 24) {
+      const month = date.toLocaleDateString('en-US', { month: 'short' })
+      const day = date.getDate()
+      const year = date.getFullYear()
+      return {
+        text: `${month} ${day}, ${year}`,
+        isExpired: false,
+        isRelative: false,
+      }
+    }
+    if (hours > 0) {
+      return {
+        text: `${hours}h ${minutes}m`,
+        isExpired: false,
+        isRelative: true,
+      }
+    }
+    return {
+      text: `${minutes}m`,
+      isExpired: false,
+      isRelative: true,
+    }
+  }
+
   const formatStatus = (status: string): string => {
     const statusMap: Record<string, string> = {
       active: 'Active',
@@ -479,13 +556,13 @@ export default function FileAccessStatusDialog({
 
   const getDisplayFileName = (): string => {
     let rawName = 'File'
-
-    if (typeof fileName === 'string' && fileName.trim()) {
+    if (typeof displayFileName === 'string' && displayFileName.trim()) {
+      rawName = displayFileName
+    } else if (typeof fileName === 'string' && fileName.trim()) {
       rawName = fileName
     } else if (filePath) {
       rawName = basename(filePath)
     }
-
     return rawName.replace(/\.prv$/, '')
   }
 
@@ -511,149 +588,168 @@ export default function FileAccessStatusDialog({
     const isRevoked = user.status.toLowerCase() === 'revoked'
 
     return (
-      <div
-        style={{
-          display: 'flex',
-          alignItems: 'center',
-          padding: '12px 16px',
-          borderBottom: '1px solid #e0e0e0',
-          backgroundColor: 'transparent',
-          opacity: isRevoked ? 0.6 : 1,
-        }}
-      >
-        {/* Avatar */}
-        <div
-          style={{
-            width: '40px',
-            height: '40px',
-            borderRadius: '50%',
-            backgroundColor: '#4a4a4a',
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-            fontSize: '16px',
-            fontWeight: '500',
-            marginRight: '12px',
-            flexShrink: 0,
-          }}
-        >
-          {initial}
+      <div className={classNames(styles.userRow, isRevoked && styles.revoked)}>
+        <div className={styles.userMain}>
+          <div className={styles.avatar}>{initial}</div>
+          <div className={styles.userInfo}>
+            <div className={styles.userName}>{displayName}</div>
+            <div className={styles.userSub}>
+              <span className={styles.userEmail}>{user.email}</span>
+              {(timestamp || statusLabel) && (
+                <span className={styles.userMeta}>
+                  {statusLabel || timestamp}
+                </span>
+              )}
+              {isRevoked && (
+                <span className={styles.userRevokedText}>Access revoked</span>
+              )}
+            </div>
+          </div>
         </div>
 
-        {/* User info */}
-        <div style={{ flex: 1, minWidth: 0 }}>
-          <div
-            style={{
-              fontSize: '15px',
-              fontWeight: '500',
-              marginBottom: '4px',
-            }}
-          >
-            {displayName}
+        <div className={styles.userCols}>
+          <div className={styles.col}>
+            <div className={styles.colLabel}>DOWNLOAD</div>
+            <div className={styles.yesNo}>
+              {user.allowDownload ? (
+                <>
+                  <Icon
+                    icon='active'
+                    size={14}
+                    className={styles.yesNoCheck}
+                    aria-hidden
+                  />
+                  Yes
+                </>
+              ) : (
+                'No'
+              )}
+            </div>
           </div>
-          {(timestamp || statusLabel) && (
-            <div
-              style={{
-                fontSize: '13px',
-                display: 'flex',
-                alignItems: 'center',
-                gap: '4px',
-              }}
-            >
-              <span style={{ fontSize: '12px' }}>🕐</span>
-              {statusLabel || timestamp}
+          <div className={styles.col}>
+            <div className={styles.colLabel}>FORWARD</div>
+            <div className={styles.yesNo}>
+              {user.allowForward ? (
+                <>
+                  <Icon
+                    icon='active'
+                    size={14}
+                    className={styles.yesNoCheck}
+                    aria-hidden
+                  />
+                  Yes
+                </>
+              ) : (
+                'No'
+              )}
             </div>
-          )}
-          {isRevoked && (
-            <div
-              style={{ fontSize: '12px', color: '#D93229', marginTop: '2px' }}
-            >
-              Access revoked
-            </div>
-          )}
+          </div>
+          <div className={styles.col}>
+            <div className={styles.colLabel}>EXPIRY</div>
+            {(() => {
+              const exp = formatExpiryWithRelative(user.expiry, user.status)
+              return (
+                <div
+                  className={classNames(
+                    styles.expiryValue,
+                    exp.isExpired && styles.expiryExpired,
+                    exp.isRelative && !exp.isExpired && styles.expirySoon
+                  )}
+                >
+                  {(exp.isExpired || exp.isRelative) && (
+                    <Icon
+                      icon='info'
+                      size={14}
+                      className={styles.expiryClockIcon}
+                      aria-hidden
+                    />
+                  )}
+                  {exp.text}
+                </div>
+              )
+            })()}
+          </div>
         </div>
 
-        {/* Action buttons — only shown to the file owner */}
-        {showActions && isOwner && (
-          <div
-            style={{
-              display: 'flex',
-              alignItems: 'center',
-              gap: '8px',
-              flexShrink: 0,
-            }}
-          >
-            {/* Revoke button — shown for non-revoked users */}
-            {onRevokeClick && !isRevoked && (
-              <button
-                title='Revoke access'
-                onClick={() => onRevokeClick(user.email, displayName)}
-                style={{
-                  width: '32px',
-                  height: '32px',
-                  border: 'none',
-                  borderRadius: '4px',
-                  backgroundColor: '#6750A4',
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                  flexShrink: 0,
-                  cursor: 'pointer',
-                }}
-              >
-                <div
-                  aria-label='Blocked'
-                  aria-hidden={true}
-                  className={classNames('privitty-blocked-icon')}
-                />
-              </button>
-            )}
-            {/* Lock button — shown for pending access requests */}
-            {showLockButton && onLockClick && (
-              <button
-                title='Review access request'
-                onClick={() => onLockClick(user.email)}
-                style={{
-                  width: '32px',
-                  height: '32px',
-                  border: 'none',
-                  borderRadius: '4px',
-                  backgroundColor: '#6750A4',
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                  flexShrink: 0,
-                  cursor: 'pointer',
-                }}
-              >
-                <div
-                  aria-label='Lock'
-                  aria-hidden={true}
-                  className={classNames('privitty-lock-icon')}
-                />
-              </button>
-            )}
-          </div>
-        )}
+        <div className={styles.rowActions}>
+          {showActions && isOwner && (
+            <>
+              {/* Show Revoke ONLY when Grant Access is NOT present */}
+              {!showLockButton && onRevokeClick && !isRevoked && (
+                <button
+                  type='button'
+                  className={styles.grantAccessLink}
+                  title='Revoke access'
+                  onClick={() => onRevokeClick(user.email, displayName)}
+                >
+                  Revoke Access
+                </button>
+              )}
+
+              {/* Show Grant Access when access is requested */}
+              {showLockButton && onLockClick && (
+                <button
+                  type='button'
+                  className={styles.grantAccessLink}
+                  title='Grant Access'
+                  onClick={() => onLockClick(user.email)}
+                >
+                  Grant Access
+                </button>
+              )}
+            </>
+          )}
+        </div>
       </div>
     )
   }
 
+  const normalizedQuery = searchQuery.trim().toLowerCase()
+  const filteredSharedUsers = useMemo(() => {
+    if (!normalizedQuery) return sharedUsers
+    return sharedUsers.filter(u => {
+      const hay = `${u.name ?? ''} ${u.email ?? ''}`.toLowerCase()
+      return hay.includes(normalizedQuery)
+    })
+  }, [normalizedQuery, sharedUsers])
+
+  const filteredForwardedUsers = useMemo(() => {
+    if (!normalizedQuery) return forwardedUsers
+    return forwardedUsers.filter(u => {
+      const hay = `${u.name ?? ''} ${u.email ?? ''}`.toLowerCase()
+      return hay.includes(normalizedQuery)
+    })
+  }, [normalizedQuery, forwardedUsers])
+
   return (
-    <DialogWithHeader title='Access Control' onClose={onClose}>
+    <DialogWithHeader
+      title='Access Control'
+      onClose={onClose}
+      className={styles.largeDialog}
+      width={740}
+    >
       <DialogBody>
         <DialogContent>
-          {/* File name */}
-          <div
-            style={{
-              padding: '16px 20px',
-              borderBottom: '1px solid #e0e0e0',
-              backgroundColor: 'transparent',
-            }}
-          >
-            <div style={{ fontSize: '15px', fontWeight: '500' }}>
-              {getDisplayFileName()}
+          <div className={styles.fileRow}>
+            <Icon icon='file' size={18} className={styles.fileIcon} />
+            <div className={styles.fileName}>{getDisplayFileName()}</div>
+          </div>
+
+          <div className={styles.searchRow}>
+            <div className={styles.searchInputWrap}>
+              <Icon icon='search' size={18} className={styles.searchIcon} />
+              <input
+                className={styles.searchInput}
+                value={searchQuery}
+                onChange={e => setSearchQuery(e.target.value)}
+                placeholder='Search people or groups...'
+                aria-label='Search people or groups'
+              />
             </div>
+            {/* <button type='button' className={styles.grantAccessButton}>
+              <Icon icon='person' size={16} className={styles.grantAccessIcon} />
+              Grant Access
+            </button> */}
           </div>
 
           {loading && (
@@ -681,25 +777,13 @@ export default function FileAccessStatusDialog({
           )}
 
           {!loading && !error && (
-            <div style={{ backgroundColor: 'transparent' }}>
+            <div className={styles.sections}>
               {/* Shared section */}
-              {sharedUsers.length > 0 && (
-                <div>
-                  <div
-                    style={{
-                      padding: '12px 20px',
-                      fontSize: '14px',
-                      fontWeight: '600',
-                      textTransform: 'uppercase',
-                      letterSpacing: '0.5px',
-                      borderBottom: '1px solid #e0e0e0',
-                      backgroundColor: 'transparent',
-                    }}
-                  >
-                    Shared
-                  </div>
-                  <div style={{ backgroundColor: 'transparent' }}>
-                    {sharedUsers.map((user, index) => (
+              {filteredSharedUsers.length > 0 && (
+                <div className={styles.section}>
+                  <div className={styles.sectionTitle}>Shared</div>
+                  <div className={styles.sectionList}>
+                    {filteredSharedUsers.map((user, index) => (
                       <UserCard
                         key={`shared-${index}`}
                         user={user}
@@ -716,25 +800,11 @@ export default function FileAccessStatusDialog({
               )}
 
               {/* Forwarded section */}
-              {forwardedUsers.length > 0 && (
-                <div>
-                  <div
-                    style={{
-                      padding: '12px 20px',
-                      fontSize: '14px',
-                      fontWeight: '600',
-                      textTransform: 'uppercase',
-                      letterSpacing: '0.5px',
-                      borderTop:
-                        sharedUsers.length > 0 ? '1px solid #e0e0e0' : 'none',
-                      borderBottom: '1px solid #e0e0e0',
-                      backgroundColor: 'transparent',
-                    }}
-                  >
-                    Forwarded
-                  </div>
-                  <div style={{ backgroundColor: 'transparent' }}>
-                    {forwardedUsers.map((user, index) => (
+              {filteredForwardedUsers.length > 0 && (
+                <div className={styles.section}>
+                  <div className={styles.sectionTitle}>Forwarded</div>
+                  <div className={styles.sectionList}>
+                    {filteredForwardedUsers.map((user, index) => (
                       <UserCard
                         key={`forwarded-${index}`}
                         user={user}
@@ -750,17 +820,32 @@ export default function FileAccessStatusDialog({
                 </div>
               )}
 
-              {sharedUsers.length === 0 && forwardedUsers.length === 0 && (
-                <div
-                  style={{
-                    padding: '40px 20px',
-                    textAlign: 'center',
+              {filteredSharedUsers.length === 0 &&
+                filteredForwardedUsers.length === 0 && (
+                  <div className={styles.emptyState}>
+                    No access data available
+                  </div>
+                )}
+            </div>
+          )}
+
+          {!loading && !error && (
+            <DialogFooter>
+              <FooterActions align='end'>
+                <FooterActionButton onClick={onClose}>
+                  Cancel
+                </FooterActionButton>
+                <FooterActionButton
+                  styling='primary'
+                  onClick={() => {
+                    /* Save changes */
+                    onClose()
                   }}
                 >
-                  No access data available
-                </div>
-              )}
-            </div>
+                  Save Changes
+                </FooterActionButton>
+              </FooterActions>
+            </DialogFooter>
           )}
         </DialogContent>
       </DialogBody>

@@ -5,7 +5,7 @@ import styles from './styles.module.scss'
 import { runtime } from '@deltachat-desktop/runtime-interface'
 
 // same as $default-dialog-width variable in styles
-const DEFAULT_WIDTH = 500
+const DEFAULT_WIDTH = 800
 
 type Props = React.PropsWithChildren<{
   onClose?: (result?: any) => void

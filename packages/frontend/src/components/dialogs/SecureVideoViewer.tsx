@@ -2,18 +2,21 @@ import React, { useState, useEffect, useRef } from 'react'
 import Dialog from '../Dialog'
 import { IconButton } from '../Icon'
 import { getLogger } from '../../../../shared/logger'
+import { runtime } from '@deltachat-desktop/runtime-interface'
 
 import type { DialogProps } from '../../contexts/DialogContext'
+import { basename } from 'path'
 
 const log = getLogger('renderer/secure_video_viewer')
 
 type Props = {
   filePath: string
   fileName: string
+  canDownload?: boolean
 }
 
 export default function SecureVideoViewer(props: Props & DialogProps) {
-  const { filePath, fileName, onClose } = props
+  const { filePath, fileName, canDownload, onClose } = props
 
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
@@ -115,11 +118,38 @@ export default function SecureVideoViewer(props: Props & DialogProps) {
     e.preventDefault()
   }
 
+  const onDownload = async () => {
+    try {
+      let name = fileName || basename(filePath) || 'video.mp4'
+
+      // Remove every `.prv`
+      name = name.replace(/\.prv/g, '')
+
+      // Remove duplicate extensions like .mp4.mp4
+      name = name.replace(/(\.\w+)\1+$/, '$1')
+
+      await runtime.downloadFile(filePath, name)
+
+      log.info('Secure video downloaded', { filePath, name })
+    } catch (err) {
+      log.error('Secure video download failed', err)
+    }
+  }
+
   return (
     <Dialog onClose={onClose} className='secure-video-viewer'>
       <div className='secure-video-viewer-header'>
         <h2>{fileName}</h2>
-        <IconButton icon='cross' onClick={onClose} aria-label='Close' />
+        <div className='secure-video-viewer-header-actions'>
+          {canDownload && (
+            <IconButton
+              icon='download'
+              onClick={onDownload}
+              aria-label='Download'
+            />
+          )}
+          <IconButton icon='cross' onClick={onClose} aria-label='Close' />
+        </div>
       </div>
 
       <div
@@ -171,9 +201,7 @@ export default function SecureVideoViewer(props: Props & DialogProps) {
       <div className='secure-video-viewer-footer'>
         <div className='secure-notice'>
           <IconButton icon='info' size={16} aria-label='Secure viewer notice' />
-          <span>
-            This is a secure viewer. Video content cannot be copied or saved.
-          </span>
+          <span>This is a secure viewer. Video content cannot be copied.</span>
         </div>
       </div>
     </Dialog>

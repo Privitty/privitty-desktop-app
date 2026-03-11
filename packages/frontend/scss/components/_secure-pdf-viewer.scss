@@ -22,6 +22,11 @@
   border-bottom: 1px solid var(--color-border);
 }
 
+.secure-pdf-viewer-header-actions {
+  display: flex;
+  gap: 20px;
+}
+
 .secure-pdf-viewer-title {
   display: flex;
   flex-direction: column;

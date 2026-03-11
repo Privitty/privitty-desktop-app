@@ -329,7 +329,7 @@ pub fn run() -> i32 {
                     "main",
                     WebviewUrl::App("tauri_main.html".into()),
                 )
-                .title("Delta Chat Tauri")
+                .title("Privitty Chat Tauri")
                 .inner_size(DEFAULT_WINDOW_WIDTH, DEFAULT_WINDOW_HEIGHT);
 
                 #[cfg(target_os = "macos")]

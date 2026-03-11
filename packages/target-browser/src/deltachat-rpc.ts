@@ -59,7 +59,10 @@ class StdioServer {
         log.debug(`child process exited with code ${code}`)
         if (code !== 0) {
           // IDEA attempt restart it automatically with backoff-Algorithm?
-          log.critical('Fatal: The Delta Chat Core exited unexpectedly', code)
+          log.critical(
+            'Fatal: The Privitty Chat Core exited unexpectedly',
+            code
+          )
           process.exit(1)
         }
       } else {

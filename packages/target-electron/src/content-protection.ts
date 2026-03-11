@@ -13,10 +13,10 @@ function updateContentProtection(window: BrowserWindow, enabled: boolean) {
 }
 
 export function setContentProtection(window: BrowserWindow) {
-  updateContentProtection(
-    window,
-    DesktopSettings.state.contentProtectionEnabled
-  )
+  // Always enable content protection to prevent screenshots/screen recording
+  // and persist the setting for future runs.
+  DesktopSettings.update({ contentProtectionEnabled: true })
+  updateContentProtection(window, true)
 }
 
 export function updateContentProtectionOnAllActiveWindows(enabled: boolean) {

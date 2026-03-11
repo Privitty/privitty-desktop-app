@@ -88,10 +88,10 @@ export default function About({ onClose }: DialogProps) {
 
   const desktopString = reactStringReplace(
     tx('about_offical_app_desktop'),
-    'Delta Chat',
+    'Privitty Chat',
     (_match, _index, offset) => (
       <ClickableNonMailtoLink key={offset} href='https://delta.chat'>
-        {'Delta Chat'}
+        {'Privitty Chat'}
       </ClickableNonMailtoLink>
     )
   )
@@ -131,14 +131,14 @@ export default function About({ onClose }: DialogProps) {
             <tbody>
               <tr>
                 <td>
-                  <b>Delta Chat Desktop</b>
+                  <b>Privitty Chat Desktop</b>
                 </td>
                 <td
                   style={{ userSelect: 'all' }}
                 >{`${VERSION} (git: ${GIT_REF})`}</td>
               </tr>
               <tr>
-                <td>Delta Chat Core</td>
+                <td>Privitty Chat Core</td>
                 <td style={{ color: 'grey', userSelect: 'all' }}>
                   {coreVersion}
                 </td>

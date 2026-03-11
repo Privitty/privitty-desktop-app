@@ -912,7 +912,7 @@ const useCreateGroup = (
       groupMembers
     )
 
-    // First add all members to the Delta Chat group
+    // First add all members to the Privitty Chat group
     await Promise.all(
       groupMembers.map(async contactId => {
         if (contactId === C.DC_CONTACT_ID_SELF) {

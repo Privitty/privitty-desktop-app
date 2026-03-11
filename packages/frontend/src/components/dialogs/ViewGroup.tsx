@@ -315,6 +315,7 @@ function ViewGroupInner(
     openDialog(AddMemberDialog, {
       listFlags,
       groupMembers: group.contactIds,
+      groupChatId: chat.id,
       onOk: addMembers,
       isBroadcast: isBroadcast,
       isVerificationRequired: chat.isProtected,

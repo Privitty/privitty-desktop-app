@@ -23,6 +23,7 @@ import { AddMemberChip } from './AddMemberDialog'
 import styles from './styles.module.scss'
 import classNames from 'classnames'
 import { RovingTabindexProvider } from '../../../contexts/RovingTabindex'
+import { runtime } from '@deltachat-desktop/runtime-interface'
 
 export function AddMemberInnerDialog({
   onCancel,
@@ -37,10 +38,11 @@ export function AddMemberInnerDialog({
   refreshContacts,
 
   groupMembers,
+  groupChatId,
   isBroadcast = false,
   isVerificationRequired = false,
 }: {
-  onOk: (addMembers: number[]) => void
+  onOk: (addMembers: number[]) => void | Promise<void>
   onCancel: Parameters<typeof OkCancelFooterAction>[0]['onCancel']
   onSearchChange: (e: React.ChangeEvent<HTMLInputElement>) => void
   queryStr: string
@@ -52,6 +54,8 @@ export function AddMemberInnerDialog({
   refreshContacts: () => void
 
   groupMembers: number[]
+  /** When provided, members are being added to an existing group */
+  groupChatId?: number
   isBroadcast: boolean
   isVerificationRequired: boolean
 }) {
@@ -105,6 +109,43 @@ export function AddMemberInnerDialog({
     [addMember, contactIdsToAdd, removeMember]
   )
 
+  const callInitAddMemberToGroup = async (
+    accountId: number,
+    groupChatId: number,
+    memberEmail: string,
+    memberName: string
+  ) => {
+    const response = await runtime.PrivittySendMessage('sendEvent', {
+      event_type: 'initAddMemberToGroup',
+      event_data: {
+        chat_id: String(groupChatId),
+        memberEmail,
+        memberName,
+      },
+    })
+
+    const parsed = JSON.parse(response).result?.data?.pdu
+    if (!parsed) return
+
+    const MESSAGE_DEFAULT: T.MessageData = {
+      file: null,
+      filename: null,
+      viewtype: null,
+      html: null,
+      location: null,
+      overrideSenderName: null,
+      quotedMessageId: null,
+      quotedText: null,
+      text: null,
+    }
+
+    await BackendRemote.rpc.sendMsg(accountId, groupChatId, {
+      ...MESSAGE_DEFAULT,
+      text: parsed,
+      viewtype: 'Text',
+    })
+  }
+
   const createNewContact = useCallback(async () => {
     if (!queryStrIsValidEmail) return
 
@@ -121,12 +162,41 @@ export function AddMemberInnerDialog({
     } as ChangeEvent<HTMLInputElement>)
   }, [accountId, toggleMember, onSearchChange, queryStr, queryStrIsValidEmail])
 
-  const _onOk = () => {
+  const _onOk = async () => {
     if (contactIdsToAdd.length === 0) {
       return
     }
 
-    onOk(contactIdsToAdd.map(member => member.id))
+    const memberIds = contactIdsToAdd.map(member => member.id)
+
+    // Let Privitty Chat add members to the group
+    await Promise.resolve(onOk(memberIds))
+
+    // Only send Privitty PDU for NEW members
+    if (!isBroadcast && groupChatId) {
+      const newMemberIds = memberIds.filter(id => !groupMembers.includes(id))
+
+      if (newMemberIds.length === 0) return
+
+      const contacts = await BackendRemote.rpc.getContactsByIds(
+        accountId,
+        newMemberIds
+      )
+
+      await Promise.all(
+        newMemberIds.map(async contactId => {
+          const contact = contacts[contactId]
+          if (!contact) return
+
+          await callInitAddMemberToGroup(
+            accountId,
+            groupChatId,
+            contact.address,
+            contact.displayName
+          )
+        })
+      )
+    }
   }
 
   const _onCancel = async () => {
