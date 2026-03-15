@@ -91,6 +91,7 @@
 .userRow {
   display: flex;
   align-items: center;
+  position: relative;
   gap: 10px;
   padding: 12px;
   border-radius: 14px;
@@ -101,6 +102,21 @@
 
 .revoked {
   opacity: 0.6;
+}
+
+.highlightBorder {
+  border: 2px solid #6750a4;
+}
+
+.youBadge {
+  position: absolute;
+  top: -10px;
+  right: 14px;
+  background: white;
+  color: #6750a4;
+  font-size: 11px;
+  font-weight: 600;
+  padding: 0 6px;
 }
 
 .userMain {
