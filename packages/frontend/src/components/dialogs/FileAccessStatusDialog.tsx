@@ -80,6 +80,7 @@ export default function FileAccessStatusDialog({
   const [error, setError] = useState<string | null>(null)
   const [sharedUsers, setSharedUsers] = useState<FileAccessUser[]>([])
   const [forwardedUsers, setForwardedUsers] = useState<FileAccessUser[]>([])
+  const [ownerUser, setOwnerUser] = useState<FileAccessUser | null>(null)
   const [displayFileName, setDisplayFileName] = useState<string>('')
   const { openDialog, closeAllDialogs } = useDialog()
   const [isOwner, setIsOwner] = useState<boolean>(false)
@@ -120,6 +121,23 @@ export default function FileAccessStatusDialog({
 
       const data = result?.data
       const fileData = data?.file
+
+      // Owner info
+      if (fileData?.owner_info) {
+        const o = fileData.owner_info
+        setOwnerUser({
+          email: o.contact_id || '',
+          name: o.contact_name,
+          role: 'Owner',
+          status: 'active',
+          expiry: o.expiry_time ?? null,
+          timestamp: o.timestamp ?? null,
+          allowDownload: Boolean(
+            o.download_allowed ?? o.allow_download ?? true
+          ),
+          allowForward: Boolean(o.forward_allowed ?? o.allow_forward ?? true),
+        })
+      }
 
       if (!data)
         throw new Error('Invalid response from getFileAccessStatusList')
@@ -588,7 +606,17 @@ export default function FileAccessStatusDialog({
     const isRevoked = user.status.toLowerCase() === 'revoked'
 
     return (
-      <div className={classNames(styles.userRow, isRevoked && styles.revoked)}>
+      <div
+        className={classNames(
+          styles.userRow,
+          isRevoked && styles.revoked,
+          isOwner && user.role === 'Owner' && styles.highlightBorder,
+          !isOwner && user.role === 'Relay' && styles.highlightBorder
+        )}
+      >
+        {!isOwner && user.role === 'Relay' && (
+    <span className={styles.youBadge}>You</span>
+  )}
         <div className={styles.userMain}>
           <div className={styles.avatar}>{initial}</div>
           <div className={styles.userInfo}>
@@ -734,7 +762,6 @@ export default function FileAccessStatusDialog({
             <Icon icon='file' size={18} className={styles.fileIcon} />
             <div className={styles.fileName}>{getDisplayFileName()}</div>
           </div>
-
           <div className={styles.searchRow}>
             <div className={styles.searchInputWrap}>
               <Icon icon='search' size={18} className={styles.searchIcon} />
@@ -746,12 +773,7 @@ export default function FileAccessStatusDialog({
                 aria-label='Search people or groups'
               />
             </div>
-            {/* <button type='button' className={styles.grantAccessButton}>
-              <Icon icon='person' size={16} className={styles.grantAccessIcon} />
-              Grant Access
-            </button> */}
           </div>
-
           {loading && (
             <div
               style={{
@@ -763,7 +785,6 @@ export default function FileAccessStatusDialog({
               {tx('loading') || 'Loading...'}
             </div>
           )}
-
           {error && (
             <div
               style={{
@@ -775,9 +796,17 @@ export default function FileAccessStatusDialog({
               {error}
             </div>
           )}
-
           {!loading && !error && (
             <div className={styles.sections}>
+              {/* Owner section */}
+              {!isOwner && ownerUser && (
+                <div className={styles.section}>
+                  <div className={styles.sectionTitle}>Owner</div>
+                  <div className={styles.sectionList}>
+                    <UserCard user={ownerUser} showActions={false} />
+                  </div>
+                </div>
+              )}
               {/* Shared section */}
               {filteredSharedUsers.length > 0 && (
                 <div className={styles.section}>

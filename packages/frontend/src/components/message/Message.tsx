@@ -185,6 +185,7 @@ const ForwardedTitle = ({
 
   const { displayName, color } = contact
 
+  // forwarded outgoing message bell
   const handleBellClick = (e: React.MouseEvent) => {
     e.preventDefault()
     e.stopPropagation()
@@ -192,7 +193,7 @@ const ForwardedTitle = ({
       openDialog(FileAccessStatusDialog, {
         chatId: message.chatId,
         filePath: message.file,
-        fileName: fileName || undefined,
+        fileName: message.fileName || undefined,
       })
     }
   }
@@ -220,7 +221,7 @@ const ForwardedTitle = ({
           {tx('forwarded_message')}
         </button>
       ) : null}
-      {message.file && (
+      {message.file && direction === 'outgoing' && (
         <button
           onClick={handleBellClick}
           className='file-access-bell-button'
