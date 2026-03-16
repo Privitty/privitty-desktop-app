@@ -16,8 +16,6 @@ import DesktopSettingsSwitch from './DesktopSettingsSwitch'
 import { AutostartState } from '@deltachat-desktop/shared/shared-types'
 import ProxyConfiguration from '../dialogs/ProxyConfiguration'
 import { selectedAccountId } from '../../ScreenController'
-import { PrivittySettings } from './PrivittySettings'
-
 type Props = {
   settingsStore: SettingsStoreState
 }
@@ -49,10 +47,6 @@ export default function Advanced({ settingsStore }: Props) {
       {runtime.getRuntimeInfo().target === 'tauri' && <SettingsAutoStart />}
 
       <SettingsSeparator />
-      <SettingsHeading>{tx('privitty_settings')}</SettingsHeading>
-      <PrivittySettings settingsStore={settingsStore} />
-      <SettingsSeparator />
-
       <SettingsHeading>{tx('pref_experimental_features')}</SettingsHeading>
       <ExperimentalFeatures settingsStore={settingsStore} />
       <SettingsSeparator />
