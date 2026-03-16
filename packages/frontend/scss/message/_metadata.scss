@@ -33,7 +33,11 @@
     }
 
     .privitty-status-icon.loading {
-      @include mixins.color-svg('./images/icons/loading.svg', rgb(0, 0, 0), 100%);
+      @include mixins.color-svg(
+        './images/icons/loading.svg',
+        rgb(0, 0, 0),
+        100%
+      );
     }
 
     .privitty-status-icon.relay {
@@ -45,9 +49,11 @@
     }
 
     .saved-message-icon {
-      @include mixins.color-svg('./images/icons/bookmark-filled.svg',
+      @include mixins.color-svg(
+        './images/icons/bookmark-filled.svg',
         white,
-        100%);
+        100%
+      );
     }
 
     .status-icon.sending {
