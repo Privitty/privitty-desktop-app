@@ -1,13 +1,6 @@
 import React, { useEffect, useMemo, useState } from 'react'
 import { runtime } from '@deltachat-desktop/runtime-interface'
-import {
-  DialogBody,
-  DialogContent,
-  DialogFooter,
-  DialogWithHeader,
-  FooterActionButton,
-  FooterActions,
-} from '../Dialog'
+import { DialogBody, DialogContent, DialogWithHeader } from '../Dialog'
 import useTranslationFunction from '../../hooks/useTranslationFunction'
 import { avatarInitial } from '../Avatar'
 import { basename } from 'path'
@@ -615,8 +608,8 @@ export default function FileAccessStatusDialog({
         )}
       >
         {!isOwner && user.role === 'Relay' && (
-    <span className={styles.youBadge}>You</span>
-  )}
+          <span className={styles.youBadge}>You</span>
+        )}
         <div className={styles.userMain}>
           <div className={styles.avatar}>{initial}</div>
           <div className={styles.userInfo}>

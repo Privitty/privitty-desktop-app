@@ -552,12 +552,14 @@ async function waitForPrivittyProtection(chatId: number): Promise<void> {
   }
 
   await new Promise<void>(resolve => {
-    const unsubscribe = runtime.onPrivittyMessageDetected((protectedChatId: number) => {
-      if (protectedChatId === chatId) {
-        unsubscribe()
-        resolve()
+    const unsubscribe = runtime.onPrivittyMessageDetected(
+      (protectedChatId: number) => {
+        if (protectedChatId === chatId) {
+          unsubscribe()
+          resolve()
+        }
       }
-    })
+    )
   })
 }
 

@@ -64,7 +64,7 @@
   "dependencies": {
     "@deltachat/jsonrpc-client": "catalog:",
     "@privitty/deltachat-rpc-server": "1.160.0",
-    "@privitty/privitty-core": "0.4.2",
+    "@privitty/privitty-core": "0.4.3",
     "mime-types": "catalog:",
     "sass": "catalog:",
     "ws": "7.5.10"
