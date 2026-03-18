@@ -107,11 +107,25 @@
     }
 
     .image-container {
+      position: relative;
       display: flex;
       justify-content: center;
       align-items: center;
       min-height: 100%;
       padding: 20px;
+
+      &::before {
+        content: "";
+        position: absolute;
+        inset: 0;
+        background-image: url('./images/privitty-watermark.png');
+        background-repeat: no-repeat;
+        background-position: center;
+        background-size: 50%;
+        opacity: 0.05;
+        pointer-events: none;
+        z-index: 99;
+      }
 
       .secure-image {
         max-width: 100%;
