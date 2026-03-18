@@ -153,6 +153,7 @@ pnpm -w build:electron && pnpm --filter=@deltachat-desktop/target-electron exec 
 
 ```sh
 cd /Users/milinddeore/PROJECTS/delta/privitty-desktop
+pnpm install --no-frozen-lockfile
 pnpm -w build:electron
 cd /Users/milinddeore/PROJECTS/delta/privitty-desktop/packages/target-electron
 export CSC_IDENTITY_AUTO_DISCOVERY=false

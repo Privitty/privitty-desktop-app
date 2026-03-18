@@ -1,4 +1,5 @@
 import { join, dirname } from 'path'
+import { createRequire } from 'module'
 import { getLogger } from '@deltachat-desktop/shared/logger'
 import { ChildProcessWithoutNullStreams, spawn } from 'child_process'
 import { getLogsPath } from '../application-constants'
@@ -6,6 +7,15 @@ import { arch, platform } from 'os'
 import { app, dialog } from 'electron/main'
 import { existsSync, readdirSync } from 'fs'
 import { fileURLToPath } from 'url'
+
+const _require = createRequire(import.meta.url)
+const privittyCoreVersion: string = (() => {
+  try {
+    return _require('@privitty/privitty-core/package.json').version
+  } catch {
+    return 'unknown'
+  }
+})()
 
 const log = getLogger('Privitty')
 
@@ -152,6 +162,7 @@ export class PrivittyClient {
   }
 
   start() {
+    log.info(`Privitty Core version: ${privittyCoreVersion}`)
     log.info('Starting privitty-server', {
       binary: this._cmd_path,
       accountsPath: this.accounts_path,
