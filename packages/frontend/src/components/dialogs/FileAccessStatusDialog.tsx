@@ -608,8 +608,8 @@ export default function FileAccessStatusDialog({
         )}
       >
         {!isOwner && user.role === 'Relay' && (
-    <span className={styles.youBadge}>You</span>
-  )}
+          <span className={styles.youBadge}>You</span>
+        )}
         <div className={styles.userMain}>
           <div className={styles.avatar}>{initial}</div>
           <div className={styles.userInfo}>

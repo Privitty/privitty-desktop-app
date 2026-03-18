@@ -72,7 +72,7 @@
   position: relative;
 
   &::before {
-    content: "";
+    content: '';
     position: absolute;
     inset: 0;
     background-image: url('./images/privitty-watermark.png');
