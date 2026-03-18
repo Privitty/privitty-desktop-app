@@ -90,8 +90,6 @@ export default function MessageMetaData(props: Props) {
     privittyStatus,
   } = props
 
-  console.log('Privitty Status:', privittyStatus)
-
   const privittyIcon = getPrivittyStatusIcon(privittyStatus, hasText, direction)
 
   return (

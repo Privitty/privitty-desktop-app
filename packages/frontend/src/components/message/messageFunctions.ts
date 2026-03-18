@@ -292,7 +292,6 @@ const privittyForwardable = async (message: T.Message): Promise<boolean> => {
       const result = JSON.parse(response)
       log.debug('getFileAccessStatus result', result)
 
-      //"result":"{"fileAccessState":"active"}
       if (result) {
         isforwardable = result.result?.data?.is_forward === 'true'
       }
@@ -467,6 +466,9 @@ export async function confirmForwardMessage(
             accountId,
             notificationType: 0,
           })
+
+          // Wait until Privitty protection is actually enabled for this chat
+          await waitForPrivittyProtection(chat.id)
         }
 
         await BackendRemote.rpc.forwardMessages(
@@ -533,6 +535,30 @@ export async function confirmForwardMessage(
     }
     return yes
   }
+}
+
+// Waits until a chat becomes Privitty-protected.
+async function waitForPrivittyProtection(chatId: number): Promise<void> {
+  try {
+    const resp = await runtime.PrivittySendMessage('isChatProtected', {
+      chat_id: String(chatId),
+    })
+    const parsed = JSON.parse(resp)
+    if (parsed?.result?.is_protected === true) {
+      return
+    }
+  } catch {
+    // Ignore immediate check errors and fall back to event listener.
+  }
+
+  await new Promise<void>(resolve => {
+    const unsubscribe = runtime.onPrivittyMessageDetected((protectedChatId: number) => {
+      if (protectedChatId === chatId) {
+        unsubscribe()
+        resolve()
+      }
+    })
+  })
 }
 
 export function confirmDeleteMessage(

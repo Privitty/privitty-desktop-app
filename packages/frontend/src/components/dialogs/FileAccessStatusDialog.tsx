@@ -857,25 +857,6 @@ export default function FileAccessStatusDialog({
                 )}
             </div>
           )}
-
-          {!loading && !error && (
-            <DialogFooter>
-              <FooterActions align='end'>
-                <FooterActionButton onClick={onClose}>
-                  Cancel
-                </FooterActionButton>
-                <FooterActionButton
-                  styling='primary'
-                  onClick={() => {
-                    /* Save changes */
-                    onClose()
-                  }}
-                >
-                  Save Changes
-                </FooterActionButton>
-              </FooterActions>
-            </DialogFooter>
-          )}
         </DialogContent>
       </DialogBody>
     </DialogWithHeader>

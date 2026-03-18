@@ -813,8 +813,6 @@ export default function Message(props: {
 
     let cancelled = false
 
-    //  {"id":168,"jsonrpc":"2.0","result":{"data":{"chat_id":"12","file":{"forwarded_list":[{"contact_id":"tqvic6i96@chat.privittytech.com","contact_name":"Android","download_allowed":false,"expiry_time":0,"status":"waiting_owner_action"}],"owner_info":{"contact_id":"ht1e63qv8@chat.privittytech.com","contact_name":"asdf"},"shared_info":{"contact_id":"tjk125epg@chat.privittytech.com","contact_name":"Souravvvvvv Hhhh","download_allowed":false,"expiry_time":1770738370255,"forward_allowed":true,"status":"waiting_owner_action"}},"file_name":"98409b9c31331eff4af874b9e1c57a0.prv"},"message":"File access status retrieved successfully","state":"ReadyForAction","status":2,"success":true}}
-
     const fetchRedDotStatus = async () => {
       try {
         const response = await runtime.PrivittySendMessage('sendEvent', {
@@ -832,12 +830,12 @@ export default function Message(props: {
         const normalize = (s?: string) => s?.trim().toLowerCase()
         let count = 0
 
-        // ✅ shared_info
+        // shared_info
         if (normalize(file?.shared_info?.status) === 'waiting_owner_action') {
           count++
         }
 
-        // ✅ forwarded_list
+        // forwarded_list
         if (Array.isArray(file?.forwarded_list)) {
           count += file.forwarded_list.filter(
             (f: any) => normalize(f?.status) === 'waiting_owner_action'
