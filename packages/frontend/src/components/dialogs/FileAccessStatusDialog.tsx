@@ -1,13 +1,6 @@
 import React, { useEffect, useMemo, useState } from 'react'
 import { runtime } from '@deltachat-desktop/runtime-interface'
-import {
-  DialogBody,
-  DialogContent,
-  DialogFooter,
-  DialogWithHeader,
-  FooterActionButton,
-  FooterActions,
-} from '../Dialog'
+import { DialogBody, DialogContent, DialogWithHeader } from '../Dialog'
 import useTranslationFunction from '../../hooks/useTranslationFunction'
 import { avatarInitial } from '../Avatar'
 import { basename } from 'path'
