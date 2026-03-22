@@ -45,7 +45,11 @@ import DeltaChatController from './deltachat/controller.js'
 import { BuildInfo } from './get-build-info.js'
 import { updateContentProtectionOnAllActiveWindows } from './content-protection.js'
 import { MediaType } from '@deltachat-desktop/runtime-interface'
-import * as fs from 'fs/promises' // Using the promise-based API for async/await
+import * as fs from 'fs/promises'
+import {
+  startHandlingIncomingVideoCalls,
+  startOutgoingVideoCall,
+} from './windows/video-call.js'
 
 const __dirname = dirname(fileURLToPath(import.meta.url))
 
@@ -54,8 +58,8 @@ const log = getLogger('main/ipc')
 const app = rawApp as ExtendedAppMainProcess
 
 let dcController: typeof DeltaChatController.prototype
-export function getDCJsonrpcClient() {
-  return dcController.jsonrpcRemote.rpc
+export function getDCJsonrpcRemote() {
+  return dcController.jsonrpcRemote
 }
 
 /** returns shutdown function */
@@ -440,8 +444,19 @@ export async function init(cwd: string, logHandler: LogHandler) {
     }
   )
 
+  ipcMain.handle(
+    'startOutgoingVideoCall',
+    (_ev, accountId: number, chatId: number) => {
+      startOutgoingVideoCall(accountId, chatId)
+    }
+  )
+  const stopHandlingIncomingVideoCalls = startHandlingIncomingVideoCalls(
+    dcController.jsonrpcRemote
+  )
+
+  // the shutdown function
   return () => {
-    // the shutdown function
+    stopHandlingIncomingVideoCalls()
     dcController.jsonrpcRemote.rpc.stopIoForAllAccounts()
 
     // Stop privitty server process

@@ -1,4 +1,4 @@
-import React from 'react'
+import React, { useState, useEffect, useRef } from 'react'
 import classNames from 'classnames'
 import { filesize } from 'filesize'
 
@@ -25,9 +25,10 @@ import FullscreenMedia, {
 import useTranslationFunction from '../../hooks/useTranslationFunction'
 import useDialog from '../../hooks/dialog/useDialog'
 import AudioPlayer from '../AudioPlayer'
-import { T, C } from '@deltachat/jsonrpc-client'
+import { T, C } from '@privitty/jsonrpc-client'
 import { selectedAccountId } from '../../ScreenController'
 import { extname } from 'path'
+import { BackendRemote } from '../../backend-com'
 
 type PrivittyStatus =
   | 'active'
@@ -749,16 +750,10 @@ export default function Attachment({
           className='text-part'
           style={fileColors ? { color: fileColors.textColor } : undefined}
         >
-          <div
-            className='name'
-            style={fileColors ? { color: fileColors.textColor } : undefined}
-          >
+          <div className='name' style={fileColors ? { color: fileColors.textColor } : undefined}>
             {fileName}
           </div>
-          <div
-            className='size'
-            style={fileColors ? { color: fileColors.textColor } : undefined}
-          >
+          <div className='size' style={fileColors ? { color: fileColors.textColor } : undefined}>
             {fileBytes ? filesize(fileBytes) : '?'}
           </div>
         </div>
@@ -772,6 +767,38 @@ export function DraftAttachment({
 }: {
   attachment: MessageTypeAttachmentSubset
 }) {
+  const [webxdcInfo, setWebxdcInfo] = useState<T.WebxdcMessageInfo | null>(null)
+  const [isLoadingWebxdcInfo, setIsLoadingWebxdcInfo] = useState(true)
+  const accountId = selectedAccountId()
+
+  const lastFileNameRef = useRef<string | null>(null)
+
+  useEffect(() => {
+    if (attachment.viewType === 'Webxdc') {
+      // Only load webxdc info if filename has changed
+      if (attachment.fileName !== lastFileNameRef.current) {
+        lastFileNameRef.current = attachment.fileName
+        setIsLoadingWebxdcInfo(true)
+        BackendRemote.rpc
+          .getWebxdcInfo(accountId, attachment.id)
+          .then((info: T.WebxdcMessageInfo) => {
+            setWebxdcInfo(info)
+          })
+          .catch((error: any) => {
+            console.error(
+              'Failed to load webxdc info for draft:',
+              attachment.id,
+              error
+            )
+            setWebxdcInfo(null)
+          })
+          .finally(() => {
+            setIsLoadingWebxdcInfo(false)
+          })
+      }
+    }
+  }, [accountId, attachment.id, attachment.viewType, attachment.fileName])
+
   if (!attachment) {
     return null
   }
@@ -796,16 +823,18 @@ export function DraftAttachment({
     )
   } else if (isAudio(attachment.fileMime)) {
     return <AudioPlayer src={runtime.transformBlobURL(attachment.file || '')} />
-  } else if (attachment.webxdcInfo) {
+  } else if (attachment.viewType === 'Webxdc') {
     const iconUrl = runtime.getWebxdcIconURL(selectedAccountId(), attachment.id)
     return (
       <div className='media-attachment-webxdc'>
         <img className='icon' src={iconUrl} alt='app icon' />
         <div className='text-part'>
-          <div className='name'>{attachment.webxdcInfo.name}</div>
-          <div className='size'>
-            {attachment.fileBytes ? filesize(attachment.fileBytes) : '?'}
+          <div className='name'>
+            {isLoadingWebxdcInfo
+              ? 'Loading...'
+              : webxdcInfo?.name || 'Unknown App'}
           </div>
+          <div className='size'>{filesize(attachment.fileBytes ?? 0)}</div>
         </div>
       </div>
     )
@@ -829,7 +858,7 @@ export function DraftAttachment({
         </div>
         <div className='text-part'>
           <div className='name'>{fileName}</div>
-          <div className='size'>{fileBytes ? filesize(fileBytes) : '?'}</div>
+          <div className='size'>{filesize(fileBytes ?? 0)}</div>
         </div>
       </div>
     )

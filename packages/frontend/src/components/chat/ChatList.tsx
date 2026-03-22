@@ -5,13 +5,15 @@ import React, {
   useCallback,
   ComponentType,
   useMemo,
+  HTMLAttributes,
+  useLayoutEffect,
 } from 'react'
 import {
   FixedSizeList as List,
   ListChildComponentProps,
   ListItemKeySelector,
 } from 'react-window'
-import { C, T } from '@deltachat/jsonrpc-client'
+import { C, T } from '@privitty/jsonrpc-client'
 import AutoSizer from 'react-virtualized-auto-sizer'
 import InfiniteLoader from 'react-window-infinite-loader'
 
@@ -36,22 +38,55 @@ import useChat from '../../hooks/chat/useChat'
 import useCreateChatByContactId from '../../hooks/chat/useCreateChatByContactId'
 import useDialog from '../../hooks/dialog/useDialog'
 import useKeyBindingAction from '../../hooks/useKeyBindingAction'
-import useTranslationFunction from '../../hooks/useTranslationFunction'
+import useTranslationFunction, {
+  useTranslationWritingDirection,
+} from '../../hooks/useTranslationFunction'
 
 import type {
   ChatListItemData,
-  ContactChatListItemData,
-  MessageChatListItemData,
+  ChatListContactItemData,
+  ChatListMessageItemData,
 } from './ChatListItemRow'
 import { isInviteLink } from '../../../../shared/util'
 import { RovingTabindexProvider } from '../../contexts/RovingTabindex'
+import { useRpcFetch } from '../../hooks/useFetch'
+import { useSettingsStore } from '../../stores/settings'
+import { useMultiselect } from '../../hooks/useMultiselect'
+import { getLogger } from '@deltachat-desktop/shared/logger'
+import { useHasChanged2 } from '../../hooks/useHasChanged'
+
+const useMultiselectLog = getLogger('ChatListMultiselect')
 
 const enum LoadStatus {
   FETCHING = 1,
   LOADED = 2,
 }
 
-export function ChatListPart({
+/**
+ * This component holds either a list of chats OR the result
+ * of a search query including chats, contacts and messages.
+ *
+ * <ChatList>
+ *   <ChatListPart> // virtual list (one for each type of search result)
+ *     <ChatListItemRow>
+ *       <ChatListItem(Default (Chat) | Message | Contact) />
+ *     </ChatListItemRow>
+ *   </ChatListPart>
+ * </ChatList>
+ */
+
+/**
+ * wrapper for a virtual list that handles scrolling and loading items
+ *
+ * ChatList has two modes: regular and search mode.
+ * In search mode there are 3 ChatListParts: for chats, contacts, and messages
+ */
+export function ChatListPart<
+  T extends
+    | ChatListItemData
+    | ChatListContactItemData
+    | ChatListMessageItemData,
+>({
   isRowLoaded,
   loadMoreRows,
   rowCount,
@@ -60,6 +95,7 @@ export function ChatListPart({
   height,
   itemKey,
   setListRef,
+  olElementAttrs,
   itemData,
   itemHeight,
 }: {
@@ -67,13 +103,19 @@ export function ChatListPart({
   loadMoreRows: (startIndex: number, stopIndex: number) => Promise<any>
   rowCount: number
   width: number | string
-  children: ComponentType<ListChildComponentProps<any>>
+  children: ComponentType<ListChildComponentProps<T>>
   height: number
-  itemKey: ListItemKeySelector<any>
-  setListRef?: (ref: List<any> | null) => void
-  itemData: ChatListItemData | ContactChatListItemData | MessageChatListItemData
+  itemKey: ListItemKeySelector<T>
+  setListRef?: (ref: List<T> | null) => void
+  /**
+   * This does _not_ support maps with dynamically added/removed keys.
+   */
+  olElementAttrs?: HTMLAttributes<HTMLOListElement>
+  itemData: T
   itemHeight: number
 }) {
+  const writingDirection = useTranslationWritingDirection()
+
   const infiniteLoaderRef = useRef<InfiniteLoader | null>(null)
 
   // By default InfiniteLoader assumes that each item's index in the list
@@ -92,6 +134,26 @@ export function ChatListPart({
     // So let's play it safe.
   })
 
+  const olRef = useRef<HTMLOListElement>(null)
+  // 'react-window' does not expose API to set attributes on its element,
+  // so we have to `useLayoutEffect`.
+  useLayoutEffect(() => {
+    if (olRef.current == null) {
+      return
+    }
+    if (olElementAttrs == undefined) {
+      return
+    }
+
+    for (const [key, value] of Object.entries(olElementAttrs)) {
+      if (value == undefined) {
+        olRef.current.removeAttribute(key)
+      } else {
+        olRef.current.setAttribute(key, value)
+      }
+    }
+  })
+
   return (
     <InfiniteLoader
       isItemLoaded={isRowLoaded}
@@ -102,6 +164,7 @@ export function ChatListPart({
       {({ onItemsRendered, ref }) => (
         <List
           innerElementType={'ol'}
+          innerRef={olRef}
           className='react-window-list-reset'
           height={height}
           itemCount={rowCount}
@@ -114,6 +177,7 @@ export function ChatListPart({
           width={width}
           itemKey={itemKey}
           itemData={itemData}
+          direction={writingDirection}
         >
           {children}
         </List>
@@ -133,7 +197,7 @@ export default function ChatList(props: {
   const accountId = selectedAccountId()
 
   const {
-    selectedChatId,
+    selectedChatId: activeChatId,
     showArchivedChats,
     onChatClick,
     queryStr,
@@ -158,7 +222,7 @@ export default function ChatList(props: {
     showArchivedChats
   )
 
-  const { openContextMenu, activeContextMenuChatId } = useChatListContextMenu()
+  const { openContextMenu, activeContextMenuChatIds } = useChatListContextMenu()
   const createChatByContactId = useCreateChatByContactId()
   const { selectChat } = useChat()
 
@@ -167,6 +231,9 @@ export default function ChatList(props: {
   const tabindexWrapperElementChats = useRef<HTMLDivElement>(null)
   const tabindexWrapperElementContacts = useRef<HTMLDivElement>(null)
   const tabindexWrapperElementMessages = useRef<HTMLDivElement>(null)
+
+  const settingsStore = useSettingsStore()[0]
+  const isChatmail = settingsStore?.settings.is_chatmail === '1'
 
   const addContactOnClick = async () => {
     if (!queryStrIsValidEmail || !queryStr) return
@@ -225,42 +292,41 @@ export default function ChatList(props: {
         ? CHATLISTITEM_MESSAGE_HEIGHT
         : 0))
 
-  // scroll to selected chat ---
-  const listRefRef = useRef<List<any>>(null)
-  const selectedChatIndex = chatListIds.findIndex(
-    chatId => chatId === selectedChatId
-  )
-
-  const scrollSelectedChatIntoView = useCallback((index: number) => {
+  const chatListRef = useRef<List<any>>(null)
+  const scrollChatIntoView = useCallback((index: number) => {
     if (index !== -1) {
-      listRefRef.current?.scrollToItem(index)
+      chatListRef.current?.scrollToItem(index)
     }
   }, [])
 
+  const activeChatIndex = useMemo(
+    () => (activeChatId != null ? chatListIds.indexOf(activeChatId) : -1),
+    [chatListIds, activeChatId]
+  )
   const lastShowArchivedChatsState = useRef(showArchivedChats)
   const lastQuery = useRef(queryStr)
   // on select chat - scroll to selected chat - chatView
   // follow chat after loading or when it's position in the chatlist changes
   useEffect(() => {
     if (isSearchActive && lastQuery.current !== queryStr) {
-      scrollSelectedChatIntoView(0)
+      scrollChatIntoView(0)
       // search is active, don't scroll to selected chat, scroll up instead when queryStr changes
       lastQuery.current = queryStr
       return
     }
     // when showArchivedChats changes, select selected chat if it is archived/not-archived otherwise select first item
-    if (selectedChatIndex !== -1) {
-      scrollSelectedChatIntoView(selectedChatIndex)
+    if (activeChatIndex !== -1) {
+      scrollChatIntoView(activeChatIndex)
     } else {
       if (lastShowArchivedChatsState.current !== showArchivedChats) {
-        scrollSelectedChatIntoView(0)
+        scrollChatIntoView(0)
       }
     }
     lastShowArchivedChatsState.current = showArchivedChats
   }, [
-    selectedChatIndex,
+    activeChatIndex,
     isSearchActive,
-    scrollSelectedChatIntoView,
+    scrollChatIntoView,
     showArchivedChats,
     queryStr,
   ])
@@ -269,26 +335,22 @@ export default function ChatList(props: {
 
   // KeyboardShortcuts ---------
   useKeyBindingAction(KeybindAction.ChatList_ScrollToSelectedChat, () =>
-    scrollSelectedChatIntoView(selectedChatIndex)
+    scrollChatIntoView(activeChatIndex)
   )
 
   useKeyBindingAction(KeybindAction.ChatList_SelectNextChat, () => {
-    if (selectedChatId === null) return selectFirstChat()
-    const selectedChatIndex = chatListIds.findIndex(
-      chatId => chatId === selectedChatId
-    )
-    const newChatId = chatListIds[selectedChatIndex + 1]
+    if (activeChatId === null) return selectFirstChat()
+    const activeChatIndex = chatListIds.indexOf(activeChatId)
+    const newChatId = chatListIds[activeChatIndex + 1]
     if (newChatId && newChatId !== C.DC_CHAT_ID_ARCHIVED_LINK) {
       selectChat(accountId, newChatId)
     }
   })
 
   useKeyBindingAction(KeybindAction.ChatList_SelectPreviousChat, () => {
-    if (selectedChatId === null) return selectFirstChat()
-    const selectedChatIndex = chatListIds.findIndex(
-      chatId => chatId === selectedChatId
-    )
-    const newChatId = chatListIds[selectedChatIndex - 1]
+    if (activeChatId === null) return selectFirstChat()
+    const activeChatIndex = chatListIds.indexOf(activeChatId)
+    const newChatId = chatListIds[activeChatIndex - 1]
     if (newChatId && newChatId !== C.DC_CHAT_ID_ARCHIVED_LINK) {
       selectChat(accountId, newChatId)
     }
@@ -308,37 +370,43 @@ export default function ChatList(props: {
   //   selectFirstChat()
   // )
 
-  const chatlistData = useMemo(() => {
+  const multiselect = useChatListMultiselect(
+    chatListIds,
+    activeChatId,
+    accountId
+  )
+
+  const chatlistData: ChatListItemData = useMemo(() => {
     return {
-      selectedChatId,
+      // This should be in sync with `olElementAttrs` of `ChatListPart`.
+      roleTabs: true,
+
+      activeChatId,
+      multiselect,
       chatListIds,
       chatCache,
       onChatClick,
       openContextMenu,
-      activeContextMenuChatId,
+      activeContextMenuChatIds,
     }
   }, [
-    selectedChatId,
+    activeChatId,
+    multiselect,
     chatListIds,
     chatCache,
     onChatClick,
     openContextMenu,
-    activeContextMenuChatId,
+    activeContextMenuChatIds,
   ])
 
-  const contactlistData: {
-    contactCache: {
-      [id: number]: Type.Contact | undefined
-    }
-    contactIds: number[]
-  } = useMemo(() => {
+  const contactlistData: ChatListContactItemData = useMemo(() => {
     return {
       contactCache,
       contactIds,
     }
   }, [contactCache, contactIds])
 
-  const messagelistData = useMemo(() => {
+  const messagelistData: ChatListMessageItemData = useMemo(() => {
     return {
       messageResultIds,
       messageCache,
@@ -347,17 +415,16 @@ export default function ChatList(props: {
     }
   }, [messageResultIds, messageCache, queryStr, queryChatId])
 
-  const [searchChatInfo, setSearchChatInfo] = useState<T.BasicChat | null>(null)
-  useEffect(() => {
-    if (queryChatId) {
-      BackendRemote.rpc
-        .getBasicChatInfo(accountId, queryChatId)
-        .then(setSearchChatInfo)
-        .catch(console.error)
-    } else {
-      setSearchChatInfo(null)
-    }
-  }, [accountId, queryChatId, isSearchActive])
+  const searchChatInfoFetch = useRpcFetch(
+    BackendRemote.rpc.getBasicChatInfo,
+    queryChatId ? [accountId, queryChatId] : null
+  )
+  if (searchChatInfoFetch?.result?.ok === false) {
+    console.error(searchChatInfoFetch.result.err)
+  }
+  const searchChatInfo = searchChatInfoFetch?.result?.ok
+    ? searchChatInfoFetch.result.value
+    : null
 
   // Render --------------------
   const tx = useTranslationFunction()
@@ -368,7 +435,10 @@ export default function ChatList(props: {
         <AutoSizer disableWidth>
           {({ height }) => (
             <div ref={tabindexWrapperElementChats}>
-              <div className='search-result-divider'>
+              <div
+                id='search-result-divider-messages'
+                className='search-result-divider'
+              >
                 {tx('search_in', searchChatInfo.name)}
                 {messageResultIds.length !== 0 &&
                   ': ' + translate_n('n_messages', messageResultIds.length)}
@@ -378,6 +448,9 @@ export default function ChatList(props: {
                 classNameOfTargetElements={rovingTabindexItemsClassName}
               >
                 <ChatListPart
+                  olElementAttrs={{
+                    'aria-labelledby': 'search-result-divider-messages',
+                  }}
                   isRowLoaded={isMessageLoaded}
                   loadMoreRows={loadMessages}
                   rowCount={messageResultIds.length}
@@ -406,7 +479,10 @@ export default function ChatList(props: {
         {({ height }) => (
           <>
             {isSearchActive && (
-              <div className='search-result-divider'>
+              <div
+                id='search-result-divider-chats'
+                className='search-result-divider'
+              >
                 {translate_n('n_chats', chatListIds.length)}
               </div>
             )}
@@ -419,13 +495,38 @@ export default function ChatList(props: {
             >
               <div ref={tabindexWrapperElementChats}>
                 <ChatListPart
+                  olElementAttrs={{
+                    // Note that there are many `ChatListPart` instances,
+                    // but not all of them are `role='tablist'`.
+                    //
+                    // Also note that not all the interactive items
+                    // have role='tab'. For example, `ChatListItemArchiveLink`.
+                    //
+                    // Aaand also note that we do not set `role='tabpanel'`
+                    // on the "chat" section, out of fear that screen readers
+                    // will get too verbose.
+                    // TODO this should be reconsidered.
+                    // The same goes for the accounts list items,
+                    // which are arguably also tabs.
+                    //
+                    // This should be in sync with `chatlistData.roleTabs`.
+                    role: 'tablist',
+                    'aria-orientation': 'vertical',
+                    'aria-multiselectable': multiselect != undefined,
+
+                    'aria-labelledby': isSearchActive
+                      ? 'search-result-divider-chats'
+                      : undefined,
+                    // When `!isSearchActive`, the wrapper `<section>` label
+                    // is enough.
+                  }}
                   isRowLoaded={isChatLoaded}
                   loadMoreRows={loadChats}
                   rowCount={chatListIds.length}
                   width={'100%'}
                   height={chatsHeight(height)}
                   setListRef={(ref: List<any> | null) =>
-                    ((listRefRef.current as any) = ref)
+                    ((chatListRef.current as any) = ref)
                   }
                   itemKey={index => 'key' + chatListIds[index]}
                   itemData={chatlistData}
@@ -436,7 +537,10 @@ export default function ChatList(props: {
               </div>
               {isSearchActive && (
                 <>
-                  <div className='search-result-divider'>
+                  <div
+                    id='search-result-divider-contacts'
+                    className='search-result-divider'
+                  >
                     {translate_n('n_contacts', contactIds.length)}
                   </div>
                   <RovingTabindexProvider
@@ -445,6 +549,9 @@ export default function ChatList(props: {
                   >
                     <div ref={tabindexWrapperElementContacts}>
                       <ChatListPart
+                        olElementAttrs={{
+                          'aria-labelledby': 'search-result-divider-contacts',
+                        }}
                         isRowLoaded={isContactLoaded}
                         loadMoreRows={loadContact}
                         rowCount={contactIds.length}
@@ -456,7 +563,8 @@ export default function ChatList(props: {
                       >
                         {ChatListItemRowContact}
                       </ChatListPart>
-                      {contactIds.length === 0 &&
+                      {!isChatmail &&
+                        contactIds.length === 0 &&
                         chatListIds.length === 0 &&
                         queryStrIsValidEmail && (
                           <PseudoListItemAddContact
@@ -473,7 +581,10 @@ export default function ChatList(props: {
                       )}
                     </div>
                   </RovingTabindexProvider>
-                  <div className='search-result-divider'>
+                  <div
+                    id='search-result-divider-messages'
+                    className='search-result-divider'
+                  >
                     {translated_messages_label(messageResultIds.length)}
                   </div>
 
@@ -483,6 +594,9 @@ export default function ChatList(props: {
                   >
                     <div ref={tabindexWrapperElementMessages}>
                       <ChatListPart
+                        olElementAttrs={{
+                          'aria-labelledby': 'search-result-divider-messages',
+                        }}
                         isRowLoaded={isMessageLoaded}
                         loadMoreRows={loadMessages}
                         rowCount={messageResultIds.length}
@@ -732,6 +846,170 @@ function useContactAndMessageLogic(
     messageCache,
     queryStrIsValidEmail,
   }
+}
+
+function useChatListMultiselect(
+  chatListIds: Awaited<ReturnType<typeof BackendRemote.rpc.getChatlistEntries>>,
+  activeChatId: T.BasicChat['id'] | null,
+  accountId: number
+) {
+  /**
+   * Same as `activeChatId`, but a ref to avoid re-renders.
+   */
+  const activeChatIdRef = useRef(activeChatId)
+  activeChatIdRef.current = activeChatId
+
+  const [dummyValueForSelectionReset, _setDummyValueForSelectionReset] =
+    useState(Symbol())
+  const resetSelection = useCallback(
+    () => _setDummyValueForSelectionReset(Symbol()),
+    []
+  )
+  /**
+   * This is used to tell whether a selection is "valid",
+   * otherwise we should use the default, reset state.
+   * When this value changes, the previous selection becomes invalid.
+   */
+  const selectionId_ = useMemo(
+    () => Symbol(),
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [
+      // When the active chat gets changed, for example, as a result of
+      // executing the Ctrl + PageDown shortcut,
+      // we want to reset selection, invalidate it,
+      // to reduce confusion,
+      // e.g. "is the currently active chat selected or not?"
+      //
+      // `activeChatId` never (or almost never?) gets changed
+      // automatically, it's always a result of a user action,
+      // so resetting selection in this case shouldn't make users angry.
+      activeChatId,
+      dummyValueForSelectionReset,
+      // It's not strictly necessary to watch `accountId` as of now,
+      // because the code above this hook ensures that the component
+      // is re-created when accountId changes.
+      // But let's do it for future-proofing.
+      accountId,
+    ]
+  )
+  // Put behind a ref to avoid re-renders.
+  const selectionId = useRef(selectionId_)
+  selectionId.current = selectionId_
+
+  const [multiselectState_, setMultiselectState_] = useState({
+    selectedChats: new Set<(typeof chatListIds)[number]>(),
+    // Initialize with a new Symbol so that the initial state is "invalid".
+    forSelectionId: Symbol(),
+  })
+  const setSelectedChats = useCallback(
+    (newSelectedChats: Set<(typeof chatListIds)[number]>) => {
+      setMultiselectState_({
+        selectedChats: newSelectedChats,
+        forSelectionId: selectionId.current,
+      })
+    },
+    []
+  )
+  const activeChatSet: Set<(typeof chatListIds)[number]> = useMemo(
+    () => (activeChatId == null ? new Set() : new Set([activeChatId])),
+    [activeChatId]
+  )
+  const multiselectStateIsValid =
+    selectionId.current === multiselectState_.forSelectionId
+  const selectedChats = multiselectStateIsValid
+    ? multiselectState_.selectedChats
+    : // Make sure to have the active chat selected by default,
+      // e.g. for the case when the user wants to Ctrl + Click
+      // another chat.
+      // This is important, because the chat list items
+      // are only styled as "selected" based on `multiselect`,
+      // and not `activeChatId` (see `isSelected` in `ChatListItemRowChat`).
+      //
+      // TODO or should we do this though? Why complicate things?
+      // Just mark "selected" and "active" chat distinctly
+      // and we're good?
+      // Maybe it's better to manage this inside of `useMultiselect`?
+      activeChatSet
+
+  // Remove chats from selection that have been removed from `chatListIds`.
+  //
+  // Why not `useMemo`? Because if the removed chat gets added back to the list,
+  // we _don't_ want it to get added back to selection,
+  // to avoid, let's say, accidentally deleting a chat.
+  //
+  // For example, let's say the user had two chats selected, but then
+  // one of the selected chats got archived (e.g. from another device).
+  // Then they forgot about selecting it and went to delete some other chats:
+  // they selected two other chats for deletion, but then a message arrives
+  // to the archived chat, unarchiving it.
+  // This would suddenly make 4 chats selected, instead of 3,
+  // and they could unintentionally delete the one they archived.
+  //
+  // An alternative would be to simply reset (invalidate) selection
+  // on _any_ change to `chatListIds`,
+  // but that would not be nice, e.g. for example if only the order
+  // of chat list items changed, e.g. when receiving a new message.
+  //
+  // This also handles the more common case of simply resetting selection
+  // after you have deleted / archived selected chats.
+  //
+  // TODO should this be part of `useMultiselect`?
+  // Or at least another, more "advanced" but still generic wrapper for it.
+  if (useHasChanged2(chatListIds)) {
+    // Using `multiselectState_.selectedChats` instead of `selectedChats`
+    // To avoid an infinite loop of `setMultiselectState_`
+    // when `selectedChats === activeChatSet`.
+    const newSelectedChats = new Set(multiselectState_.selectedChats)
+    let foundMissing = false
+    for (const id of multiselectState_.selectedChats) {
+      if (!chatListIds.includes(id)) {
+        foundMissing = true
+        newSelectedChats.delete(id)
+      }
+    }
+    if (foundMissing) {
+      setMultiselectState_(old => ({
+        selectedChats: newSelectedChats,
+        // Keep the ID: in case it's already invalid, don't revalidate it.
+        forSelectionId: old.forSelectionId,
+      }))
+    }
+  }
+
+  const multiselect = useMultiselect(
+    chatListIds,
+    selectedChats,
+    useCallback(
+      newSelectedChats => {
+        // `chatListIds` might include `C.DC_CHAT_ID_ARCHIVED_LINK`.
+        // Let's make sure that only normal chat list items can be selected
+        // with multiselect.
+        // Note that the context menu and regular clicks still work
+        // for these chats.
+        // This is primarily for `C.DC_CHAT_ID_ARCHIVED_LINK`,
+        // but let's be conservative and also exclude
+        // other weird chat list items.
+        for (let i = 0; i <= C.DC_CHAT_ID_LAST_SPECIAL; i++) {
+          newSelectedChats.delete(i)
+        }
+
+        // TODO perf: to avoid re-renders, maybe store this into a ref,
+        // but only update reactive state only if there are 2+ items selected?
+        setSelectedChats(newSelectedChats)
+      },
+      [setSelectedChats]
+    ),
+    useMultiselectLog
+  )
+
+  return useMemo(
+    () => ({
+      ...multiselect,
+      setSelectedChats,
+      resetSelection,
+    }),
+    [multiselect, setSelectedChats, resetSelection]
+  )
 }
 
 function translated_messages_label(count: number) {

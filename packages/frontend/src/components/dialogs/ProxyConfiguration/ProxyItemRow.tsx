@@ -2,7 +2,7 @@ import React from 'react'
 import classNames from 'classnames'
 import useTranslationFunction from '../../../hooks/useTranslationFunction'
 import Button from '../../Button'
-import { C } from '@deltachat/jsonrpc-client'
+import { C } from '@privitty/jsonrpc-client'
 
 import styles from './styles.module.scss'
 

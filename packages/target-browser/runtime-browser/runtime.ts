@@ -19,7 +19,7 @@ import {
   MediaType,
   Runtime,
 } from '@deltachat-desktop/runtime-interface'
-import { BaseDeltaChat, yerpc } from '@deltachat/jsonrpc-client'
+import { BaseDeltaChat, yerpc } from '@privitty/jsonrpc-client'
 
 import type { getLogger as getLoggerFunction } from '@deltachat-desktop/shared/logger.js'
 import type { setLogHandler as setLogHandlerFunction } from '@deltachat-desktop/shared/logger.js'
@@ -217,6 +217,9 @@ class BrowserRuntime implements Runtime {
   notifyWebxdcInstanceDeleted(_accountId: number, _instanceId: number): void {
     this.log.critical('Method not implemented.')
   }
+  startOutgoingVideoCall(): void {
+    this.log.critical('Method not implemented.')
+  }
   async saveBackgroundImage(
     file: string,
     isDefaultPicture: boolean
@@ -241,7 +244,11 @@ class BrowserRuntime implements Runtime {
     ).json()
 
     if (!locale) {
-      return { locale: 'en', messages: { ...messagesEnglish, ...untranslated } }
+      return {
+        locale: 'en',
+        messages: { ...messagesEnglish, ...untranslated },
+        dir: 'ltr',
+      }
     }
 
     let localeMessages: LocaleData['messages']
@@ -272,7 +279,11 @@ class BrowserRuntime implements Runtime {
         localeMessages = messagesEnglish
       }
     }
-    return { locale: 'en', messages: { ...localeMessages, ...untranslated } }
+    return {
+      locale: 'en',
+      messages: { ...localeMessages, ...untranslated },
+      dir: 'ltr',
+    }
   }
   setLocale(_locale: string): Promise<void> {
     throw new Error('Method not implemented.')

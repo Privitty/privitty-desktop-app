@@ -11,7 +11,7 @@ import { LastUsedSlot, rememberLastUsedPath } from '../../utils/lastUsedPaths'
 
 import { RuntimeOpenDialogOptions } from '@deltachat-desktop/shared/shared-types'
 import { getLogger } from '@deltachat-desktop/shared/logger'
-import { DcEventType } from '@deltachat/jsonrpc-client'
+import { DcEventType } from '@privitty/jsonrpc-client'
 import AlertDialog from '../dialogs/AlertDialog'
 import useDialog from '../../hooks/dialog/useDialog'
 

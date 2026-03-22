@@ -1,6 +1,7 @@
 import React, {
   ChangeEvent,
   useCallback,
+  useContext,
   useEffect,
   useLayoutEffect,
   useRef,
@@ -8,15 +9,14 @@ import React, {
 } from 'react'
 import { FixedSizeList } from 'react-window'
 import AutoSizer from 'react-virtualized-auto-sizer'
-import { C } from '@deltachat/jsonrpc-client'
-import type { T } from '@deltachat/jsonrpc-client'
+import { C } from '@privitty/jsonrpc-client'
+import type { T } from '@privitty/jsonrpc-client'
 import { PseudoListItemAddContact } from '../../helpers/PseudoListItem'
 import { ContactListItem } from '../../contact/ContactListItem'
 import { BackendRemote, onDCEvent, Type } from '../../../backend-com'
 import { selectedAccountId } from '../../../ScreenController'
 import { DialogBody, DialogHeader, OkCancelFooterAction } from '../../Dialog'
 import useDialog from '../../../hooks/dialog/useDialog'
-import useTranslationFunction from '../../../hooks/useTranslationFunction'
 import { VerifiedContactsRequiredDialog } from '../ProtectionStatusDialog'
 import InfiniteLoader from 'react-window-infinite-loader'
 import { AddMemberChip } from './AddMemberDialog'
@@ -24,6 +24,7 @@ import styles from './styles.module.scss'
 import classNames from 'classnames'
 import { RovingTabindexProvider } from '../../../contexts/RovingTabindex'
 import { runtime } from '@deltachat-desktop/runtime-interface'
+import { I18nContext } from '../../../contexts/I18nContext'
 
 export function AddMemberInnerDialog({
   onCancel,
@@ -40,7 +41,9 @@ export function AddMemberInnerDialog({
   groupMembers,
   groupChatId,
   isBroadcast = false,
+  titleMembersOrRecipients,
   isVerificationRequired = false,
+  allowAddManually,
 }: {
   onOk: (addMembers: number[]) => void | Promise<void>
   onCancel: Parameters<typeof OkCancelFooterAction>[0]['onCancel']
@@ -56,10 +59,12 @@ export function AddMemberInnerDialog({
   groupMembers: number[]
   /** When provided, members are being added to an existing group */
   groupChatId?: number
-  isBroadcast: boolean
+  isBroadcast?: boolean
+  titleMembersOrRecipients?: 'members' | 'recipients'
   isVerificationRequired: boolean
+  allowAddManually: boolean
 }) {
-  const tx = useTranslationFunction()
+  const { tx, writingDirection } = useContext(I18nContext)
   const { openDialog } = useDialog()
   const accountId = selectedAccountId()
   const contactIdsInGroup: number[] = contactIds.filter(contactId =>
@@ -227,8 +232,9 @@ export function AddMemberInnerDialog({
   useLayoutEffect(applyCSSHacks, [inputRef, contactIdsToAdd])
   useEffect(applyCSSHacks, [])
 
-  const needToRenderAddContact = queryStr !== '' && contactIds.length === 0
-  const itemCount = contactIds.length + (needToRenderAddContact ? 1 : 0)
+  const showAddContactManually =
+    queryStr !== '' && contactIds.length === 0 && allowAddManually
+  const itemCount = contactIds.length + (showAddContactManually ? 1 : 0)
 
   const addContactOnKeyDown = (ev: React.KeyboardEvent<HTMLInputElement>) => {
     if (ev.key === 'Enter') {
@@ -262,7 +268,11 @@ export function AddMemberInnerDialog({
   return (
     <>
       <DialogHeader
-        title={!isBroadcast ? tx('group_add_members') : tx('add_recipients')}
+        title={
+          titleMembersOrRecipients === 'members'
+            ? tx('group_add_members')
+            : tx('add_recipients')
+        }
       />
       <DialogBody className={styles.addMemberDialogBody}>
         <div className={styles.AddMemberChipsWrapper}>
@@ -337,6 +347,7 @@ export function AddMemberInnerDialog({
                         return isExtraItem ? 'addContact' : contactIds[index]
                       }}
                       onItemsRendered={onItemsRendered}
+                      direction={writingDirection}
                       ref={ref}
                       height={height}
                       width='100%'
@@ -416,9 +427,9 @@ function AddMemberInnerDialogRow({
         isVerified: false,
         verifierId: null,
         wasSeenRecently: false,
-        isProfileVerified: false,
         isBot: false,
         e2eeAvail: false,
+        isKeyContact: false,
       }
       return (
         <ContactListItem

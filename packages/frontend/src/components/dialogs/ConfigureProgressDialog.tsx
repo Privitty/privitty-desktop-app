@@ -1,4 +1,4 @@
-import { DcEventType } from '@deltachat/jsonrpc-client'
+import { DcEventType } from '@privitty/jsonrpc-client'
 import React, { useEffect, useRef, useState } from 'react'
 
 import { DeltaProgressBar } from '../Login-Styles'

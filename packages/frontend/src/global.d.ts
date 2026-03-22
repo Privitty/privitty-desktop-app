@@ -2,7 +2,7 @@ import { userFeedback, Screens } from './ScreenController'
 
 import '@deltachat-desktop/shared/global.d.ts'
 import type { useMessageList } from './stores/messagelist'
-import type { T } from '@deltachat/jsonrpc-client'
+import type { T } from '@privitty/jsonrpc-client'
 
 declare global {
   interface Window {
@@ -75,5 +75,10 @@ declare global {
     __internal_current_message_list_instance_id?: symbol
     __updateAccountListSidebar: (() => void) | undefined
     __closeAllDialogs: () => void | undefined
+
+    /**
+     * Used for E2E tests.
+     */
+    __testForceShowNewEmailButton?: (show: boolean) => void
   }
 }

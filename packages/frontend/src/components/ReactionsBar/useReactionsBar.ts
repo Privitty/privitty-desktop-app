@@ -1,10 +1,10 @@
 import { useContext } from 'react'
-import { C } from '@deltachat/jsonrpc-client'
+import { C } from '@privitty/jsonrpc-client'
 
 import { ReactionsBarContext } from '.'
 
 import type { ShowReactionBar, ReactionsBarValue } from './ReactionsBarContext'
-import type { T } from '@deltachat/jsonrpc-client'
+import type { T } from '@privitty/jsonrpc-client'
 
 type UseReactionsBar = Pick<
   ReactionsBarValue,

@@ -5,11 +5,9 @@ import { resolve as pathResolve } from 'path'
 import { app as rawApp, dialog, ipcMain, protocol } from 'electron'
 import rc from './rc.js'
 import contextMenu from './electron-context-menu.js'
-import { isWindowsStorePackage } from './isAppx.js'
+import { initIsWindowsStorePackageVar } from './isAppx.js'
 import { getHelpMenu } from './help_menu.js'
 import { initialisePowerMonitor } from './resume_from_sleep.js'
-
-import type { EventEmitter } from 'events'
 
 // Hardening: prohibit all DNS queries, except for  OpenStreetMap
 // (used by /static/xdcs/maps.xdc)
@@ -35,6 +33,7 @@ if (rc['help'] === true || rc['h'] === true) {
   process.exit()
 }
 
+import { callsWebappElectronScheme } from './windows/video-call.js'
 protocol.registerSchemesAsPrivileged([
   {
     scheme: 'webxdc',
@@ -67,6 +66,7 @@ protocol.registerSchemesAsPrivileged([
       stream: true, // needed for audio playback
     },
   },
+  callsWebappElectronScheme,
 ])
 
 const app = rawApp as ExtendedAppMainProcess
@@ -149,7 +149,7 @@ app.isQuitting = false
 Promise.all([
   new Promise((resolve, _reject) => app.on('ready', resolve)),
   DesktopSettings.load(),
-  isWindowsStorePackage(),
+  initIsWindowsStorePackageVar(),
   webxdcStartUpCleanup(),
 ])
   .then(onReady)
@@ -175,8 +175,7 @@ async function onReady([_appReady, _loadedState, _appx, _webxdc_cleanup]: [
 ]) {
   // can fail due to user error so running it first is better (cli argument)
   acceptThemeCLI()
-
-  setLanguage(DesktopSettings.state.locale || app.getLocale())
+  setLanguage(DesktopSettings.state.locale || app.getLocale().split('-')[0]) // can consist of 2 strings like in en-GB
 
   const cwd = getAccountsPath()
   log.info(`cwd ${cwd}`)
@@ -238,7 +237,7 @@ async function onReady([_appReady, _loadedState, _appx, _webxdc_cleanup]: [
   initialisePowerMonitor()
 }
 
-;(app as EventEmitter).once('ipcReady', () => {
+app.once('ipcReady' as any, () => {
   if (!mainWindow.window) {
     throw new Error('window does not exist, this should never happen')
   }

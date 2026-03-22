@@ -101,8 +101,7 @@ pub(crate) fn webxdc_protocol<R: tauri::Runtime>(
     let webview_label = ctx.webview_label().to_owned();
     if !webview_label.starts_with("webxdc:") {
         error!(
-            "prevented other window from accessing webxdc:// scheme (webview label: {})",
-            webview_label
+            "prevented other window from accessing webxdc:// scheme (webview label: {webview_label})"
         );
         return;
     }
@@ -314,17 +313,25 @@ const PERMISSIONS_POLICY_DENY_ALL: &str = concat!(
     "web-share=(), ",
     "window-management=(), ",
     "xr-spatial-tracking=(), ",
+    "autofill=(), ",
     "clipboard-read=(), ",
     "clipboard-write=(), ",
     "deferred-fetch=(), ",
     "gamepad=(), ",
-    "shared-autofill=(), ",
+    "language-detector=(), ",
+    "language-model=(), ",
+    "manual-text=(), ",
+    "rewriter=(), ",
     "speaker-selection=(), ",
+    "summarizer=(), ",
+    "translator=(), ",
+    "writer=(), ",
     "all-screens-capture=(), ",
     "browsing-topics=(), ",
     "captured-surface-control=(), ",
     "conversion-measurement=(), ",
     "digital-credentials-get=(), ",
+    "digital-credentials-create=(), ",
     "focus-without-user-activation=(), ",
     "join-ad-interest-group=(), ",
     "local-fonts=(), ",

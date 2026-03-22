@@ -4,7 +4,7 @@ import useConfirmationDialog from './dialog/useConfirmationDialog'
 import useTranslationFunction from './useTranslationFunction'
 import { BackendRemote } from '../backend-com'
 
-import type { T } from '@deltachat/jsonrpc-client'
+import type { T } from '@privitty/jsonrpc-client'
 import type { QrWithUrl, VerifyContactQr, VerifyGroupQr } from '../backend/qr'
 
 export default function useSecureJoin() {

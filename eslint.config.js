@@ -42,7 +42,7 @@ export default defineConfig(
       languageOptions: {
         parserOptions: {
           project: './packages/e2e-tests/tsconfig.json',
-          tsconfigRootDir: './',
+          tsconfigRootDir: import.meta.dirname,
         },
       },
       rules: {
@@ -99,5 +99,6 @@ export default defineConfig(
     'packages/shared/ts-compiled-for-tests',
     'packages/target-electron/migration-tests/compiled',
     'packages/e2e-tests/playwright-report',
+    'packages/e2e-tests/test-results'
   ])
 )

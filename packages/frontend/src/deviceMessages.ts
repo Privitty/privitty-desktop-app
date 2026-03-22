@@ -5,6 +5,7 @@ export async function updateDeviceChat(
   accountId: number,
   skipCurrentChangelog: boolean = false
 ) {
+  const tx = window.static_translate
   const addDeviceMessage = async (
     label: string,
     msg: Partial<Parameters<typeof BackendRemote.rpc.addDeviceMessage>[2]>
@@ -26,16 +27,12 @@ export async function updateDeviceChat(
       })
     }
   }
-
-  await addDeviceMessage('changelog-version-1.58.0', {
-    text: `What's new in 1.58.0?
-
-  🎤 voice messages: finally you can record and send voice messages with DC desktop
-  👤 profile view dialog redesign
-  💡 show user names instead of mail address in many places
-  🌅 improved image rendering
-
-+ MORE ✨ improvements and 🐜 bug fixes see [Full Changelog](https://github.com/deltachat/deltachat-desktop/blob/main/CHANGELOG.md#1_58_0)`,
+  // Label must be unique per "announcement" — once consumed it never fires again.
+  // Using a Privitty-specific prefix + upstream version avoids conflicts with
+  // past labels (changelog-version-1.58.0, changelog-version-2.3.0) that were
+  // already consumed during development.
+  await addDeviceMessage(`privitty-2.3.0-update`, {
+    text: tx('update_2_0', 'https://delta.chat/donate'),
   })
 }
 

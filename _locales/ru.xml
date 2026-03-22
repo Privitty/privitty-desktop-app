@@ -34,6 +34,8 @@
     <string name="update">Обновить</string>
     <string name="emoji">Эмодзи</string>
     <string name="attachment">Вложение</string>
+    <!-- the placeholder will be replaced by the name of the image or file to attach -->
+    <string name="ask_attach">Прикрепить \"%1$s\"?</string>
     <string name="back">Назад</string>
     <string name="close">Закрыть</string>
     <string name="close_window">Закрыть окно</string>
@@ -58,6 +60,8 @@
     <string name="media">Медиафайлы</string>
     <string name="apps_and_media">Приложения и медиафайлы</string>
     <string name="profile">Профиль</string>
+    <string name="all_profiles">Все профили</string>
+    <string name="current_profile">Текущий профиль</string>
     <string name="main_menu">Главное меню</string>
     <string name="start_chat">Начать чат</string>
     <string name="show_full_message">Показать сообщение полностью…</string>
@@ -92,6 +96,8 @@
     <string name="no_app_to_handle_data">Не удалось найти приложение для обработки этого типа данных.</string>
     <string name="no_browser_installed">Браузер не установлен.</string>
     <string name="file_not_found">Не удалось найти %1$s.</string>
+    <!-- the placeholder will be replaced by the name of a file -->
+    <string name="cannot_save_file">Невозможно сохранить %1$s.</string>
     <string name="copied_to_clipboard">Скопировано в буфер обмена.</string>
     <string name="contacts_headline">Контакты</string>
     <string name="email_address">Адрес электронной почты</string>
@@ -169,7 +175,7 @@
         <item quantity="many">%d выбрано</item>
         <item quantity="other">%d выбрано</item>
     </plurals>
-
+    <string name="selected_colon">Выбрано:</string>
     <string name="self">Я</string>
     <string name="draft">Черновик</string>
     <string name="image">Изображение</string>
@@ -252,14 +258,32 @@
     <!-- "Chat" is a verb here, "Message to" would also fit. the string might be used in the "New Chat" screen above the contact list -->
     <string name="chat_with">Начать чат с…</string>
     <string name="clone_chat">Клонировать чат</string>
-    <!-- consider keeping the term "broadcast" as in WhatsApp or Telegram -->
+    <!-- deprecated -->
     <string name="broadcast_list">Список рассылки</string>
+    <!-- deprecated -->
     <string name="broadcast_lists">Списки рассылки</string>
+    <!-- deprecated -->
     <string name="new_broadcast_list">Новый список рассылки</string>
+    <!-- consider keeping the term "channel" as in WhatsApp or Telegram -->
+    <string name="channel">Канал</string>
+    <!-- consider keeping the term "channel" as in WhatsApp or Telegram -->
+    <string name="channels">Каналы</string>
+    <!-- consider keeping the term "channel" as in WhatsApp or Telegram -->
+    <string name="new_channel">Новый канал</string>
     <string name="add_recipients">Добавить получателей</string>
+    <!-- deprecated -->
     <string name="edit_broadcast_list">Редактировать список рассылки</string>
+    <!-- deprecated -->
     <string name="broadcast_list_name">Название списка рассылки</string>
+    <!-- deprecated -->
     <string name="please_enter_broadcast_list_name">Введите название списка рассылки.</string>
+    <!-- consider keeping the term "channel" as in WhatsApp or Telegram -->
+    <string name="channel_name">Название канала</string>
+    <string name="email">Электронная почта</string>
+    <!-- "New" as in "Create New E-Mail"; shown together with "New Group" and "New Channel" -->
+    <string name="new_email">Новое письмо</string>
+    <!-- the "Subject" of an e-mail, use the term common in classic e-mail apps -->
+    <string name="subject">Тема</string>
     <string name="menu_send">Отправить</string>
     <string name="menu_toggle_keyboard">Эмодзи клавиатура</string>
     <string name="menu_edit_group">Редактировать группу</string>
@@ -269,6 +293,7 @@
     <string name="menu_unarchive_chat">Вернуть чат из архива</string>
     <string name="menu_add_attachment">Добавить вложение</string>
     <string name="menu_leave_group">Покинуть группу</string>
+    <string name="menu_leave_channel">Покинуть канал</string>
     <string name="menu_delete_chat">Удалить чат</string>
     <!-- Command to delete all messages in a chat. The chat itself will not be deleted but will be empty afterwards, so make sure to be different from "Delete Chat" here. "Clear" is a verb here, "Empty Chat" would also be fine (eg. in German "Chat leeren") -->
     <string name="clear_chat">Очистить чат</string>
@@ -353,6 +378,7 @@
     <!-- Menu item beside an app/chat that adds an icon to the system's home screen. If the user taps that icon, the app/chat is opened directly. -->
     <string name="add_to_home_screen">Добавить на главный экран</string>
     <string name="donate">Пожертвовать</string>
+    <string name="donate_device_msg">❤️ Кажется, вам нравится Delta Chat!\n\nРассмотрите возможность сделать пожертвование, чтобы Delta Chat и дальше оставался бесплатным для всех пользователей.\n\nDelta Chat — это бесплатное приложение с открытым исходным кодом, но его разработка требует денег. Поддержите нас, чтобы сохранить независимость Delta Chat и сделать его ещё более крутым в будущем.\n\nhttps://delta.chat/donate</string>
 
     <string name="mute_for_one_hour">На 1 час</string>
     <string name="mute_for_eight_hours">На 8 часов</string>
@@ -391,7 +417,8 @@
     <string name="videochat_invitation_body">Вы приглашены в видеочат, нажмите %1$s, чтобы присоединиться.</string>
 
     <!-- get confirmations -->
-    <string name="ask_leave_group">Вы уверены, что хотите покинуть эту группу?</string>
+    <!-- confirmation for leaving groups, channels, broadcasts or a mailinglists. If a subject is needed, "Are you sure you want to leave the chat?" would work as well -->
+    <string name="ask_leave_group">Вы действительно хотите выйти?</string>
     <plurals name="ask_delete_chat">
         <item quantity="one">Удалить %d чат на всех ваших устройствах?</item>
         <item quantity="few">Удалить %d чата на всех ваших устройствах?</item>
@@ -423,8 +450,10 @@
     <string name="ask_start_chat_with">Создать чат с %1$s?</string>
     <!-- %1$s is replaced by a comma-separated list of names -->
     <string name="ask_remove_members">Удалить %1$s из группы?</string>
-    <!-- %1$s is replaced by a comma-separated list of names -->
+    <!-- deprecated -->
     <string name="ask_remove_from_broadcast">Удалить %1$s из списка рассылки?</string>
+    <!-- %1$s is replaced by a comma-separated list of names -->
+    <string name="ask_remove_from_channel">Удалить %1$s из канала?</string>
     <string name="open_url_confirmation">Вы хотите открыть эту ссылку?</string>
 
 
@@ -460,7 +489,10 @@
     </plurals>
     <!-- The placeholder will be replaced by the name of the recipient in a one-to-one chat. -->
     <string name="chat_new_one_to_one_hint">Отправьте сообщение %1$s.</string>
+    <!-- deprecated -->
     <string name="chat_new_broadcast_hint">В списке рассылки получатели будут получать сообщения в чате с вами, доступном только для чтения.</string>
+    <!-- consider keeping the term "channel" as in WhatsApp or Telegram -->
+    <string name="chat_new_channel_hint">Каналы представляют собой инструмент одностороннего вещания ваших сообщений множеству получателей.</string>
     <string name="chat_new_group_hint">Другие пользователи увидят эту группу только после того, как вы отправите первое сообщение.</string>
     <string name="chat_record_slide_to_cancel">Смахните для отмены</string>
     <string name="chat_record_explain">Нажмите и удерживайте для записи голосового сообщения, отпустите для отправки</string>
@@ -470,6 +502,7 @@
     <string name="chat_input_placeholder">Сообщение</string>
     <string name="chat_archived_label">Архивировано</string>
     <string name="chat_request_label">Запрос</string>
+    <string name="chat_request_label_explain">Включать запросы в счётчики и уведомления</string>
     <string name="chat_no_messages">Нет сообщений.</string>
     <string name="chat_self_talk_subtitle">Сообщения, отправленные себе</string>
     <string name="archive_empty_hint">Здесь можно просмотреть архивные чаты.</string>
@@ -568,7 +601,7 @@
     <!-- option to show images in the gallery as square (instead of using correct width/height) -->
     <string name="square_grid">Сетка квадратов</string>
     <string name="send_message">Отправить сообщение</string>
-    <!-- Placeholder %1$s will be replaced by the name of the contact changing their address. Placeholders %2$s and %3$s will be replaced by old/new addresses. -->
+    <!-- deprecated, was stock string -->
     <string name="aeap_addr_changed">%1$s меняет адрес с %2$s на %3$s</string>
     <!-- deprecated -->
     <string name="aeap_explanation">Вы изменили свой адрес электронной почты с %1$s на %2$s.\n\nЕсли вы отправите сообщение в подтвержденную группу, контакты в ней автоматически обновят ваш старый адрес на новый.\n\nНастоятельно рекомендуется настроить старого поставщика электронной почты на пересылку всех писем на новый адрес. Иначе вы можете пропустить сообщения от контактов, которые еще не получили ваш новый адрес.</string>
@@ -839,6 +872,7 @@
     <string name="n_bytes_message">%1$s сообщение</string>
     <!-- %1$s will be replaced by human-readable date and time -->
     <string name="download_max_available_until">Максимальная загрузка доступна до %1$s</string>
+    <string name="select_profile">Выбрать профиль</string>
     <string name="profile_image_select">Выбрать изображение профиля</string>
     <string name="select_your_new_profile_image">Выбрать новое изображение профиля</string>
     <string name="profile_image_delete">Удалить изображение профиля</string>
@@ -925,8 +959,8 @@
     <string name="remove_member_by_you">Вы удалили участника %1$s.</string>
     <!-- %1$s will be replaced by name and address of the contact removed from the group, %2$s will be replaced by name and address of the contact who did the action -->
     <string name="remove_member_by_other">%2$s удаляет участника %1$s.</string>
-    <!-- "left" in the meaning of "exited" -->
-    <string name="group_left_by_you">Вы покинули группу.</string>
+    <!-- "left" in the meaning of "exited". This string is added to a chat after groups, channels, broadcasts or mailinglists are left. If a subject is needed, "You left the chat." would work as well. -->
+    <string name="group_left_by_you">Вы покинули.</string>
     <!-- "left" in the meaning of "exited"; %1$s will be replaced by name and address of the contact leaving the group -->
     <string name="group_left_by_other">%1$s покидает группу.</string>
     <string name="group_image_deleted_by_you">Вы удалили изображение группы.</string>
@@ -941,40 +975,45 @@
     <!-- %1$s will be replaced by the number of seconds (always >1) the timer is set to -->
     <string name="ephemeral_timer_seconds_by_you">Вы включили автоудаление сообщений через %1$s сек</string>
     <!-- %1$s will be replaced by the number of seconds (always >1) the timer is set to, %2$s will be replaced by name and address of the contact -->
-    <string name="ephemeral_timer_seconds_by_other">%2$s включил(а) автоудаление сообщений через %1$s сек</string>
+    <string name="ephemeral_timer_seconds_by_other">%2$s включает автоудаление сообщений через %1$s сек</string>
     <string name="ephemeral_timer_1_minute_by_you">Вы включили автоудаление сообщений через 1 минуту.</string>
     <!-- %1$s will be replaced by name and address of the contact -->
-    <string name="ephemeral_timer_1_minute_by_other">%1$s включил(а) автоудаление сообщений через 1 минуту.</string>
+    <string name="ephemeral_timer_1_minute_by_other">%1$s включает автоудаление сообщений через 1 минуту.</string>
     <string name="ephemeral_timer_1_hour_by_you">Вы включили автоудаление сообщений через 1 час.</string>
     <!-- %1$s will be replaced by name and address of the contact -->
-    <string name="ephemeral_timer_1_hour_by_other">%1$s включил(а) автоудаление сообщений через 1 час.</string>
+    <string name="ephemeral_timer_1_hour_by_other">%1$s включает автоудаление сообщений через 1 час.</string>
     <string name="ephemeral_timer_1_day_by_you">Вы включили автоудаление сообщений через 1 день.</string>
     <!-- %1$s will be replaced by name and address of the contact -->
-    <string name="ephemeral_timer_1_day_by_other">%1$s включил(а) автоудаление сообщений через 1 день.</string>
+    <string name="ephemeral_timer_1_day_by_other">%1$s включает автоудаление сообщений через 1 день.</string>
     <string name="ephemeral_timer_1_week_by_you">Вы включили автоудаление сообщений через 1 неделю.</string>
     <!-- %1$s will be replaced by name and address of the contact -->
-    <string name="ephemeral_timer_1_week_by_other">%1$s включил(а) автоудаление сообщений через 1 неделю.</string>
+    <string name="ephemeral_timer_1_week_by_other">%1$s включает автоудаление сообщений через 1 неделю.</string>
+    <string name="ephemeral_timer_1_year_by_you">Вы включили автоудаление сообщений на 1 год.</string>
+    <!-- %1$s will be replaced by name of the contact -->
+    <string name="ephemeral_timer_1_year_by_other">%1$s включает автоудаление сообщений на 1 год.</string>
     <!-- %1$s will be replaced by the number of minutes (always >1) the timer is set to -->
     <string name="ephemeral_timer_minutes_by_you">Вы включили автоудаление сообщений через %1$s минут.</string>
     <!-- %1$s will be replaced by the number of minutes (always >1) the timer is set to, %2$s will be replaced by name and address of the contact -->
-    <string name="ephemeral_timer_minutes_by_other">%2$s включил(а) автоудаление сообщений через %1$s минут.</string>
+    <string name="ephemeral_timer_minutes_by_other">%2$s включает автоудаление сообщений через %1$s минут.</string>
     <!-- %1$s will be replaced by the number of hours (always >1) the timer is set to -->
     <string name="ephemeral_timer_hours_by_you">Вы включили автоудаление сообщений через %1$s часов.</string>
     <!-- %1$s will be replaced by the number of hours (always >1) the timer is set to, %2$s will be replaced by name and address of the contact -->
-    <string name="ephemeral_timer_hours_by_other">%2$s включил(а) автоудаление сообщений через %1$s часов.</string>
+    <string name="ephemeral_timer_hours_by_other">%2$s включает автоудаление сообщений через %1$s часов.</string>
     <!-- %1$s will be replaced by the number of days (always >1) the timer is set to -->
     <string name="ephemeral_timer_days_by_you">Вы включили автоудаление сообщений через %1$s дней.</string>
     <!-- %1$s will be replaced by the number of days (always >1) the timer is set to, %2$s will be replaced by name and address of the contact -->
-    <string name="ephemeral_timer_days_by_other">%2$s включил(а) автоудаление сообщений через %1$s дней.</string>
+    <string name="ephemeral_timer_days_by_other">%2$s включает автоудаление сообщений через %1$s дней.</string>
     <!-- %1$s will be replaced by the number of weeks (always >1) the timer is set to -->
     <string name="ephemeral_timer_weeks_by_you">Вы включили автоудаление сообщений через %1$s недель.</string>
     <!-- %1$s will be replaced by the number of weeks (always >1) the timer is set to, %2$s will be replaced by name and address of the contact -->
-    <string name="ephemeral_timer_weeks_by_other">%2$s включил(а) автоудаление сообщений через %1$s недель.</string>
-    <!-- this may be shown instead of the chat's input field, with buttons "More Info" and "OK" -->
+    <string name="ephemeral_timer_weeks_by_other">%2$s включает автоудаление сообщений через %1$s недель.</string>
+    <!-- deprecated -->
     <string name="chat_protection_broken">%1$s отправил сообщение с другого устройства.</string>
-    <string name="chat_protection_enabled_tap_to_learn_more">Теперь сообщения гарантированно шифруются сквозным шифрованием. Нажмите, чтобы узнать больше.</string>
-    <string name="chat_protection_enabled_explanation">Теперь сообщения в этом чате гарантированно шифруются сквозным шифрованием.\n\nСквозное шифрование гарантирует, что сообщения остаются конфиденциальными между вами и вашими собеседниками. Даже ваш провайдер электронной почты не имеет доступа к ним.</string>
+    <string name="chat_protection_enabled_tap_to_learn_more">Сообщения защищены сквозным шифрованием. Нажмите, чтобы узнать больше.</string>
+    <string name="chat_protection_enabled_explanation">Все сообщения в этом чате защищены сквозным шифрованием.\n\nСквозное шифрование гарантирует, что сообщения остаются конфиденциальными между вами и вашими собеседниками. Ни серверы, ни провайдеры, ни ретрансляторы не смогут их прочитать.</string>
+    <!-- deprecated -->
     <string name="chat_protection_broken_tap_to_learn_more">%1$s отправил сообщение с другого устройства. Нажмите, чтобы узнать больше.</string>
+    <!-- deprecated -->
     <string name="chat_protection_broken_explanation">Сквозное шифрование больше не может быть гарантировано, вероятно, потому что %1$s переустановил Delta Chat или отправил сообщение с другого устройства.\n\nВы можете встретиться с ним лично и отсканировать QR-код снова чтобы восстановить гарантированное сквозное шифрование.</string>
     <string name="invalid_unencrypted_tap_to_learn_more">⚠️ %1$s требуется сквозное шифрование, которое ещё не настроено для данного чата. Нажмите, чтобы узнать больше.</string>
     <string name="invalid_unencrypted_explanation">Чтобы установить сквозное шифрование, вы можете встретиться с контактами лично и отсканировать их QR-код, чтобы подтвердить их личность.</string>
@@ -1033,16 +1072,19 @@
     <string name="secure_join_started">%1$s приглашает вас в группу.\n\nОжидаем ответ от %2$s…</string>
     <!-- placeholder will be replaced by the name of the inviter. -->
     <string name="secure_join_replies">%1$s ответил(а), ожидаем добавления в группу…</string>
-    <string name="secure_join_wait">Устанавливается гарантированное сквозное шифрование, пожалуйста, подождите...</string>
+    <string name="secure_join_wait">Устанавливается сквозное шифрование, пожалуйста, подождите…</string>
     <!-- deprecated -->
     <string name="secure_join_wait_timeout">Не удалось установить гарантированное сквозное шифрование, но вы уже можете отправить сообщение.</string>
+    <!-- deprecated, was stock string -->
     <string name="secure_join_takes_longer">Контакт должен быть в режиме онлайн, чтобы продолжить.\n\nЭтот процесс будет автоматически продолжен в фоновом режиме.</string>
     <string name="contact_verified">%1$s подтверждён.</string>
-    <string name="contact_not_verified">Невозможно установить гарантированное сквозное шифрование с %1$s.</string>
+    <!-- deprecated, was stock string -->
+    <string name="contact_not_verified">Невозможно установить сквозное шифрование с %1$s.</string>
     <!-- Shown in contact profile. The placeholder will be replaced by the name of the contact that introduced the contact. -->
     <string name="verified_by">Подтверждён: %1$s</string>
     <string name="verified_by_you">Подтверждён: Лично</string>
-    <!-- translators: "setup" is the "encryption setup" here, as in "Autocrypt Setup Message" -->
+    <string name="verified_by_unknown">Подтверждён</string>
+    <!-- deprecated, was stock string -->
     <string name="contact_setup_changed">Изменены настройки для %1$s</string>
     <string name="verified_contact_required_explain">Чтобы обеспечить сквозное шифрование, вы можете добавлять в эту группу только контакты с зеленой галочкой.\n\nВы можете встретиться с контактами лично и отсканировать их QR-код, чтобы подтвердить их личность.</string>
     <string name="mailto_dialog_header_select_chat">Выберите чат, чтобы отправить сообщение</string>
@@ -1086,7 +1128,7 @@
     <string name="ImageEditorHud_flip">Отразить</string>
     <string name="ImageEditorHud_rotate">Вращать</string>
 
-    <!-- dc_str_* resources -->
+    <!-- deprecated, use string "E-Mail" for non-encrypted messages instead -->
     <string name="encrypted_message">Зашифрованное сообщение</string>
 
     <!-- strings introduced on desktop. we want to share strings between the os, in general, please do not add generic strings here -->
@@ -1217,6 +1259,9 @@
     <string name="perm_enable_bg_already_done">Вы уже разрешили Delta Chat получать сообщения в фоновом режиме.\n\nЕсли сообщения не приходят в фоновом режиме, проверьте также системные настройки.</string>
 
     <!-- device messages for updates -->
+    <string name="update_2_0">Что нового?\n\n💯 Сквозное шифрование стало постоянной и надёжной функцией. 🔒 Замков больше нет!\n\n✉️ Обычные письма без сквозного шифрования помечены значком конверта\n\n😻 Обновлённый экран профиля для всех контактов\n\n🔲 Новая кнопка быстрого доступа к приложениям, используемым в чате\n\n❤️ Поддержите нас финансово, чтобы мы сохранили независимость и продолжали вносить улучшения: %1$s</string>
+    <!-- deprecated -->
     <string name="update_1_50_android">Что нового?\n\n❤️‍🔥 Обновленный выбор эмодзи с еще большим выбором эмодзи\n\n🎮 Расширенные приложения в чате: получайте уведомления и открывайте поддерживаемые приложения в нужном контексте, например, открывайте добавленную запись в календаре напрямую\n\n👍 Получайте уведомления о реакциях на ваши сообщения\n\n... 🛠️ ИСПРАВЛЕНИЯ и ЕЩЁ БОЛЬШЕ в %1$s</string>
+    <!-- deprecated -->
     <string name="update_switch_profile_placement">ℹ️ \"Сменить профиль\" перемещено: Нажмите на изображение вашего профиля в верхнем углу главного экрана, чтобы добавить или переключить профили. 💡</string>
 </resources>

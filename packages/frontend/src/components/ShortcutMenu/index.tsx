@@ -6,7 +6,7 @@ import Icon from '../Icon'
 
 import styles from './styles.module.scss'
 
-import type { T } from '@deltachat/jsonrpc-client'
+import type { T } from '@privitty/jsonrpc-client'
 import useTranslationFunction from '../../hooks/useTranslationFunction'
 import useMessage from '../../hooks/chat/useMessage'
 import { selectedAccountId } from '../../ScreenController'
@@ -17,7 +17,7 @@ type Props = {
   chat: Parameters<typeof showReactionsUi>[1]
   direction: 'incoming' | 'outgoing'
   message: T.Message
-  showContextMenu: (event: OnButtonClick) => Promise<void>
+  showContextMenu: (event: OnButtonClick) => void
   tabindexForInteractiveContents: -1 | 0
 }
 

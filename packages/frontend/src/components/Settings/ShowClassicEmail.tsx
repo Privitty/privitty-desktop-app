@@ -1,5 +1,5 @@
 import React, { useCallback } from 'react'
-import { C } from '@deltachat/jsonrpc-client'
+import { C } from '@privitty/jsonrpc-client'
 
 import SettingsStoreInstance, {
   type SettingsStoreState,

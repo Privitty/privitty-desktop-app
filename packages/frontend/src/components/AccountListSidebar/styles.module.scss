@@ -46,25 +46,57 @@
   min-width: 68px;
   overflow: hidden;
 
-  .accountList {
-    --als-avatar-size: 42px;
-    --als-avatar-margin: 5px;
-    --als-active-indicator-color: white;
-
-    align-items: center;
-    display: flex;
-    flex-direction: column;
+  .accountListNav {
     flex-grow: 1;
     overflow-y: scroll;
-    padding-top: 2px;
-
     scrollbar-width: none;
     &::-webkit-scrollbar {
       width: 0;
     }
+
+    .accountList {
+      --als-avatar-size: 42px;
+      --als-avatar-margin: 5px;
+      --als-active-indicator-color: white;
+
+      margin: 0;
+      padding: 0;
+      list-style: none;
+
+      align-items: center;
+      display: flex;
+      flex-direction: column;
+      padding-top: 2px;
+    }
+  }
+
+  .accountWrapper {
+    margin-bottom: var(--als-avatar-margin);
+    margin-top: var(--als-avatar-margin);
+
+    &.isSticky {
+      position: sticky;
+      bottom: var(--als-avatar-margin);
+      top: var(--als-avatar-margin);
+      // Only needed when this account is scrolled _above_ the visible region.
+      z-index: map.get(
+        variables.$z-index,
+        account-list-sidebar-scope-sticky-account
+      );
+
+      .account {
+        .avatar {
+          opacity: 1;
+          .content {
+            box-shadow: 0px 0px 4px 2px #00000040;
+          }
+        }
+      }
+    }
   }
 
   .account {
+    display: block;
     border: none;
     background: none;
     padding: 0;
@@ -72,8 +104,6 @@
 
     height: var(--als-avatar-size);
 
-    margin-bottom: var(--als-avatar-margin);
-    margin-top: var(--als-avatar-margin);
     // Adding extra `var(--als-avatar-size) + 2 * var(--als-avatar-margin)`
     // to the margins so that
     // if there is another `.isSticky` account, then that account does not
@@ -105,24 +135,6 @@
       div.content,
       img.content {
         border-radius: 10%;
-      }
-    }
-
-    &.isSticky {
-      position: sticky;
-      bottom: var(--als-avatar-margin);
-      top: var(--als-avatar-margin);
-      // Only needed when this account is scrolled _above_ the visible region.
-      z-index: map.get(
-        variables.$z-index,
-        account-list-sidebar-scope-sticky-account
-      );
-
-      .avatar {
-        opacity: 1;
-        .content {
-          box-shadow: 0px 0px 4px 2px #00000040;
-        }
       }
     }
 
@@ -223,7 +235,7 @@
   bottom: -6px;
   pointer-events: none;
   position: absolute;
-  right: -5px;
+  inset-inline-end: -5px;
   z-index: map.get(
     variables.$z-index,
     account-list-sidebar-scope-account-badge
@@ -253,7 +265,7 @@
 
 .accountMutedIconShadow {
   filter: drop-shadow(0 0 2px black);
-  left: 2px;
+  inset-inline-start: 2px;
   pointer-events: none;
   position: absolute;
   top: 2px;

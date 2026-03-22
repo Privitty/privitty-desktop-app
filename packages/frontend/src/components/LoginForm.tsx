@@ -1,4 +1,4 @@
-import { C, T } from '@deltachat/jsonrpc-client'
+import { C, T } from '@privitty/jsonrpc-client'
 import React, { useState } from 'react'
 import { useDebouncedCallback } from 'use-debounce/lib'
 
@@ -111,7 +111,7 @@ export default function LoginForm({ credentials, setCredentials }: LoginProps) {
 
   return (
     <I18nContext.Consumer>
-      {tx => (
+      {({ tx }) => (
         <div className='login-form'>
           <DeltaInput
             key='addr'

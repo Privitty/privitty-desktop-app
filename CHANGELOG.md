@@ -2,12 +2,198 @@
 
 ## [Unreleased][unreleased]
 
+<a id="2_15_0"></a>
+
+## [2.15.0] - 2025-10-02
+
+### Added
+- support multiple selection (multiselect) in the list of chats, activated with Ctrl + Click, Shift + Click #5297
+
+### Changed
+- update `@deltachat/stdio-rpc-server` and `deltachat/jsonrpc-client` to `2.15.0`
+  - withdraw all QR codes when one is withdrawn
+  - do not create a group if the sender includes self in the To field
+- minor visual improvements to keyboard shortcut preview #5495
+
+### Fixed
+- Display message error even for messages that are not OutFailed #5498
+- fix app picker sometimes incorrectly showing "Offline"
+- allow using the app picker even when offline, as long as the app store data is cached
+- if adding an app from the app picker fails, show an error dialog
+- fix "Recent 3 apps" in the chat header showing apps from another chat sometimes #5265
+- accessibility: improve screen-reader accessibility of the general structure of the app by using landmarks #5067
+- accessibility: don't re-announce message input (composer) after sending every message #5049
+- accessibility: don't announce delivery status twice after sending a message #5442
+- accessibility: correct `aria-posinset` for chat list #5044
+- don't close context menues on window resize #5418
+- tauri: accessibility: fix focus always being locked on the message input #5125
+- fix: remove weird bottom margins in some scrollable dialogs #5494
+- upgrade electron from `37.1.0` to `37.6.0` #5499
+  - this fixes high GPU usage bugs on macOS Tahoe
+
+<a id="2_11_1"></a>
+
+## [2.11.1] - 2025-09-01
+
+### Added
+-flip electron fuses to avoid security debates #5423
+- add "one year" option for disappearing messages #5421
+
+### Fixed
+- unexpected zoom/scroll behaviour #5426
+- don't show "Reply" and "Save" for info messages (e.g. "user A removed user B") and video call invitations #5337
+- don't show mail addresses for key contacts #5430
+
+<a id="2_11_0"></a>
+
+## [2.11.0] - 2025-08-18
+
+### Added
+- support RTL layout if locale.dir = rtf #4168
+- added estonian language
+- add more rtl configurations to languages that use it
+
+### Changed
+- update translations (15-08-2025)
+- update `@deltachat/stdio-rpc-server` and `deltachat/jsonrpc-client` to `2.11.0`
+  - Do not add key-contacts to unencrypted groups.
+  - Do not reset GuaranteeE2ee in the database when resending messages.
+  - Take Chat-Group-Name into account when matching ad hoc groups.
+  - Don't break long group names with non-ASCII characters.
+
+### Fixed
+- share email contacts by email not by VCard #5364
+- Truncate app title and description in app picker
+- do not open self chat on info message click #5361
+- fix Connectivity colors in dark mode #5397
+- Not fully downloaded messages display an ✉️ icon #5399
+- fix new chat button bg in dark modes #5183
+
+<a id="2_10_0"></a>
+
+## [2.10.0] - 2025-08-05
+
+### Fixed
+- don't show "Edit Message", "Disappearing Messages" and fullscreen avatar view in classic E-Mail chats #5365
+- the upgrade `application-config` to `^3.0.0` allows the desktop client to be built on FreeBSD
+- accessibility: improve keyboard and screen reader accessibility of the "Add Reaction" menu #5376
+- accessibility: make screen readers announce where a context menu is available (opened with Shift + F10): apply `aria-haspopup="menu"` #5345
+- accessibility: add proper labels to some menus (e.g. message context menu, chat list item context menu) #5347, #5355
+- accessibility: apply `aria-expanded` to parent menu items (e.g. "Mute Chat" menu) #5354
+
+### Changed
+- update `@deltachat/stdio-rpc-server` and `deltachat/jsonrpc-client` to `2.10.0`
+
+<a id="2_9_0"></a>
+
+## [2.9.0] - 2025-07-30
+
+### Changed
+- removed "Add contact manually" when on chatmail account #5358
+- update `@deltachat/stdio-rpc-server` and `deltachat/jsonrpc-client` to `2.9.0`
+
+### Fixed
+- don't show "add contact manually" (by email address) for groups #5336
+- Make `Archived Chats` title non selectable
+
+<a id="2_8_0"></a>
+
+## [2.8.0] - 2025-07-28
+
+### Changed
+- upgrade `@deltachat/stdio-rpc-server` and `deltachat/jsonrpc-client` to `2.8.0`
+
+<a id="2_7_0"></a>
+
+## [2.7.0] - 2025-07-27
+
+### Changed
+- upgrade `@deltachat/stdio-rpc-server` and `deltachat/jsonrpc-client` to `2.7.0`
+
+
+<a id="2_6_0"></a>
+
+## [2.6.0] - 2025-07-24
+
+
+### Breaking
+- after upgrade to `@deltachat/stdio-rpc-server` version `2.x` your account data will be migrated and you can not go back to 1.x versions any more, since account data is not backward compatible!
+
+### Changed
+- updated help pages #5324
+- update translations (17-20-2025)
+- upgrade `@deltachat/stdio-rpc-server` and `deltachat/jsonrpc-client` to `2.6.0`
+  - Features / Changes
+    - Donation request device message (#6913).
+- remove resetEncryptionInfo
+- remove the green checkmark since it's default now
+- show verified status: "Introduced" if verified but no verifier name #5327
+
+### Added
+- feat: add channel and remove broadcasts #5258
+- Option to create a new plain email with subject and recipients (available only for non-Chatmail accounts) #5294
+- no more edit of mailing list profiles for recipients
+- After some time, add a device message asking to donate. Can't wait? Donate today at https://delta.chat/donate #5295
+- show email icon for non encrypted messages instead padlock for encrypted
+
+### Fixed
+- fix outdated info being shown sometimes in some places #5222, #5225
+- accessibility: add accessible labels for lists (messages list, chat list, profiles list) #5030
+- accessibility: mark chat list items as tabs #5041
+- don't execute Ctrl + Up shortcut if the message input is not focused
+- improve performance: reduce delay of some events (e.g. display badge counter changes faster) #5224
+- improve performance: remove message context menu open delay
+- improve performace in global search and contact search #5230, #5232
+- improve performance: don't mark messages as seen unnecessarily when focusing window #5243
+- improve performance in "Edit Group" a little #5237
+- tauri: accessibility: fix outline being barely visible on Windows, and adjust some other colors #5217
+- improve performance a little in some other places #5225
+- fix copying of links into richtext editors #5286
+
+<a id="1_60_1"></a>
+
+## [1.60.1] - 2025-07-10
+
+### Changed
+- downgrade `@deltachat/stdio-rpc-server` and `deltachat/jsonrpc-client` to `1.159.5` (till next major release)
+
+<a id="1_60_0"></a>
+
+## [1.60.0] - 2025-07-10
+
+### Added
+- Update last used app icons immediately after sending a new app
+
+### Changed
+- adjust distance between info messages to match Delta Chat for Android #5244
+- tauri: macOS: webxdc: Remove the nowhere-proxy to support pre-14 macOS. #5202
+- reword 'Save As' to 'Export Attachment' to have a clearer cut to 'Save' #5245
+- use rpc.getWebxdcInfo instead of message.webxdcInfo #5227
+- upgrade `@deltachat/stdio-rpc-server` and `deltachat/jsonrpc-client` to `1.160.0`
+- upgrade electron from 34 to 37 #5229
+- update translations (07-07-2025)
+- development: introduce new condition to publish build previews
+
+### Fixed
+- always set "unread" count to 0 when "jump to bottom" is clicked #5204
+- fix the last info message not getting marked as read when you scroll to it #5244
+- tauri: remember webxdc app windows' position and size between app re-launches
+- tauri: remember HTML email viewer window position / size for all HTML messages together, instead of separately for each individual message #5171
+- tauri: fix fullscreen media view zoom, pan, pinch not working quite right #5200
+- tauri: fix fullscreen avatar for selfavatar #5240
+- fix: showing 0 instead ? as size for empty files #5253
+- show avatar for deleted saved messages #5221
+- increase contrast between background and unread badge in dark theme #5273
+
+<a id="1_59_2"></a>
+
+## [1.59.2] - 2025-06-25
+
 ### Added
 - Zoom In/Out with Ctrl +/- #890
 
-### Changed
-
 ### Fixed
+- reduce delay of some events (e.g. display badge counter changes faster)
 - fix notifications not working sometimes, introduced in 1.59.1
 - fix dropping files from outside not working on Windows, introduced in 1.59.1
 - fix "Copy Selected Text" item never appearing in message context menu
@@ -3506,7 +3692,30 @@ This section is only relevant to contributors.
 
 **Historical Note 2** We removed the older changelog, you can look at the git history to get it. (version numbers made hallmark crazy)
 
-[unreleased]: https://github.com/deltachat/deltachat-desktop/compare/v1.59.1...HEAD
+
+[unreleased]: https://github.com/deltachat/deltachat-desktop/compare/v2.15.0...HEAD
+
+[2.15.0]: https://github.com/deltachat/deltachat-desktop/compare/v2.11.1...v2.15.0
+
+[2.11.1]: https://github.com/deltachat/deltachat-desktop/compare/v2.11.0...v2.11.1
+
+[2.11.0]: https://github.com/deltachat/deltachat-desktop/compare/v2.10.0...v2.11.0
+
+[2.10.0]: https://github.com/deltachat/deltachat-desktop/compare/v2.9.0...v2.10.0
+
+[2.9.0]: https://github.com/deltachat/deltachat-desktop/compare/v2.8.0...v2.9.0
+
+[2.8.0]: https://github.com/deltachat/deltachat-desktop/compare/v2.7.0...v2.8.0
+
+[2.7.0]: https://github.com/deltachat/deltachat-desktop/compare/v2.6.0...v2.7.0
+
+[2.6.0]: https://github.com/deltachat/deltachat-desktop/compare/v1.60.1...v2.6.0
+
+[1.60.1]: https://github.com/deltachat/deltachat-desktop/compare/v1.60.0...v1.60.1
+
+[1.60.0]: https://github.com/deltachat/deltachat-desktop/compare/v1.59.2...v1.60.0
+
+[1.59.2]: https://github.com/deltachat/deltachat-desktop/compare/v1.59.1...v1.59.2
 
 [1.59.1]: https://github.com/deltachat/deltachat-desktop/compare/v1.59.0...v1.59.1
 

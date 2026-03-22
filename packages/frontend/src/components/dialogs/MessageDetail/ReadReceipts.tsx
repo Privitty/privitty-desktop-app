@@ -1,32 +1,44 @@
 import React, { useEffect, useState } from 'react'
 import { BackendRemote, onDCEvent } from '../../../backend-com'
-import { T } from '@deltachat/jsonrpc-client'
+import { T } from '@privitty/jsonrpc-client'
 import { selectedAccountId } from '../../../ScreenController'
 
 import styles from './styles.module.scss'
 import { Avatar } from '../../Avatar'
-import { InlineVerifiedIcon } from '../../VerifiedIcon'
 import moment from 'moment'
 import useTranslationFunction from '../../../hooks/useTranslationFunction'
+import { useRpcFetch } from '../../../hooks/useFetch'
+import { unknownErrorToString } from '../../helpers/unknownErrorToString'
 type ReadReceiptsListProps = { messageId: number }
 
 export function ReadReceiptsList(props: ReadReceiptsListProps) {
   const tx = useTranslationFunction()
   const accountId = selectedAccountId()
-  const [receipts, setReceipts] = useState<T.MessageReadReceipt[]>([])
-  useEffect(() => {
-    const update = () => {
-      BackendRemote.rpc
-        .getMessageReadReceipts(accountId, props.messageId)
-        .then(setReceipts)
-    }
-    update()
-    return onDCEvent(accountId, 'MsgRead', ({ msgId }) => {
-      if (msgId === props.messageId) {
-        update()
-      }
-    })
-  }, [props.messageId, accountId])
+
+  const receiptsFetch = useRpcFetch(BackendRemote.rpc.getMessageReadReceipts, [
+    accountId,
+    props.messageId,
+  ])
+  const refresh = receiptsFetch.refresh
+  useEffect(
+    () =>
+      onDCEvent(accountId, 'MsgRead', ({ msgId }) => {
+        if (msgId === props.messageId) {
+          refresh()
+        }
+      }),
+    [accountId, props.messageId, refresh]
+  )
+  if (receiptsFetch.lingeringResult?.ok === false) {
+    return tx(
+      'error_x',
+      `Failed to fetch read receipts:\n${unknownErrorToString(receiptsFetch.lingeringResult.err)}`
+    )
+  }
+  const receipts = receiptsFetch.lingeringResult?.value
+  if (!receipts) {
+    return null
+  }
 
   if (receipts.length === 0) {
     return null
@@ -81,7 +93,6 @@ function ReadReceipt(props: { receipt: T.MessageReadReceipt }) {
           <span className='truncated'>
             <b>{contact.displayName}</b>
           </span>{' '}
-          {contact.isVerified && <InlineVerifiedIcon />}
         </div>
         {!contact.isVerified && (
           <div className={styles.ContactEmail}>{contact.address}</div>

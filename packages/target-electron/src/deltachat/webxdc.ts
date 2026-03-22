@@ -36,8 +36,8 @@ import {
   getFileMenu,
   refresh as refreshTitleMenu,
 } from '../menu.js'
-import { T } from '@deltachat/jsonrpc-client'
-import type * as Jsonrpc from '@deltachat/jsonrpc-client'
+import { T } from '@privitty/jsonrpc-client'
+import type * as Jsonrpc from '@privitty/jsonrpc-client'
 import { setContentProtection } from '../content-protection.js'
 
 const __dirname = dirname(fileURLToPath(import.meta.url))
@@ -687,10 +687,8 @@ export default class DCWebxdc {
       async (_ev, accountId: number, instanceId: number) => {
         const instance = open_apps[`${accountId}.${instanceId}`]
         if (instance) {
-          const { chatId, webxdcInfo } = await this.rpc.getMessage(
-            accountId,
-            instanceId
-          )
+          const webxdcInfo = await this.rpc.getWebxdcInfo(accountId, instanceId)
+          const { chatId } = await this.rpc.getMessage(accountId, instanceId)
           const { name } = await this.rpc.getBasicChatInfo(accountId, chatId)
           if (instance.win && webxdcInfo) {
             instance.win.title = makeTitle(webxdcInfo, name)
@@ -761,8 +759,8 @@ export default class DCWebxdc {
             open_apps[key].win.loadURL('about:blank')
             open_apps[key].win.close()
           }
-          const messageWithMap = await this.rpc.getMessage(accountId, msgId)
-          if (messageWithMap && messageWithMap.webxdcInfo) {
+          const webxdcInfo = await this.rpc.getWebxdcInfo(accountId, msgId)
+          if (webxdcInfo) {
             openWebxdc(
               evt,
               msgId,
@@ -770,7 +768,7 @@ export default class DCWebxdc {
                 accountId,
                 displayname: '',
                 chatName,
-                webxdcInfo: messageWithMap.webxdcInfo,
+                webxdcInfo,
                 href: '',
               },
               // special behaviour for the map dc integration,
@@ -896,7 +894,7 @@ async function webxdcProtocolHandler(
 
   if (filename === WRAPPER_PATH) {
     return makeResponse(
-      await readFile(join(htmlDistDir(), '/webxdc_wrapper.html')),
+      await readFile(join(htmlDistDir(), '/webxdc_wrapper.html'), 'utf8'),
       {},
       mimeType
     )

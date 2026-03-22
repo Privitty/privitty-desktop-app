@@ -17,7 +17,7 @@ import Icon from '../Icon'
 import { ContextMenuItem } from '../ContextMenu'
 import { ContextMenuContext } from '../../contexts/ContextMenuContext'
 
-import { C, type T } from '@deltachat/jsonrpc-client'
+import { C, type T } from '@privitty/jsonrpc-client'
 import { BackendRemote } from '../../backend-com'
 import ConfirmSendingFiles from '../dialogs/ConfirmSendingFiles'
 import useMessage from '../../hooks/chat/useMessage'
@@ -549,6 +549,9 @@ export default function MenuAttachment({
       x,
       y,
       items: menu,
+      ariaAttrs: {
+        'aria-labelledby': 'attachment-menu-button',
+      },
     })
   }
 

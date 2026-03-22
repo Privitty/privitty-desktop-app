@@ -1,8 +1,8 @@
-import React, { useEffect, useMemo, useState } from 'react'
+import React, { useCallback, useEffect, useMemo, useState } from 'react'
 import classNames from 'classnames'
 import { filesize } from 'filesize'
 import moment from 'moment'
-import { C } from '@deltachat/jsonrpc-client'
+import { C } from '@privitty/jsonrpc-client'
 import { getLogger } from '../../../../shared/logger'
 
 import useTranslationFunction from '../../hooks/useTranslationFunction'
@@ -21,6 +21,8 @@ import {
 } from '../Dialog'
 import SearchInputButton from '../SearchInput/SearchInputButton'
 import { ClickableLink } from '../helpers/ClickableLink'
+import { useFetch, useRpcFetch } from '../../hooks/useFetch'
+import { unknownErrorToString } from '../helpers/unknownErrorToString'
 
 const log = getLogger('renderer/components/AppPicker')
 
@@ -70,9 +72,7 @@ type Props = {
 
 export function AppPicker({ onAppSelected }: Props) {
   const tx = useTranslationFunction()
-  const [apps, setApps] = useState<AppInfo[]>([])
   const [searchQuery, setSearchQuery] = useState('')
-  const [isOffline, setIsOffline] = useState(false)
   const [selectedCategory, setSelectedCategory] = useState(AppCategoryEnum.home)
   const [selectedAppInfo, setSelectedAppInfo] = useState<AppInfo | null>(null)
   const [icons, setIcons] = useState<{ [key: string]: string }>({})
@@ -82,49 +82,54 @@ export function AppPicker({ onAppSelected }: Props) {
     AppCategoryEnum.game,
   ]
 
-  useEffect(() => {
-    const fetchApps = async () => {
-      try {
-        const response = await BackendRemote.rpc.getHttpResponse(
-          selectedAccountId(),
-          AppStoreUrl + 'xdcget-lock.json'
-        )
-        const apps = getJsonFromBase64(response.blob) as AppInfo[]
-        if (apps === null) return
-        apps.sort((a: AppInfo, b: AppInfo) => {
-          const dateA = new Date(a.date)
-          const dateB = new Date(b.date)
-          return dateB.getTime() - dateA.getTime() // Show newest first
-        })
-        for (const app of apps) {
-          app.short_description = app.description.split('\n')[0]
-          app.description = app.description.split('\n').slice(1).join('\n')
-          const url = new URL(app.source_code_url)
-          app.author = url.pathname.split('/')[1]
-          app.date = moment(app.date).format('LL')
-        }
-        setApps(apps)
-      } catch (error) {
-        log.error('Failed to fetch apps:', error)
-      }
+  const fetchApps = useCallback(async () => {
+    // This may throw, e.g. on network error.
+    const response = await BackendRemote.rpc.getHttpResponse(
+      selectedAccountId(),
+      AppStoreUrl + 'xdcget-lock.json'
+    )
+    const apps = getJsonFromBase64(response.blob) as AppInfo[]
+    if (apps == null) {
+      throw new Error(`Received \`null\` response from ${AppStoreUrl}`)
     }
-    fetchApps()
-  }, [setApps])
+    apps.sort((a: AppInfo, b: AppInfo) => {
+      const dateA = new Date(a.date)
+      const dateB = new Date(b.date)
+      return dateB.getTime() - dateA.getTime() // Show newest first
+    })
+    for (const app of apps) {
+      app.short_description = app.description.split('\n')[0]
+      app.description = app.description.split('\n').slice(1).join('\n')
+      const url = new URL(app.source_code_url)
+      app.author = url.pathname.split('/')[1]
+      app.date = moment(app.date).format('LL')
+    }
+    return apps
+  }, [])
+  const appsFetch = useFetch(fetchApps, [])
+  const apps = appsFetch.result?.ok ? appsFetch.result.value : null
+
+  const appsFetchFailed = appsFetch.result?.ok === false
+  const connectivityFetch = useRpcFetch(BackendRemote.rpc.getConnectivity, [
+    selectedAccountId(),
+  ])
+  const connectivityFetchRefresh = connectivityFetch?.refresh
+  useEffect(() => {
+    if (!appsFetchFailed) {
+      return
+    }
+    connectivityFetchRefresh()
+  }, [appsFetchFailed, connectivityFetchRefresh])
+  const isOffline =
+    connectivityFetch.result?.ok === true &&
+    connectivityFetch.result.value !== C.DC_CONNECTIVITY_CONNECTED
 
   useEffect(() => {
     const loadIcons = async () => {
-      if (!apps.length) {
-        const connectivity =
-          await BackendRemote.rpc.getConnectivity(selectedAccountId())
-        if (connectivity !== C.DC_CONNECTIVITY_CONNECTED) {
-          setIsOffline(true)
-          return
-        }
+      if (apps == null) {
+        return
       }
       const newIcons: { [key: string]: string } = {}
-      for (const app of apps) {
-        newIcons[app.app_id] = `./images/icons/image_outline.svg`
-      }
       setIcons(newIcons)
       let count = 0
       for (const app of apps) {
@@ -147,6 +152,10 @@ export function AppPicker({ onAppSelected }: Props) {
   }, [apps, isOffline])
 
   const filteredApps = useMemo(() => {
+    if (apps == null) {
+      return null
+    }
+
     const lowerCaseQuery = searchQuery.toLowerCase()
     const findByRelevance = (apps: AppInfo[]) => {
       const queryEqualsAuthor = apps.filter(
@@ -222,7 +231,7 @@ export function AppPicker({ onAppSelected }: Props) {
                 </ClickableLink>
               </p>
               <p>
-                <span>{tx('app_size')}:</span> {filesize(app.size)}
+                <span>{tx('app_size')}:</span> {filesize(app.size ?? 0)}
               </p>
             </div>
           </DialogContent>
@@ -250,7 +259,7 @@ export function AppPicker({ onAppSelected }: Props) {
     return (
       <div className={styles.appItem}>
         <img
-          src={icons[app.app_id] ?? ''}
+          src={icons[app.app_id] ?? './images/icons/image_outline.svg'}
           alt={`${app.name} icon`}
           className={styles.appIcon}
         />
@@ -271,7 +280,9 @@ export function AppPicker({ onAppSelected }: Props) {
               {app.author}
             </button>
           )}
-          {!setSearchQuery && app.author && <p>{app.author}</p>}
+          {!setSearchQuery && app.author && (
+            <p className={styles.appAuthor}>{app.author}</p>
+          )}
         </div>
       </div>
     )
@@ -303,7 +314,19 @@ export function AppPicker({ onAppSelected }: Props) {
           />
         )}
         <div className={styles.appPickerList}>
-          {!isOffline && Object.keys(icons).length > 0 ? (
+          {appsFetch.loading ? (
+            <div className={styles.offlineMessage}>{tx('loading')}</div>
+          ) : appsFetch.result.ok !== true ? (
+            <div className={styles.offlineMessage}>
+              {isOffline
+                ? tx('offline')
+                : tx(
+                    'error_x',
+                    'Failed to fetch apps:\n' +
+                      unknownErrorToString(appsFetch.result.err)
+                  )}
+            </div>
+          ) : (
             <>
               {selectedAppInfo && (
                 <AppInfoOverlay
@@ -312,7 +335,9 @@ export function AppPicker({ onAppSelected }: Props) {
                   onSelect={onAppSelected}
                 />
               )}
-              {filteredApps.map(app => (
+              {/* `appsFetch.result.ok === true` implies that
+              this is not null. */}
+              {filteredApps!.map(app => (
                 <button
                   key={app.app_id}
                   className={styles.appListItem}
@@ -322,10 +347,6 @@ export function AppPicker({ onAppSelected }: Props) {
                 </button>
               ))}
             </>
-          ) : (
-            <div className={styles.offlineMessage}>
-              {tx(isOffline ? 'offline' : 'loading')}
-            </div>
           )}
         </div>
         <div className={styles.tabBar}>

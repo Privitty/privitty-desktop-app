@@ -1,7 +1,7 @@
 import { ChildProcessWithoutNullStreams, spawn } from 'child_process'
 import { DC_ACCOUNTS_DIR } from './config'
-import { getRPCServerPath } from '@deltachat/stdio-rpc-server'
-import { BaseDeltaChat, yerpc } from '@deltachat/jsonrpc-client'
+import { getRPCServerPath } from '@privitty/deltachat-rpc-server'
+import { BaseDeltaChat, yerpc } from '@privitty/jsonrpc-client'
 import { WebSocket, WebSocketServer } from 'ws'
 import { RCConfig } from './rc-config'
 import { getLogger } from '@deltachat-desktop/shared/logger'
@@ -92,6 +92,7 @@ class MainTransport extends yerpc.BaseTransport {
 
 export class JRPCDeltaChat extends BaseDeltaChat<MainTransport> {}
 
+// Mostly copy-pasted from `target-electron/controller.ts`.
 export async function startDeltaChat(): Promise<
   [dc: JRPCDeltaChat, wssDC: WebSocketServer, shutdownDC: () => void]
 > {
@@ -99,6 +100,12 @@ export async function startDeltaChat(): Promise<
 
   const DCInstance = new StdioServer(response => {
     try {
+      // The `main-` in the ID prefix signifies that this is a response
+      // to a request that originated from this (main) process's
+      // JSON-RPC client, and not the JSON-RPC client
+      // of the renderer process.
+      // Thus we don't need to forward this response
+      // to the renderer process.
       if (response.indexOf('"id":"main-') !== -1) {
         const message = JSON.parse(response)
         if (message.id.startsWith('main-')) {
@@ -120,6 +127,38 @@ export async function startDeltaChat(): Promise<
           typeof event === 'object' &&
           event.kind
         ) {
+          // A workaround.
+          // Intercept the events that go to the renderer
+          // and manually fire them on this JSON-RPC client.
+          // See comments below about why we don't call `rpc.getNextEvent()`
+          // on this JSON-RPC client.
+          //
+          // Note that, as you can see, if the renderer process
+          // stops polling for events for whatever reason,
+          // we will also stop emitting them here.
+          //
+          // The code is copy-pasted from
+          // https://github.com/chatmail/core/blob/df0c0c47bacabfb8dcb4a5ea5edd92dc0652e0b3/deltachat-jsonrpc/typescript/src/client.ts#L56-L70
+          type JRPCDeltaChatWithPrivateExposed = {
+            [P in keyof typeof mainProcessDC]: (typeof mainProcessDC)[P]
+          } & {
+            contextEmitters: (typeof mainProcessDC)['contextEmitters']
+          }
+          const jsonrpcRemote =
+            mainProcessDC as unknown as JRPCDeltaChatWithPrivateExposed
+          jsonrpcRemote.emit(result.event.kind, result.contextId, result.event)
+          jsonrpcRemote.emit('ALL', result.contextId, result.event)
+          if (jsonrpcRemote.contextEmitters[result.contextId]) {
+            jsonrpcRemote.contextEmitters[result.contextId].emit(
+              result.event.kind,
+              result.event as any
+            )
+            jsonrpcRemote.contextEmitters[result.contextId].emit(
+              'ALL',
+              result.event as any
+            )
+          }
+
           if (event.kind === 'WebxdcRealtimeData') {
             return
           }
@@ -151,7 +190,13 @@ export async function startDeltaChat(): Promise<
     DCInstance.send(JSON.stringify(message))
   })
 
-  const mainProcessDC = new JRPCDeltaChat(mainProcessTransport, false)
+  const mainProcessDC = new JRPCDeltaChat(
+    mainProcessTransport,
+    // Do NOT start calling `rpc.getNextEvent`.
+    // Because there can be only one consumer of
+    // `get_next_event`, and that is the renderer process's JSON-RPC client.
+    false
+  )
 
   const StolenConnectionPacket = JSON.stringify({
     jsonrpc: '2.0',

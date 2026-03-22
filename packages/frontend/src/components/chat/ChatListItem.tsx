@@ -1,6 +1,6 @@
 import React, { useRef, useState, useEffect } from 'react'
 import classNames from 'classnames'
-import { T, C } from '@deltachat/jsonrpc-client'
+import { T, C } from '@privitty/jsonrpc-client'
 
 import Timestamp from '../conversations/Timestamp'
 import { Avatar } from '../Avatar'
@@ -9,7 +9,6 @@ import { mapCoreMsgStatus2String } from '../helpers/MapMsgStatus'
 import { getLogger } from '../../../../shared/logger'
 import { useContextMenuWithActiveState } from '../ContextMenu'
 import { selectedAccountId } from '../../ScreenController'
-import { InlineVerifiedIcon } from '../VerifiedIcon'
 import { runtime } from '@deltachat-desktop/runtime-interface'
 import { message2React } from '../message/MessageMarkdown'
 import { useRovingTabindex } from '../../contexts/RovingTabindex'
@@ -43,18 +42,13 @@ function Header({
   name,
   isPinned,
   isMuted,
-  isProtected,
-}: Pick<
-  ChatListItemType,
-  'lastUpdated' | 'name' | 'isPinned' | 'isMuted' | 'isProtected'
->) {
+}: Pick<ChatListItemType, 'lastUpdated' | 'name' | 'isPinned' | 'isMuted'>) {
   const tx = window.static_translate
   return (
     <div className='header'>
       <div className='name'>
         <span>
           <span className='truncated'>{name}</span>
-          {isProtected && <InlineVerifiedIcon />}
         </span>
       </div>
       {isMuted && <div className='mute_icon' aria-label={tx('mute')} />}
@@ -190,19 +184,28 @@ const Message = React.memo<
   )
 })
 
-export const PlaceholderChatListItem = React.memo(_ => {
-  return <div className={classNames('chat-list-item', 'skeleton')} />
-})
+export const PlaceholderChatListItem = React.memo(
+  (props: React.HTMLAttributes<HTMLDivElement>) => {
+    return (
+      <div {...props} className={classNames('chat-list-item', 'skeleton')} />
+    )
+  }
+)
 
 function ChatListItemArchiveLink({
   onClick,
+  onFocus,
   chatListItem,
+  ...rest
 }: {
-  onClick: () => void
+  onClick: (event: React.MouseEvent) => void
+  onFocus?: (event: React.FocusEvent) => void
   chatListItem: Type.ChatListItemFetchResult & {
     kind: 'ArchiveLink'
   }
-}) {
+} & Required<
+  Pick<React.HTMLAttributes<HTMLDivElement>, 'aria-setsize' | 'aria-posinset'>
+>) {
   const tx = window.static_translate
   const { onContextMenu, isContextMenuActive } = useContextMenuWithActiveState([
     {
@@ -228,11 +231,16 @@ function ChatListItemArchiveLink({
   return (
     <button
       ref={ref}
+      {...rest}
       tabIndex={tabIndex}
       onClick={onClick}
       onKeyDown={tabindexOnKeydown}
-      onFocus={tabindexSetAsActiveElement}
+      onFocus={e => {
+        tabindexSetAsActiveElement()
+        onFocus?.(e)
+      }}
       onContextMenu={onContextMenu}
+      aria-haspopup='menu'
       className={`chat-list-item archive-link-item ${tabindexClassName} ${
         isContextMenuActive ? 'context-menu-active' : ''
       }`}
@@ -251,18 +259,25 @@ function ChatListItemArchiveLink({
 function ChatListItemError({
   chatListItem,
   onClick,
+  roleTab,
+  onFocus,
   isSelected,
   onContextMenu,
+  ...rest
 }: {
   chatListItem: Type.ChatListItemFetchResult & {
     kind: 'Error'
   }
-  onClick: () => void
+  onClick: (event: React.MouseEvent) => void
+  onFocus?: (event: React.FocusEvent) => void
   onContextMenu?: (
     event: React.MouseEvent<HTMLButtonElement, MouseEvent>
   ) => void
+  roleTab?: boolean
   isSelected?: boolean
-}) {
+} & Required<
+  Pick<React.HTMLAttributes<HTMLDivElement>, 'aria-setsize' | 'aria-posinset'>
+>) {
   log.info('Error Loading Chatlistitem ' + chatListItem.id, chatListItem.error)
 
   const ref = useRef<HTMLButtonElement>(null)
@@ -277,11 +292,18 @@ function ChatListItemError({
   return (
     <button
       ref={ref}
+      {...rest}
       tabIndex={tabIndex}
       onClick={onClick}
       onKeyDown={tabindexOnKeydown}
-      onFocus={tabindexSetAsActiveElement}
+      onFocus={e => {
+        onFocus?.(e)
+        tabindexSetAsActiveElement()
+      }}
       onContextMenu={onContextMenu}
+      aria-haspopup={onContextMenu != undefined ? 'menu' : undefined}
+      role={roleTab ? 'tab' : undefined}
+      aria-selected={isSelected}
       className={classNames('chat-list-item', tabindexClassName, {
         isError: true,
         selected: isSelected,
@@ -310,23 +332,33 @@ function ChatListItemError({
   )
 }
 
-function ChatListItemNormal({
-  chatListItem,
+/**
+ * component for items of type chat in the chat list
+ */
+function RegularChatListItem({
+  chat,
   onClick,
+  onFocus,
   isSelected,
+  roleTab,
   onContextMenu,
   isContextMenuActive,
+  ...rest
 }: {
-  chatListItem: Type.ChatListItemFetchResult & {
+  chat: Type.ChatListItemFetchResult & {
     kind: 'ChatListItem'
   }
-  onClick: () => void
+  onClick: (event: React.MouseEvent) => void
+  onFocus?: (event: React.FocusEvent) => void
   onContextMenu?: (
     event: React.MouseEvent<HTMLButtonElement, MouseEvent>
   ) => void
   isContextMenuActive?: boolean
+  roleTab?: boolean
   isSelected?: boolean
-}) {
+} & Required<
+  Pick<React.HTMLAttributes<HTMLDivElement>, 'aria-setsize' | 'aria-posinset'>
+>) {
   const ref = useRef<HTMLButtonElement>(null)
 
   const {
@@ -337,36 +369,43 @@ function ChatListItemNormal({
   } = useRovingTabindex(ref)
   // TODO `setAsActiveElement` if `isSelected` and `activeElement === null`
 
-  const chatTypeForTests = chatListItem.isSelfTalk
+  const chatTypeForTests = chat.isSelfTalk
     ? 'self-talk'
-    : chatListItem.isDeviceTalk
+    : chat.isDeviceTalk
       ? 'device-talk'
-      : chatListItem.id
+      : chat.id
 
   return (
     <button
       ref={ref}
+      {...rest}
       tabIndex={tabIndex}
       onClick={onClick}
       onKeyDown={tabindexOnKeydown}
-      onFocus={tabindexSetAsActiveElement}
+      onFocus={e => {
+        onFocus?.(e)
+        tabindexSetAsActiveElement()
+      }}
       onContextMenu={onContextMenu}
+      aria-haspopup={onContextMenu != undefined ? 'menu' : undefined}
+      role={roleTab ? 'tab' : undefined}
+      aria-selected={isSelected}
       className={classNames('chat-list-item', tabindexClassName, {
-        'has-unread': chatListItem.freshMessageCounter > 0,
-        'is-contact-request': chatListItem.isContactRequest,
-        pinned: chatListItem.isPinned,
-        muted: chatListItem.isMuted,
+        'has-unread': chat.freshMessageCounter > 0,
+        'is-contact-request': chat.isContactRequest,
+        pinned: chat.isPinned,
+        muted: chat.isMuted,
         selected: isSelected,
         'context-menu-active': isContextMenuActive,
       })}
-      data-testid={`chat${chatListItem.isGroup ? '-group' : ''}-${chatTypeForTests}`}
+      data-testid={`chat${chat.isGroup ? '-group' : ''}-${chatTypeForTests}`}
     >
       <Avatar
         {...{
-          displayName: chatListItem.name,
-          avatarPath: chatListItem.avatarPath || undefined,
-          color: chatListItem.color,
-          wasSeenRecently: chatListItem.wasSeenRecently,
+          displayName: chat.name,
+          avatarPath: chat.avatarPath || undefined,
+          color: chat.color,
+          wasSeenRecently: chat.wasSeenRecently,
           // Avatar is purely decorative here,
           // and is redundant accessibility-wise,
           // because we display the chat name below.
@@ -375,23 +414,22 @@ function ChatListItemNormal({
       />
       <div className='content'>
         <Header
-          lastUpdated={chatListItem.lastUpdated}
-          name={chatListItem.name}
-          isProtected={chatListItem.isProtected}
-          isPinned={chatListItem.isPinned}
-          isMuted={chatListItem.isMuted}
+          lastUpdated={chat.lastUpdated}
+          name={chat.name}
+          isPinned={chat.isPinned}
+          isMuted={chat.isMuted}
         />
 
         <Message
-          chatId={chatListItem.id}
-          summaryStatus={chatListItem.summaryStatus}
-          summaryText1={chatListItem.summaryText1}
-          summaryText2={chatListItem.summaryText2}
-          summaryPreviewImage={chatListItem.summaryPreviewImage}
-          freshMessageCounter={chatListItem.freshMessageCounter}
-          isArchived={chatListItem.isArchived}
-          isContactRequest={chatListItem.isContactRequest}
-          lastMessageId={chatListItem.lastMessageId}
+          summaryStatus={chat.summaryStatus}
+          summaryText1={chat.summaryText1}
+          summaryText2={chat.summaryText2}
+          summaryPreviewImage={chat.summaryPreviewImage}
+          freshMessageCounter={chat.freshMessageCounter}
+          isArchived={chat.isArchived}
+          isContactRequest={chat.isContactRequest}
+          lastMessageId={chat.lastMessageId}
+          chatId={chat.id}
         />
       </div>
     </button>
@@ -400,71 +438,75 @@ function ChatListItemNormal({
 
 type ChatListItemProps = {
   chatListItem: Type.ChatListItemFetchResult | undefined
-  onClick: () => void
+  onClick: (event: React.MouseEvent) => void
+  onFocus?: (event: React.FocusEvent) => void
   onContextMenu?: (
     event: React.MouseEvent<HTMLButtonElement, MouseEvent>
   ) => void
   isContextMenuActive?: boolean
+  /**
+   * Whether to set `role='tab'` on the item.
+   *
+   * Note that this doesn't apply to some items,
+   * such as `ChatListItemArchiveLink`.
+   */
+  roleTab?: boolean
   isSelected?: boolean
-}
+} & Required<
+  Pick<React.HTMLAttributes<HTMLDivElement>, 'aria-setsize' | 'aria-posinset'>
+>
 
-const ChatListItem = React.memo<ChatListItemProps>(
-  props => {
-    const { chatListItem, onClick } = props
+const ChatListItem = React.memo<ChatListItemProps>(props => {
+  const { chatListItem } = props
 
-    // if not loaded by virtual list yet
-    if (typeof chatListItem === 'undefined') return <PlaceholderChatListItem />
+  // if not loaded by virtual list yet
+  if (typeof chatListItem === 'undefined')
+    return (
+      <PlaceholderChatListItem
+        aria-posinset={props['aria-posinset']}
+        aria-setsize={props['aria-setsize']}
+      />
+    )
 
-    if (chatListItem.kind == 'ChatListItem') {
-      return (
-        <ChatListItemNormal
-          chatListItem={chatListItem}
-          onClick={onClick}
-          isSelected={props.isSelected}
-          onContextMenu={props.onContextMenu}
-          isContextMenuActive={props.isContextMenuActive}
-        />
-      )
-    } else if (chatListItem.kind == 'Error') {
-      return (
-        <ChatListItemError
-          chatListItem={chatListItem}
-          onClick={onClick}
-          isSelected={props.isSelected}
-          onContextMenu={props.onContextMenu}
-        />
-      )
-    } else if (chatListItem.kind == 'ArchiveLink') {
-      return (
-        <ChatListItemArchiveLink
-          chatListItem={chatListItem}
-          onClick={onClick}
-        />
-      )
-    } else {
-      return <PlaceholderChatListItem />
-    }
-  },
-  (prevProps, nextProps) => {
-    const shouldRerender =
-      prevProps.chatListItem !== nextProps.chatListItem ||
-      prevProps.isSelected !== nextProps.isSelected ||
-      prevProps.isContextMenuActive !== nextProps.isContextMenuActive
-    return !shouldRerender
+  if (chatListItem.kind == 'ChatListItem') {
+    return <RegularChatListItem {...props} chat={chatListItem} />
+  } else if (chatListItem.kind == 'Error') {
+    return <ChatListItemError {...props} chatListItem={chatListItem} />
+  } else if (chatListItem.kind == 'ArchiveLink') {
+    return (
+      <ChatListItemArchiveLink
+        chatListItem={chatListItem}
+        onClick={props.onClick}
+        onFocus={props.onFocus}
+        aria-posinset={props['aria-posinset']}
+        aria-setsize={props['aria-setsize']}
+      />
+    )
+  } else {
+    return (
+      <PlaceholderChatListItem
+        aria-posinset={props['aria-posinset']}
+        aria-setsize={props['aria-setsize']}
+      />
+    )
   }
-)
+})
 
 export default ChatListItem
 
-export const ChatListItemMessageResult = React.memo<{
-  msr: T.MessageSearchResult
-  onClick: () => void
-  queryStr: string
-  /**
-   * Whether the user is searching for messages in just a single chat.
-   */
-  isSingleChatSearch: boolean
-}>(props => {
+export const ChatListItemMessageResult = React.memo<
+  {
+    msr: T.MessageSearchResult
+    onClick: () => void
+    queryStr: string
+    /**
+     * Whether the user is searching for messages in just a single chat.
+     */
+    isSingleChatSearch: boolean
+  } & Required<
+    Pick<React.HTMLAttributes<HTMLDivElement>, 'aria-setsize' | 'aria-posinset'>
+  >
+>(props => {
   const {
     msr,
     onClick,
@@ -474,6 +516,7 @@ export const ChatListItemMessageResult = React.memo<{
      * we don't need to specify here which chat it belongs to.
      */
     isSingleChatSearch,
+    ...rest
   } = props
 
   const ref = useRef<HTMLButtonElement>(null)
@@ -490,6 +533,7 @@ export const ChatListItemMessageResult = React.memo<{
   return (
     <button
       ref={ref}
+      {...rest}
       tabIndex={tabIndex}
       onClick={onClick}
       onKeyDown={tabindexOnKeydown}
@@ -535,9 +579,6 @@ export const ChatListItemMessageResult = React.memo<{
               <span className='truncated'>
                 {!isSingleChatSearch ? msr.chatName : msr.authorName}
               </span>
-              {!isSingleChatSearch && msr.isChatProtected && (
-                <InlineVerifiedIcon />
-              )}
             </span>
           </div>
           <div>

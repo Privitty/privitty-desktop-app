@@ -18,7 +18,7 @@ import {
   MediaType,
   Runtime,
 } from '@deltachat-desktop/runtime-interface'
-import { BaseDeltaChat, yerpc } from '@deltachat/jsonrpc-client'
+import { BaseDeltaChat, yerpc } from '@privitty/jsonrpc-client'
 
 import type { dialog, app, IpcRenderer, webUtils } from 'electron'
 import type { LocaleData } from '@deltachat-desktop/shared/localize.js'
@@ -222,6 +222,9 @@ class ElectronRuntime implements Runtime {
   }
   notifyWebxdcInstanceDeleted(accountId: number, instanceId: number): void {
     ipcBackend.invoke('webxdc:instance-deleted', accountId, instanceId)
+  }
+  startOutgoingVideoCall(accountId: number, chatId: number): Promise<void> {
+    return ipcBackend.invoke('startOutgoingVideoCall', accountId, chatId)
   }
   openMapsWebxdc(accountId: number, chatId?: number | undefined): void {
     ipcBackend.invoke('open-maps-webxdc', accountId, chatId)
@@ -462,6 +465,7 @@ class ElectronRuntime implements Runtime {
     )
     ipcBackend.on('chooseLanguage', (_ev, locale) => {
       this.onChooseLanguage?.(locale)
+      ipcBackend.send('reload-main-window')
     })
     ipcBackend.on('theme-update', () => this.onThemeUpdate?.())
     ipcBackend.on('showAboutDialog', () => this.onShowDialog?.('about'))

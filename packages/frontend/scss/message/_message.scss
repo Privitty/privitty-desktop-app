@@ -1,6 +1,9 @@
 @use '../mixins';
 @use '../variables';
 
+// limit for text width, needed to trigger ellipsis
+$info-text-max-width: 400px;
+
 .message-wrapper {
   --shortcut-menu-visibility: hidden;
   --shortcut-menu-multiplier: 0;
@@ -25,7 +28,7 @@
     align-self: flex-end;
     bottom: 0px;
     position: static;
-    margin-right: 8px;
+    margin-inline-end: 8px;
     user-select: none;
 
     img {
@@ -82,8 +85,8 @@
     border-radius: 16px;
     --msg-container-padding-horizontal: 16px;
     --msg-container-padding-top: 16px;
-    padding-right: var(--msg-container-padding-horizontal);
-    padding-left: var(--msg-container-padding-horizontal);
+    padding-inline-end: var(--msg-container-padding-horizontal);
+    padding-inline-start: var(--msg-container-padding-horizontal);
     padding-top: var(--msg-container-padding-top);
     padding-bottom: 16px;
 
@@ -94,6 +97,28 @@
 
         > .text {
           cursor: pointer;
+        }
+      }
+      &.call {
+        > .text {
+          --call-icon-size: 24px;
+          margin-inline-end: var(--call-icon-size);
+          white-space: nowrap;
+          font-weight: bold;
+          &::after {
+            content: '';
+            position: absolute;
+            top: 18px;
+            inset-inline-end: 8px;
+            transform: translateY(-50%);
+            width: var(--call-icon-size);
+            height: var(--call-icon-size);
+            @include mixins.color-svg(
+              './images/icons/phone.svg',
+              var(--messageOutgoingStatusColor),
+              100%
+            );
+          }
         }
       }
 
@@ -109,7 +134,7 @@
         white-space: pre-wrap;
         cursor: default;
 
-        margin-right: 10px;
+        margin-inline-end: 10px;
       }
     }
 
@@ -122,10 +147,59 @@
         // firefox does not support this, but chromium and webkit do https://caniuse.com/?search=user-drag
         -webkit-user-drag: none;
       }
-
-      div.name {
+      // nowrap and min-height address the problem that
+      // the height of a message bubble should not change
+      // after it's first load, even if the content changes
+      // after loading webxdcInfo async
+      // see https://github.com/deltachat/deltachat-desktop/issues/3753
+      div.info-text {
+        display: flex;
+        flex-direction: row;
+        max-width: $info-text-max-width;
+        min-width: 0;
+        white-space: nowrap;
         font-size: medium;
         font-weight: 300;
+        gap: 3px;
+      }
+      div.name {
+        min-width: 0;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+      }
+      div.document {
+        flex-shrink: 999999999999999;
+        min-width: 0;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+        &:not(:empty)::after {
+          content: '–';
+          margin-inline-start: 3px;
+        }
+        &:empty {
+          display: none;
+        }
+      }
+      div.summary {
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        max-width: $info-text-max-width;
+
+        $font-size: 0.875rem;
+        $line-height: 1.15;
+        font-size: $font-size;
+        line-height: $line-height;
+        // Ensure that even if the element is empty
+        // (e.g. while we're loading `webxdcInfo`),
+        // it still takes height, so that when the info finally loads
+        // and `summary` is present, the message bubble doesn't get taller,
+        // which would result in the message list getting scrolled.
+        // See
+        // https://github.com/deltachat/deltachat-desktop/pull/5227#discussion_r2173774006.
+        min-height: calc($font-size * $line-height);
       }
 
       div.experimental {
@@ -153,9 +227,8 @@
 
     border: none;
     background-color: transparent;
-    padding-left: 0;
-    color: #fff;
-
+    padding-inline-start: 0;
+    color: var(--colorPrimary);
     &:hover {
       cursor: pointer;
     }
@@ -170,7 +243,7 @@
     button {
       border: none;
       background-color: transparent;
-      padding-left: 0;
+      padding-inline-start: 0;
       color: var(--colorPrimary);
     }
   }
@@ -211,55 +284,37 @@
 }
 
 .message.incoming {
-  margin-left: 0;
+  margin-inline-start: 0;
+
+  .msg-body.call > .text::after {
+    @include mixins.color-svg(
+      './images/icons/phone.svg',
+      var(--messagePhoneIconColorIncoming),
+      100%
+    );
+  }
 
   .metadata:not(.with-image-no-caption) {
     .privitty-status-icon.active {
-      @include mixins.color-svg(
-        './images/active.svg',
-        var(--messageMetadataIconColorIncoming),
-        100%
-      );
+      @include mixins.color-svg('./images/active.svg', var(--messageMetadataIconColorIncoming), 100%);
     }
-
     .privitty-status-icon.error {
-      @include mixins.color-svg(
-        './images/error.svg',
-        var(--messageMetadataIconColorIncoming),
-        100%
-      );
+      @include mixins.color-svg('./images/error.svg', var(--messageMetadataIconColorIncoming), 100%);
     }
-
     .privitty-status-icon.blocked {
-      @include mixins.color-svg(
-        './images/blocked.svg',
-        var(--messageMetadataIconColorIncoming),
-        100%
-      );
+      @include mixins.color-svg('./images/blocked.svg', var(--messageMetadataIconColorIncoming), 100%);
     }
-
     .privitty-status-icon.loading {
-      @include mixins.color-svg(
-        './images/loading.svg',
-        var(--messageMetadataIconColorIncoming),
-        100%
-      );
+      @include mixins.color-svg('./images/loading.svg', var(--messageMetadataIconColorIncoming), 100%);
     }
-
     .privitty-status-icon.relay {
-      @include mixins.color-svg(
-        './images/relay.svg',
-        var(--messageMetadataIconColorIncoming),
-        100%
-      );
+      @include mixins.color-svg('./images/relay.svg', var(--messageMetadataIconColorIncoming), 100%);
     }
-
     .padlock-icon {
-      @include mixins.color-svg(
-        './images/padlock.svg',
-        var(--messageMetadataIconColorIncoming),
-        100%
-      );
+      @include mixins.color-svg('./images/padlock.svg', var(--messageMetadataIconColorIncoming), 100%);
+    }
+    .email-icon {
+      @include mixins.color-svg('./images/icons/email.svg', var(--messageMetadataIconColorIncoming), 100%);
     }
 
     .location-icon {
@@ -290,7 +345,7 @@
 
     &,
     .message-attachment-media {
-      border-bottom-left-radius: 1px;
+      border-end-start-radius: 1px;
     }
 
     .msg-body {
@@ -320,8 +375,8 @@
 
 .message.outgoing {
   flex-direction: row-reverse;
-  float: right;
-  margin-right: 0;
+  float: inline-end;
+  margin-inline-end: 0;
 
   .metadata:not(.with-image-no-caption) {
     .date,
@@ -330,51 +385,25 @@
     }
 
     .privitty-status-icon.active {
-      @include mixins.color-svg(
-        './images/active.svg',
-        var(--messageMetadataIconColorOutgoing),
-        100%
-      );
+      @include mixins.color-svg('./images/active.svg', var(--messageMetadataIconColorOutgoing), 100%);
     }
-
     .privitty-status-icon.error {
-      @include mixins.color-svg(
-        './images/error.svg',
-        var(--messageMetadataIconColorOutgoing),
-        100%
-      );
+      @include mixins.color-svg('./images/error.svg', var(--messageMetadataIconColorOutgoing), 100%);
     }
-
     .privitty-status-icon.blocked {
-      @include mixins.color-svg(
-        './images/blocked.svg',
-        var(--messageMetadataIconColorOutgoing),
-        100%
-      );
+      @include mixins.color-svg('./images/blocked.svg', var(--messageMetadataIconColorOutgoing), 100%);
     }
-
     .privitty-status-icon.loading {
-      @include mixins.color-svg(
-        './images/loading.svg',
-        var(--messageMetadataIconColorOutgoing),
-        100%
-      );
+      @include mixins.color-svg('./images/loading.svg', var(--messageMetadataIconColorOutgoing), 100%);
     }
-
     .privitty-status-icon.relay {
-      @include mixins.color-svg(
-        './images/relay.svg',
-        var(--messageMetadataIconColorIncoming),
-        100%
-      );
+      @include mixins.color-svg('./images/relay.svg', var(--messageMetadataIconColorIncoming), 100%);
     }
-
     .padlock-icon {
-      @include mixins.color-svg(
-        './images/padlock.svg',
-        var(--messageMetadataIconColorIncoming),
-        100%
-      );
+      @include mixins.color-svg('./images/padlock.svg', var(--messageMetadataIconColorIncoming), 100%);
+    }
+    .email-icon {
+      @include mixins.color-svg('./images/icons/email.svg', var(--messageMetadataIconColorOutgoing), 125%);
     }
 
     .location-icon {
@@ -398,8 +427,7 @@
       background-color: var(--messageOutgoingStatusColor);
     }
   }
-
-  .metadata.with-image-no-caption > .status-icon {
+  .metadata.with-image-no-caption .status-icon {
     background-color: white;
   }
 
@@ -409,7 +437,7 @@
 
     &,
     .message-attachment-media {
-      border-bottom-right-radius: 1px;
+      border-end-end-radius: 1px;
     }
 
     .file-access-bell-button {
@@ -456,7 +484,7 @@
       background: var(--messageBg);
 
       padding: 5px;
-      padding-left: 6px;
+      padding-inline-start: 6px;
       border-radius: 7px;
 
       & > .quote {
@@ -481,7 +509,7 @@
   }
 
   .metadata {
-    float: right;
+    float: inline-end;
     padding: 4px 8px 1px 8px;
     background-color: #01010159;
     border-radius: 4px;
@@ -496,29 +524,13 @@
       color: white;
     }
 
-    .privitty-status-icon.active {
-      @include mixins.color-svg('./images/active.svg', rgb(0, 0, 0), 100%);
-    }
-
-    .privitty-status-icon.blocked {
-      @include mixins.color-svg('./images/blocked.svg', rgb(0, 0, 0), 100%);
-    }
-
-    .privitty-status-icon.error {
-      @include mixins.color-svg('./images/error.svg', rgb(0, 0, 0), 100%);
-    }
-
-    .privitty-status-icon.loading {
-      @include mixins.color-svg('./images/loading.svg', rgb(0, 0, 0), 100%);
-    }
-
-    .privitty-status-icon.relay {
-      @include mixins.color-svg('./images/relay.svg', rgb(0, 0, 0), 100%);
-    }
-
-    .padlock-icon {
-      @include mixins.color-svg('./images/padlock.svg', white, 100%);
-    }
+    .privitty-status-icon.active { @include mixins.color-svg('./images/active.svg', rgb(0, 0, 0), 100%); }
+    .privitty-status-icon.blocked { @include mixins.color-svg('./images/blocked.svg', rgb(0, 0, 0), 100%); }
+    .privitty-status-icon.error { @include mixins.color-svg('./images/error.svg', rgb(0, 0, 0), 100%); }
+    .privitty-status-icon.loading { @include mixins.color-svg('./images/loading.svg', rgb(0, 0, 0), 100%); }
+    .privitty-status-icon.relay { @include mixins.color-svg('./images/relay.svg', rgb(0, 0, 0), 100%); }
+    .padlock-icon { @include mixins.color-svg('./images/padlock.svg', white, 100%); }
+    .email-icon { @include mixins.color-svg('./images/icons/email.svg', white, 125%); }
 
     .location-icon {
       @include mixins.color-svg('./images/map-marker.svg', white, 100%);
@@ -589,17 +601,9 @@
 .info-message {
   width: 100%;
   text-align: center;
-  margin: 26px 0px;
   display: flex;
   flex-direction: column;
   align-items: center;
-
-  img.verified-icon-info-msg {
-    --size: 64px;
-    width: var(--size);
-    height: var(--size);
-    margin-bottom: 10px;
-  }
 
   .bubble {
     @include mixins.button-reset;
@@ -612,6 +616,7 @@
     border-radius: 20px;
     opacity: 0.9;
     color: var(--infoMessageBubbleText);
+    outline-offset: 4px;
 
     .status-icon.sending {
       background-color: var(--infoMessageBubbleText);
@@ -619,6 +624,12 @@
   }
 
   &.daymarker {
+    // Be careful with overriding margins on messages, see
+    // commit c56a78595df073bada81e1f769407990e37d8d57
+    // (https://github.com/deltachat/deltachat-desktop/pull/5244).
+    // `margin-top` should be fine, unlike margin-bottom.
+    margin-top: 1.5rem;
+
     .bubble {
       font-weight: bold;
     }
@@ -668,9 +679,9 @@
 
 .message .msg-container .quote,
 .composer .quote {
-  border-left: 3px gray solid;
+  border-inline-start: 3px gray solid;
   padding: 0 4px;
-  padding-left: 9px;
+  padding-inline-start: 9px;
   margin: 2px 0 5px 0;
   display: flex;
   --quote-img-size: 36px;
@@ -736,7 +747,7 @@
     object-fit: scale-down;
     object-position: center;
 
-    margin-left: 6px;
+    margin-inline-start: 6px;
   }
 
   img.quoted-webxdc-icon {
@@ -745,7 +756,7 @@
     width: var(--quote-img-size);
     flex-shrink: 0;
 
-    margin-left: 6px;
+    margin-inline-start: 6px;
     border-radius: 7%;
   }
 }
@@ -815,7 +826,7 @@
     background-color: var(--infoMessageBubbleBg);
     border-radius: 100%;
     margin: 8px 0px;
-    margin-right: 10px;
+    margin-inline-end: 10px;
   }
 
   .break {
@@ -857,29 +868,13 @@
     .metadata {
       margin: 0;
 
-      .privitty-status-icon.active {
-        @include mixins.color-svg('./images/active.svg', rgb(0, 0, 0), 125%);
-      }
-
-      .privitty-status-icon.blocked {
-        @include mixins.color-svg('./images/blocked.svg', rgb(0, 0, 0), 125%);
-      }
-
-      .privitty-status-icon.revoked {
-        @include mixins.color-svg('./images/blocked.svg', rgb(0, 0, 0), 125%);
-      }
-
-      .privitty-status-icon.requested {
-        @include mixins.color-svg('./images/progress.svg', rgb(0, 0, 0), 125%);
-      }
-
-      .privitty-status-icon.relay {
-        @include mixins.color-svg('./images/relay.svg', rgb(0, 0, 0), 125%);
-      }
-
-      .padlock-icon {
-        @include mixins.color-svg('./images/padlock.svg', white, 125%);
-      }
+      .privitty-status-icon.active { @include mixins.color-svg('./images/active.svg', rgb(0, 0, 0), 125%); }
+      .privitty-status-icon.blocked { @include mixins.color-svg('./images/blocked.svg', rgb(0, 0, 0), 125%); }
+      .privitty-status-icon.revoked { @include mixins.color-svg('./images/blocked.svg', rgb(0, 0, 0), 125%); }
+      .privitty-status-icon.requested { @include mixins.color-svg('./images/progress.svg', rgb(0, 0, 0), 125%); }
+      .privitty-status-icon.relay { @include mixins.color-svg('./images/relay.svg', rgb(0, 0, 0), 125%); }
+      .padlock-icon { @include mixins.color-svg('./images/padlock.svg', white, 125%); }
+      .email-icon { @include mixins.color-svg('./images/icons/email.svg', white, 125%); }
 
       .location-icon {
         @include mixins.color-svg('./images/map-marker.svg', white, 100%);

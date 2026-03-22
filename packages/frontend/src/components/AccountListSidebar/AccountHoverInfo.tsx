@@ -1,6 +1,6 @@
 import React, { Component, PropsWithChildren, useEffect, useState } from 'react'
-import debounce from 'debounce'
-import { C } from '@deltachat/jsonrpc-client'
+import { throttle } from '@deltachat-desktop/shared/util'
+import { C } from '@privitty/jsonrpc-client'
 
 import Icon from '../Icon'
 import useTranslationFunction from '../../hooks/useTranslationFunction'
@@ -10,7 +10,7 @@ import { runtime } from '@deltachat-desktop/runtime-interface'
 
 import styles from './styles.module.scss'
 
-import type { T } from '@deltachat/jsonrpc-client'
+import type { T } from '@privitty/jsonrpc-client'
 
 type Props = {
   account: T.Account
@@ -135,7 +135,7 @@ class Connectivity extends Component<{ accountId: number }, ConnectivityState> {
     this.eventUnregisterHandle = onDCEvent(
       this.accountId,
       'ConnectivityChanged',
-      debounce(this.onConnectivityChanged.bind(this), 300)
+      throttle(this.onConnectivityChanged.bind(this), 400)
     )
   }
 

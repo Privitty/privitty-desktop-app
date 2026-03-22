@@ -1,6 +1,6 @@
 /* Set theme variables used for theme Generation */
 @use './_themebase' with (
-  $outlineColor: #b9b9b9,
+  $themeDarkOrLight: light,
   $accentColor: #2090ea,
   $bgChatView: #f8f5ff,
   $bgImage: url('./images/background_light.png'),
@@ -13,7 +13,7 @@
   $colorDanger: #f96856,
   $colorNone: #a0a0a0,
   $colorPrimary: #7f66c5,
-  // $newChatButtonBg: #6750A4,
+  $newChatButtonBg: #6750A4,
   $floatingActionButtonBg: #6750a4,
   $keybindingHintsBoxBackground: rgba(0, 0, 0, 0.05),
   $keybindingActionBackground: rgba(0, 0, 0, 0.05),

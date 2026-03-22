@@ -19,7 +19,7 @@ import useTranslationFunction from '../../hooks/useTranslationFunction'
 import useDialog from '../../hooks/dialog/useDialog'
 import useConfirmationDialog from '../../hooks/dialog/useConfirmationDialog'
 
-import type { DcEventType } from '@deltachat/jsonrpc-client'
+import type { DcEventType } from '@privitty/jsonrpc-client'
 import { LastUsedSlot, rememberLastUsedPath } from '../../utils/lastUsedPaths'
 import { RuntimeOpenDialogOptions } from '@deltachat-desktop/shared/shared-types'
 import { DialogProps } from '../../contexts/DialogContext'

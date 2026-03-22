@@ -14,7 +14,7 @@ import { ScreenContext } from '../contexts/ScreenContext'
 import { getLogger } from '../../../shared/logger'
 import { processQr } from '../backend/qr'
 
-import type { T } from '@deltachat/jsonrpc-client'
+import type { T } from '@privitty/jsonrpc-client'
 import type { QrWithUrl } from '../backend/qr'
 import type { WelcomeQrWithUrl } from '../contexts/InstantOnboardingContext'
 import useChat from './chat/useChat'

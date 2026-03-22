@@ -32,8 +32,8 @@ function config(options) {
       ? path.resolve(process.env.DC_JSONRPC_CLIENT_DIR)
       : path.resolve(process.cwd(), '../../core/deltachat-jsonrpc/typescript')
     if (existsSync(path.join(candidate, 'package.json'))) {
-      alias['@deltachat/jsonrpc-client'] = candidate
-      console.log('- Using local @deltachat/jsonrpc-client from', candidate)
+      alias['@privitty/jsonrpc-client'] = candidate
+      console.log('- Using local @privitty/jsonrpc-client from', candidate)
     }
   } catch {}
 

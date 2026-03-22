@@ -8,6 +8,14 @@
 
 html {
   height: 100%;
+
+  // Since we're managing the color scheme (theme) manually,
+  // let's specify that we're only supporting this color scheme (dark or light).
+  // This affects some default styles, such as outline color and
+  // input (radio buttons, etc) colors.
+  // Outline color is important, because if we don't do this,
+  // the outline is barely visible on dark theme on Tauri on Windows.
+  color-scheme: var(--themeDarkOrLight);
 }
 
 body {
@@ -48,7 +56,7 @@ body {
 ol,
 ul {
   list-style: none;
-  padding-left: 0;
+  padding-inline-start: 0;
 }
 
 h1,
@@ -275,4 +283,23 @@ audio {
 // used in alert & confirmation dialogs
 p.whitespace {
   white-space: break-spaces;
+}
+
+// Only for screen-readers.
+// Taken from
+// https://github.com/twbs/bootstrap/blob/4c98145482719f5113ca31e389a7be07c5404e13/scss/mixins/_visually-hidden.scss#L3-L22
+.visually-hidden {
+  width: 1px !important;
+  height: 1px !important;
+  padding: 0 !important;
+  margin: -1px !important; // Fix for https://github.com/twbs/bootstrap/issues/25686
+  overflow: hidden !important;
+  clip: rect(0, 0, 0, 0) !important;
+  white-space: nowrap !important;
+  border: 0 !important;
+
+  // Fix for positioned table caption that could become anonymous cells
+  &:not(caption) {
+    position: absolute !important;
+  }
 }

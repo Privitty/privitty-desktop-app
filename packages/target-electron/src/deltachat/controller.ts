@@ -1,6 +1,6 @@
 import { app as rawApp, ipcMain } from 'electron'
 import { EventEmitter } from 'events'
-import { yerpc, BaseDeltaChat, T } from '@deltachat/jsonrpc-client'
+import { yerpc, BaseDeltaChat, T } from '@privitty/jsonrpc-client'
 import { getRPCServerPath } from '@privitty/deltachat-rpc-server'
 import { join, dirname } from 'path'
 import { existsSync, readdirSync } from 'fs'
@@ -700,6 +700,12 @@ export default class DeltaChatController extends EventEmitter {
     this._inner_account_manager = new StdioServer(
       response => {
         try {
+          // The `main-` in the ID prefix signifies that this is a response
+          // to a request that originated from this (main) process's
+          // JSON-RPC client, and not the JSON-RPC client
+          // of the renderer process.
+          // Thus we don't need to forward this response
+          // to the renderer process.
           if (response.indexOf('"id":"main-') !== -1) {
             const message = JSON.parse(response)
             if (message.id.startsWith('main-')) {
@@ -728,6 +734,45 @@ export default class DeltaChatController extends EventEmitter {
               typeof event === 'object' &&
               event.kind
             ) {
+              // A workaround.
+              // Intercept the events that go to the renderer
+              // and manually fire them on this JSON-RPC client.
+              // See comments below about why we don't call `rpc.getNextEvent()`
+              // on this JSON-RPC client.
+              //
+              // Note that, as you can see, if the renderer process
+              // stops polling for events for whatever reason,
+              // we will also stop emitting them here.
+              //
+              // The code is copy-pasted from
+              // https://github.com/chatmail/core/blob/df0c0c47bacabfb8dcb4a5ea5edd92dc0652e0b3/deltachat-jsonrpc/typescript/src/client.ts#L56-L70
+              const jsonrpcRemote_ = this._jsonrpcRemote
+              if (jsonrpcRemote_) {
+                type JRPCDeltaChatWithPrivateExposed = {
+                  [P in keyof typeof jsonrpcRemote_]: (typeof jsonrpcRemote_)[P]
+                } & {
+                  contextEmitters: (typeof jsonrpcRemote_)['contextEmitters']
+                }
+                const jsonrpcRemote =
+                  jsonrpcRemote_ as unknown as JRPCDeltaChatWithPrivateExposed
+                jsonrpcRemote.emit(
+                  result.event.kind,
+                  result.contextId,
+                  result.event
+                )
+                jsonrpcRemote.emit('ALL', result.contextId, result.event)
+                if (jsonrpcRemote.contextEmitters[result.contextId]) {
+                  jsonrpcRemote.contextEmitters[result.contextId].emit(
+                    result.event.kind,
+                    result.event as any
+                  )
+                  jsonrpcRemote.contextEmitters[result.contextId].emit(
+                    'ALL',
+                    result.event as any
+                  )
+                }
+              }
+
               if (event.kind === 'WebxdcRealtimeData') {
                 return
               }
@@ -795,7 +840,13 @@ export default class DeltaChatController extends EventEmitter {
       this.account_manager.send(message)
     })
 
-    this._jsonrpcRemote = new JRPCDeltaChat(mainProcessTransport, false)
+    this._jsonrpcRemote = new JRPCDeltaChat(
+      mainProcessTransport,
+      // Do NOT start calling `rpc.getNextEvent`.
+      // Because there can be only one consumer of
+      // `get_next_event`, and that is the renderer process's JSON-RPC client.
+      false
+    )
 
     if (DesktopSettings.state.syncAllAccounts) {
       log.info('Ready, starting accounts io...')

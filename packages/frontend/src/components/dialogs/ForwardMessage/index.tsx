@@ -1,5 +1,5 @@
 import React from 'react'
-import { C } from '@deltachat/jsonrpc-client'
+import { C } from '@privitty/jsonrpc-client'
 
 import { BackendRemote } from '../../../backend-com'
 import { selectedAccountId } from '../../../ScreenController'
@@ -9,7 +9,7 @@ import useDialog from '../../../hooks/dialog/useDialog'
 import useMessage from '../../../hooks/chat/useMessage'
 import useTranslationFunction from '../../../hooks/useTranslationFunction'
 
-import type { T } from '@deltachat/jsonrpc-client'
+import type { T } from '@privitty/jsonrpc-client'
 import type { DialogProps } from '../../../contexts/DialogContext'
 import SelectChat from '../SelectChat'
 

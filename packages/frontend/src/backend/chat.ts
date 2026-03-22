@@ -1,7 +1,7 @@
 import { BackendRemote } from '../backend-com'
 import { clearNotificationsForChat } from '../system-integration/notifications'
 
-import { C, type T } from '@deltachat/jsonrpc-client'
+import { C, type T } from '@privitty/jsonrpc-client'
 
 /**
  * Finds basic info, like contact id and the related chat ID of a contact based

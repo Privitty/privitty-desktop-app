@@ -14,7 +14,7 @@ import {
 import { getLogger } from '../../../../../shared/logger'
 import { selectedAccountId } from '../../../ScreenController'
 
-import type { DcEventType } from '@deltachat/jsonrpc-client'
+import type { DcEventType } from '@privitty/jsonrpc-client'
 import type { DialogProps } from '../../../contexts/DialogContext'
 import { unknownErrorToString } from '../../helpers/unknownErrorToString'
 

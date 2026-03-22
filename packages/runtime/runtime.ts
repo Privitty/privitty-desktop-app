@@ -9,7 +9,7 @@ import {
   Theme,
 } from '@deltachat-desktop/shared/shared-types.js'
 import { LocaleData } from '@deltachat-desktop/shared/localize.js'
-import { BaseDeltaChat } from '@deltachat/jsonrpc-client'
+import { BaseDeltaChat } from '@privitty/jsonrpc-client'
 
 import type { getLogger as getLoggerFunction } from '@deltachat-desktop/shared/logger.js'
 import type { setLogHandler as setLogHandlerFunction } from '@deltachat-desktop/shared/logger.js'
@@ -133,6 +133,11 @@ export interface Runtime {
   ): void
   notifyWebxdcMessageChanged(accountId: number, instanceId: number): void
   notifyWebxdcInstanceDeleted(accountId: number, instanceId: number): void
+
+  /**
+   * Initiates and conducts the video call fully, from start to end.
+   */
+  startOutgoingVideoCall(accountId: number, chatId: number): void
 
   // control app
   restartApp(): void

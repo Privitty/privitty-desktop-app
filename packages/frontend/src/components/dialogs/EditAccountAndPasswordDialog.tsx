@@ -15,7 +15,7 @@ import useDialog from '../../hooks/dialog/useDialog'
 
 import type { DialogProps } from '../../contexts/DialogContext'
 import AlertDialog from './AlertDialog'
-import { T } from '@deltachat/jsonrpc-client'
+import { T } from '@privitty/jsonrpc-client'
 
 /**
  * uses a prefilled LoginForm with existing

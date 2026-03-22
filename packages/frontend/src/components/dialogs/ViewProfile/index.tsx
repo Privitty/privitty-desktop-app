@@ -1,7 +1,7 @@
 import AutoSizer from 'react-virtualized-auto-sizer'
 import React, { useState, useEffect, useRef } from 'react'
 import moment from 'moment'
-import { C } from '@deltachat/jsonrpc-client'
+import { C } from '@privitty/jsonrpc-client'
 import classNames from 'classnames'
 
 import { useChatList } from '../../chat/ChatListHelpers'
@@ -27,9 +27,10 @@ import useViewProfileMenu from './menu'
 import styles from './styles.module.scss'
 
 import type { DialogProps } from '../../../contexts/DialogContext'
-import type { T } from '@deltachat/jsonrpc-client'
+import type { T } from '@privitty/jsonrpc-client'
 import { RovingTabindexProvider } from '../../../contexts/RovingTabindex'
 import { ChatListItemRowChat } from '../../chat/ChatListItemRow'
+import { shouldDisableClickForFullscreen } from '../../Avatar'
 
 const log = getLogger('renderer/dialogs/ViewProfile')
 
@@ -181,28 +182,33 @@ export function ViewProfileInner({
 
   useEffect(() => {
     ;(async () => {
-      if (contact.verifierId === null) {
-        setVerifier(null)
-      } else if (contact.verifierId === C.DC_CONTACT_ID_SELF) {
-        setVerifier({ label: tx('verified_by_you') })
+      if (contact.isVerified) {
+        // it might happen that a verified contact has no verifiedBy ID
+        setVerifier({ label: tx('verified_by_unknown') })
       } else {
-        setVerifier(null) // make sure it rather shows nothing than wrong values
+        setVerifier(null) // will be overridden if verifiedBy ID is available
+      }
+
+      if (contact.verifierId === C.DC_CONTACT_ID_SELF) {
+        setVerifier({ label: tx('verified_by_you') })
+      } else if (contact.verifierId !== null) {
         const verifierContactId = contact.verifierId
         try {
           const { displayName } = await BackendRemote.rpc.getContact(
             accountId,
             verifierContactId
           )
-          setVerifier({
-            label: tx('verified_by', displayName),
-            action: () => openViewProfileDialog(accountId, verifierContactId),
-          })
+          if (displayName && displayName !== '') {
+            setVerifier({
+              label: tx('verified_by', displayName),
+              action: () => openViewProfileDialog(accountId, verifierContactId),
+            })
+          }
         } catch (error) {
           log.error('failed to load verifier contact', error)
           setVerifier({
             label:
               'verified by: failed to load verifier contact, please report this issue',
-            action: () => openViewProfileDialog(accountId, verifierContactId),
           })
         }
       }
@@ -211,6 +217,7 @@ export function ViewProfileInner({
     accountId,
     contact.id,
     contact.verifierId,
+    contact.isVerified,
     openDialog,
     openViewProfileDialog,
     tx,
@@ -253,8 +260,12 @@ export function ViewProfileInner({
           avatarPath={avatarPath ? avatarPath : undefined}
           color={contact.color}
           displayName={displayName}
-          isVerified={contact.isProfileVerified}
           wasSeenRecently={contact.wasSeenRecently}
+          disableFullscreen={
+            isSelfChat ||
+            isDeviceChat ||
+            shouldDisableClickForFullscreen(contact)
+          }
         />
         {statusText !== '' && (
           <>
@@ -322,7 +333,9 @@ export function ViewProfileInner({
       </div>
       {!(isDeviceChat || isSelfChat) && (
         <>
-          <div className='group-separator'>{tx('profile_shared_chats')}</div>
+          <div id='view-profile-mutual-chats-title' className='group-separator'>
+            {tx('profile_shared_chats')}
+          </div>
           <div
             ref={mutualChatsListRef}
             className={styles.mutualChats}
@@ -332,6 +345,9 @@ export function ViewProfileInner({
               <AutoSizer disableWidth>
                 {({ height }) => (
                   <ChatListPart
+                    olElementAttrs={{
+                      'aria-labelledby': 'view-profile-mutual-chats-title',
+                    }}
                     isRowLoaded={isChatLoaded}
                     loadMoreRows={loadChats}
                     rowCount={chatListIds.length}
@@ -344,8 +360,8 @@ export function ViewProfileInner({
                       chatListIds,
                       onChatClick,
 
-                      selectedChatId: null,
-                      activeContextMenuChatId: null,
+                      activeChatId: null,
+                      activeContextMenuChatIds: [],
                       openContextMenu: async () => {},
                     }}
                   >

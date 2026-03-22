@@ -3,12 +3,14 @@ import React, {
   useCallback,
   useContext,
   useEffect,
+  useMemo,
   useRef,
   useState,
 } from 'react'
 import reactStringReplace from 'react-string-replace'
 import classNames from 'classnames'
-import { C, T } from '@deltachat/jsonrpc-client'
+import { C, T } from '@privitty/jsonrpc-client'
+import { debounce } from 'debounce'
 
 import MessageBody from './MessageBody'
 import MessageMetaData, { isMediaWithoutText } from './MessageMetaData'
@@ -26,7 +28,6 @@ import Attachment from '../attachment/messageAttachment'
 import { runtime } from '@deltachat-desktop/runtime-interface'
 import { AvatarFromContact } from '../Avatar'
 import { ConversationType } from './MessageList'
-import { truncateText } from '@deltachat-desktop/shared/util'
 import { getDirection } from '../../utils/getDirection'
 import { mapCoreMsgStatus2String } from '../helpers/MapMsgStatus'
 import { ContextMenuItem } from '../ContextMenu'
@@ -359,18 +360,29 @@ async function buildContextMenu(
   }
 
   const showCopyImage = !!message.file && message.viewType === 'Image'
+  const showResend =
+    message.sender.id === C.DC_CONTACT_ID_SELF && message.viewType !== 'Call'
 
-  // Do not show "reply" in read-only chats
-  const showReply = chat.canSend
+  const isInfoOrCallInvitation =
+    message.isInfo || message.viewType === 'VideochatInvitation'
+  // Do not show "reply" in read-only chats, and for info messages.
+  // See
+  // - https://github.com/deltachat/deltachat-desktop/issues/5337
+  // - https://github.com/deltachat/deltachat-android/blob/52c01976821803fa2d8a177f93576fa4082ef5bd/src/main/java/org/thoughtcrime/securesms/ConversationFragment.java#L332-L332
+  const showReply = chat.canSend && !isInfoOrCallInvitation
 
-  // See https://github.com/deltachat/deltachat-desktop/issues/4695.
+  // See
+  // - https://github.com/deltachat/deltachat-desktop/issues/4695.
+  // - https://github.com/deltachat/deltachat-desktop/issues/5365.
+  // - https://github.com/deltachat/deltachat-android/blob/fd4a377752cc6778f161590fde2f9ab29c5d3011/src/main/java/org/thoughtcrime/securesms/ConversationFragment.java#L334
   const showEdit =
     message.fromId === C.DC_CONTACT_ID_SELF &&
+    chat.isEncrypted &&
     message.text !== '' &&
     chat.canSend &&
-    !message.isInfo &&
-    message.viewType !== 'VideochatInvitation' &&
-    !message.hasHtml
+    !isInfoOrCallInvitation &&
+    !message.hasHtml &&
+    message.viewType !== 'Call'
 
   // Do not show "react" for system messages
   const showSendReaction = showReactionsUi(message, chat)
@@ -379,7 +391,8 @@ async function buildContextMenu(
   // Only show in groups, don't show on info messages or outgoing messages
   const showReplyPrivately =
     (conversationType.chatType === C.DC_CHAT_TYPE_GROUP ||
-      conversationType.chatType === C.DC_CHAT_TYPE_MAILINGLIST) &&
+      conversationType.chatType === C.DC_CHAT_TYPE_IN_BROADCAST) &&
+    !isInfoOrCallInvitation &&
     message.fromId > C.DC_CONTACT_ID_LAST_SPECIAL
 
   return Promise.resolve([
@@ -417,8 +430,11 @@ async function buildContextMenu(
     },
     { type: 'separator' },
     // Save Message
+    // For reference, the conditions when it's shown:
+    // https://github.com/deltachat/deltachat-android/blob/52c01976821803fa2d8a177f93576fa4082ef5bd/src/main/java/org/thoughtcrime/securesms/ConversationFragment.java#L342
     !chat.isSelfTalk &&
-      !isSavedMessage && {
+      !isSavedMessage &&
+      !isInfoOrCallInvitation && {
         label: tx('save'),
         action: () =>
           BackendRemote.rpc.saveMsgs(selectedAccountId(), [message.id]),
@@ -435,6 +451,11 @@ async function buildContextMenu(
         }
       },
       rightIcon: 'bookmark-filled',
+    },
+    // Save attachment as
+    showAttachmentOptions && {
+      label: tx('menu_export_attachment'),
+      action: onDownload.bind(null, message),
     },
     // copy link
     link !== '' &&
@@ -730,7 +751,7 @@ export default function Message(props: {
   message: T.Message
   conversationType: ConversationType
 }) {
-  const { message, conversationType } = props
+  const { message, conversationType, chat } = props
   const {
     id,
     text,
@@ -967,10 +988,6 @@ export default function Message(props: {
       >
     ) => {
       event.preventDefault() // prevent default runtime context menu from opening
-      const chat = await BackendRemote.rpc.getFullChatById(
-        accountId,
-        message.chatId
-      )
 
       const showContextMenuEventPos = mouseEventToPosition(event)
 
@@ -1011,7 +1028,7 @@ export default function Message(props: {
           openDialog,
           privateReply,
           handleReactClick,
-          chat,
+          chat: props.chat,
           jumpToMessage,
         },
         target
@@ -1020,10 +1037,14 @@ export default function Message(props: {
       openContextMenu({
         ...showContextMenuEventPos,
         items,
+        ariaAttrs: {
+          'aria-label': tx('a11y_message_context_menu_btn_label'),
+        },
       })
     },
     [
       accountId,
+      props.chat,
       conversationType,
       message,
       openContextMenu,
@@ -1032,6 +1053,7 @@ export default function Message(props: {
       showReactionsBar,
       text,
       jumpToMessage,
+      tx,
     ]
   )
   const ref = useRef<any>(null)
@@ -1123,7 +1145,9 @@ export default function Message(props: {
   if (isInfo || privittyReplacementText !== null) {
     const isWebxdcInfo = systemMessageType === 'WebxdcInfoMessage'
     const isProtectionBrokenMsg = systemMessageType === 'ChatProtectionDisabled'
-    const isProtectionEnabledMsg = systemMessageType === 'ChatProtectionEnabled'
+    const isProtectionEnabledMsg =
+      systemMessageType === 'ChatProtectionEnabled' ||
+      systemMessageType === 'ChatE2ee'
 
     // Message can't be sent because of `Invalid unencrypted mail to <>`
     // which is sent by chatmail servers.
@@ -1134,7 +1158,6 @@ export default function Message(props: {
     const isInteractive =
       (isWebxdcInfo && parentId) ||
       message.infoContactId != null ||
-      isProtectionBrokenMsg ||
       isProtectionEnabledMsg ||
       isInvalidUnencryptedMail
 
@@ -1144,14 +1167,11 @@ export default function Message(props: {
         if (isWebxdcInfo) {
           // open or focus the webxdc app
           openWebxdc(message)
-        } else if (message.infoContactId != null) {
+        } else if (
+          message.infoContactId != null &&
+          message.infoContactId !== C.DC_CONTACT_ID_SELF
+        ) {
           openViewProfileDialog(accountId, message.infoContactId)
-        } else if (isProtectionBrokenMsg) {
-          const { name } = await BackendRemote.rpc.getBasicChatInfo(
-            selectedAccountId(),
-            message.chatId
-          )
-          openDialog(ProtectionBrokenDialog, { name })
         } else if (isProtectionEnabledMsg) {
           openDialog(ProtectionEnabledDialog)
         } else if (isInvalidUnencryptedMail) {
@@ -1166,25 +1186,19 @@ export default function Message(props: {
         className={classNames(
           'info-message',
           isWebxdcInfo && 'webxdc-info',
-          isInteractive && 'interactive'
+          isInteractive && 'interactive',
+          isProtectionEnabledMsg && 'e2ee-info' // used in e2e-tests
         )}
         id={String(message.id)}
         onContextMenu={showContextMenu}
       >
-        {(isProtectionBrokenMsg || isProtectionEnabledMsg) && (
-          <img
-            className='verified-icon-info-msg'
-            src={
-              isProtectionBrokenMsg
-                ? './images/verified_broken.svg'
-                : './images/verified.svg'
-            }
-          />
-        )}
         <TagName
           className={'bubble ' + rovingTabindex.className}
           onClick={onClick}
           {...rovingTabindexAttrs}
+          // Note that the actual `onContextMenu` listener
+          // is on the wrapper component.
+          aria-haspopup='menu'
         >
           {isWebxdcInfo && parentId && (
             <img
@@ -1225,6 +1239,7 @@ export default function Message(props: {
         className={`videochat-invitation ${rovingTabindex.className}`}
         id={message.id.toString()}
         onContextMenu={showContextMenu}
+        aria-haspopup='menu'
         {...rovingTabindexAttrs}
       >
         <div className='videochat-icon'>
@@ -1261,11 +1276,13 @@ export default function Message(props: {
             fileMime={fileMime || null}
             direction={direction}
             status={status}
+            error={message.error || null}
+            downloadState={message.downloadState}
             isEdited={message.isEdited}
             hasText={text !== null && text !== ''}
             hasLocation={hasLocation}
             timestamp={message.timestamp * 1000}
-            padlock={message.showPadlock}
+            encrypted={message.showPadlock}
             isSavedMessage={isOrHasSavedMessage}
             onClickError={openMessageInfo.bind(null, openDialog, message)}
             viewType={'VideochatInvitation'}
@@ -1319,8 +1336,9 @@ export default function Message(props: {
   /** Whether to show author name and avatar */
   const showAuthor =
     conversationType.hasMultipleParticipants ||
-    overrideSenderName ||
-    message?.originalMsgId
+    message?.overrideSenderName ||
+    message?.originalMsgId ||
+    chat.isSelfTalk
 
   const hasText = text !== null && text !== ''
   const isWithoutText = isMediaWithoutText(fileMime, hasText, message.viewType)
@@ -1344,6 +1362,7 @@ export default function Message(props: {
   return (
     <div
       onContextMenu={showContextMenu}
+      aria-haspopup='menu'
       className={classNames(
         'message',
         direction,
@@ -1551,6 +1570,7 @@ export default function Message(props: {
             fileMime={fileMime}
             direction={direction}
             status={status}
+            error={message.error || null}
             downloadState={downloadState}
             isEdited={message.isEdited}
             hasText={hasText}
@@ -1724,13 +1744,66 @@ function WebxdcMessageContent({
   tabindexForInteractiveContents: -1 | 0
 }) {
   const tx = useTranslationFunction()
+  const [webxdcInfo, setWebxdcInfo] = useState<T.WebxdcMessageInfo | null>(null)
+  const [isLoadingWebxdcInfo, setIsLoadingWebxdcInfo] = useState(true)
+  const accountId = selectedAccountId()
+
+  const fetchWebxdcInfo = useCallback(async () => {
+    setIsLoadingWebxdcInfo(true)
+    try {
+      const info = await BackendRemote.rpc.getWebxdcInfo(accountId, message.id)
+      setWebxdcInfo(info)
+    } catch (error) {
+      console.error(
+        'Failed to refresh webxdc info for message:',
+        message.id,
+        error
+      )
+    } finally {
+      setIsLoadingWebxdcInfo(false)
+    }
+  }, [accountId, message.id])
+
+  const debouncedFetchWebxdcInfo = useMemo(
+    () => debounce(fetchWebxdcInfo, 500),
+    [fetchWebxdcInfo]
+  )
+
+  useEffect(() => {
+    if (message.viewType !== 'Webxdc') return
+
+    // Initial fetch
+    fetchWebxdcInfo()
+
+    // Listen for updates
+    const cleanup = onDCEvent(
+      accountId,
+      'WebxdcStatusUpdate',
+      async ({ msgId }) => {
+        if (msgId === message.id) {
+          // Debounce the refresh since event might be triggered on every key stroke
+          debouncedFetchWebxdcInfo()
+        }
+      }
+    )
+
+    return cleanup
+  }, [
+    accountId,
+    message.id,
+    message.viewType,
+    fetchWebxdcInfo,
+    debouncedFetchWebxdcInfo,
+  ])
+
   if (message.viewType !== 'Webxdc') {
     return null
   }
-  const info = message.webxdcInfo || {
-    name: 'INFO MISSING!',
+
+  const info = webxdcInfo || {
+    name: isLoadingWebxdcInfo ? 'Loading...' : 'INFO MISSING!',
     document: undefined,
-    summary: 'INFO MISSING!',
+    summary: isLoadingWebxdcInfo ? '' : 'INFO MISSING!',
   }
 
   return (
@@ -1740,22 +1813,22 @@ function WebxdcMessageContent({
         alt={`icon of ${info.name}`}
         // No need to turn this element into a `<button>` for a11y,
         // because there is a button below that does the same.
-        onClick={() => openWebxdc(message)}
+        onClick={() => openWebxdc(message, webxdcInfo ?? undefined)}
         // Not setting `tabIndex={tabindexForInteractiveContents}` here
         // because there is a button below that does the same
       />
       <div
-        className='name'
+        className='info-text'
         title={`${info.document ? info.document + ' \n' : ''}${info.name}`}
       >
-        {info.document && truncateText(info.document, 24) + ' - '}
-        {truncateText(info.name, 42)}
+        <div className='document'>{info.document}</div>
+        <div className='name'>{info.name}</div>
       </div>
-      <div>{info.summary}</div>
+      <div className='summary'>{info.summary}</div>
       <Button
         className={styles.startWebxdcButton}
         styling='primary'
-        onClick={() => openWebxdc(message)}
+        onClick={() => openWebxdc(message, webxdcInfo ?? undefined)}
         tabIndex={tabindexForInteractiveContents}
       >
         {tx('start_app')}

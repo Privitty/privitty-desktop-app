@@ -2,16 +2,17 @@ packages:
   - packages/*
 catalog:
   # deltachat specific
-  '@deltachat/jsonrpc-client': 1.159.5
-  '@deltachat/stdio-rpc-server': 1.159.5
+  '@privitty/jsonrpc-client': 2.15.0
+  '@privitty/deltachat-rpc-server': 2.15.0
   '@webxdc/types': ^2.1.2
+  'calls-webapp#build-for-deltachat-desktop': "github:deltachat/calls-webapp#build-for-deltachat-desktop"
 
   # dependencies
   '@types/mime-types': ^2.1.4
   mime-types: ^2.1.35
 
   # tools / dev dependencies
-  typescript: ^5.8.3
-  typescript-plugin-css-modules: ^5.1.0
-
   sass: ^1.86.3
+  typescript: ^5.9.2
+  typescript-plugin-css-modules: ^5.2.0
+  '@types/node': ^20.14.13

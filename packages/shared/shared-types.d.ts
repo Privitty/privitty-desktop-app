@@ -20,7 +20,16 @@ export interface DesktopSettingsType {
    * @deprecated in favor of storing selected account over core account manager in accounts.toml
    */
   lastAccount?: number
+  /**
+   * @see also {@linkcode enableAVCallsV2}
+   */
   enableAVCalls: boolean
+  /**
+   * The new version of video calls.
+   * @see https://github.com/orgs/deltachat/projects/81
+   * @see also {@linkcode enableAVCalls}
+   */
+  enableAVCallsV2: boolean
   enableBroadcastLists: boolean
   enableChatAuditLog: boolean
   enableOnDemandLocationStreaming: boolean
@@ -93,7 +102,7 @@ export interface RC_Config {
   'allow-unsafe-core-replacement': boolean
 }
 
-import type { T } from '@deltachat/jsonrpc-client'
+import type { T } from '@privitty/jsonrpc-client'
 import { NOTIFICATION_TYPE } from './constants.js'
 
 export type Theme = {
