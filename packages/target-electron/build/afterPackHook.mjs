@@ -157,6 +157,8 @@ async function deleteNotNeededPrebuildsFromUnpackedASAR(
   // deltachat-rpc-server meta package without a platform suffix) must be
   // left untouched — they have different naming structures and are all needed.
   // Package names: deltachat-rpc-server-{os}-{arch} (e.g. win32-x64, darwin-arm64).
+  // Windows/Linux: only arch-specific packages exist; we keep the one matching
+  // platform+arch. Mac: may have darwin-universal (lipo fat binary) for universal DMG.
   const currentPlatform = context.electronPlatformName
   const currentArch = convertArch(context.arch)
 
@@ -170,11 +172,12 @@ async function deleteNotNeededPrebuildsFromUnpackedASAR(
     if (pkgOs !== currentPlatform) return true // delete: wrong OS
 
     if (pkgArch === currentArch) return false // keep: matches platform + arch
+    if (isMacBuild && pkgArch === 'universal') return false // keep: universal DMG fat binary
     if (
       isMacBuild &&
       (pkgArch === 'arm64' || pkgArch === 'x64')
     ) {
-      return false // keep: Mac universal needs both
+      return false // keep: Mac single-arch or non-universal needs both
     }
     return true // delete: wrong arch
   })
