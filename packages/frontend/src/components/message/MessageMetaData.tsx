@@ -107,9 +107,7 @@ export default function MessageMetaData(props: Props) {
         ),
       })}
     >
-      {padlock && (
-        <div aria-hidden={true} className='padlock-icon' />
-      )}
+      {padlock && <div aria-hidden={true} className='padlock-icon' />}
       {/* FYI the email doesn't need `aria-live`
       as we don't expect it to get removed. See
       https://github.com/deltachat/deltachat-desktop/pull/5023#discussion_r2059382983 */}

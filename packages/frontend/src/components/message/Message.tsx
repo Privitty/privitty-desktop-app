@@ -33,10 +33,7 @@ import { mapCoreMsgStatus2String } from '../helpers/MapMsgStatus'
 import { ContextMenuItem } from '../ContextMenu'
 import { onDCEvent, BackendRemote } from '../../backend-com'
 import { selectedAccountId } from '../../ScreenController'
-import {
-  ProtectionBrokenDialog,
-  ProtectionEnabledDialog,
-} from '../dialogs/ProtectionStatusDialog'
+import { ProtectionEnabledDialog } from '../dialogs/ProtectionStatusDialog'
 import FileAccessStatusDialog from '../dialogs/FileAccessStatusDialog'
 import useDialog from '../../hooks/dialog/useDialog'
 import useMessage from '../../hooks/chat/useMessage'
@@ -360,7 +357,7 @@ async function buildContextMenu(
   }
 
   const showCopyImage = !!message.file && message.viewType === 'Image'
-  const showResend =
+  const _showResend =
     message.sender.id === C.DC_CONTACT_ID_SELF && message.viewType !== 'Call'
 
   const isInfoOrCallInvitation =
@@ -1144,7 +1141,8 @@ export default function Message(props: {
   // Info Message (or Privitty messages with replacement text)
   if (isInfo || privittyReplacementText !== null) {
     const isWebxdcInfo = systemMessageType === 'WebxdcInfoMessage'
-    const isProtectionBrokenMsg = systemMessageType === 'ChatProtectionDisabled'
+    const _isProtectionBrokenMsg =
+      systemMessageType === 'ChatProtectionDisabled'
     const isProtectionEnabledMsg =
       systemMessageType === 'ChatProtectionEnabled' ||
       systemMessageType === 'ChatE2ee'

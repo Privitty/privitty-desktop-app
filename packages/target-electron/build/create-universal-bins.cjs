@@ -91,4 +91,6 @@ for (const pkg of PACKAGES) {
   console.log(`  ✓ ${universalDir}`)
 }
 
-console.log('\n✓ Universal binaries created. You can now run the universal DMG build.\n')
+console.log(
+  '\n✓ Universal binaries created. You can now run the universal DMG build.\n'
+)

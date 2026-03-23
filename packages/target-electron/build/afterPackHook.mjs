@@ -1,12 +1,6 @@
 import { copyFileSync, existsSync } from 'fs'
 import { flipFuses, FuseVersion, FuseV1Options } from '@electron/fuses'
-import {
-  readdir,
-  writeFile,
-  rm,
-  cp,
-  mkdir,
-} from 'fs/promises'
+import { readdir, writeFile, rm, cp, mkdir } from 'fs/promises'
 import { join, dirname } from 'path'
 import { fileURLToPath } from 'url'
 
@@ -48,7 +42,7 @@ export default async context => {
 
   const prebuild_dir = join(
     resources_dir,
-    '/app.asar.unpacked/node_modules/@deltachat'
+    '/app.asar.unpacked/node_modules/@privitty'
   )
 
   // #region workaround for including prebuilds
@@ -158,8 +152,13 @@ async function deleteNotNeededPrebuildsFromUnpackedASAR(
 ) {
   const prebuilds = await readdir(prebuild_dir)
 
+  // Only remove unneeded deltachat-rpc-server platform-specific packages.
+  // Other entries in @privitty (privitty-core, privitty-core-*, and the
+  // deltachat-rpc-server meta package without a platform suffix) must be
+  // left untouched — they have different naming structures and are all needed.
   const toDelete = prebuilds.filter(name => {
-    const architecture = name.split('-')[4]
+    if (!name.startsWith('deltachat-rpc-server-')) return false
+    const architecture = name.split('-')[4] // deltachat-rpc-server-{os}-{arch}
     if (architecture === convertArch(context.arch)) {
       return false
     } else if (
@@ -181,7 +180,14 @@ async function deleteNotNeededPrebuildsFromUnpackedASAR(
 
   const prebuilds_after_cleanup = await readdir(prebuild_dir)
   console.log({ prebuilds_after_cleanup })
-  if (prebuilds_after_cleanup.length !== 1 && !isMacBuild) {
+
+  // Count only the deltachat-rpc-server platform-specific packages that remain
+  // (5-part names: deltachat-rpc-server-{os}-{arch}).
+  const rpcServerPlatformPkgs = prebuilds_after_cleanup.filter(
+    name =>
+      name.startsWith('deltachat-rpc-server-') && name.split('-').length === 5
+  )
+  if (rpcServerPlatformPkgs.length !== 1 && !isMacBuild) {
     throw new Error(
       "prebuilds were not cleared correctly or prebuild is missing, there should only be one (unless it's mac)"
     )
@@ -210,13 +216,15 @@ async function setFuses(context) {
 
   if (!existsSync(appPath)) {
     const files = await readdir(context.appOutDir)
-    
+
     // Log the list of file names
-    console.log(`Files in context.appOutDir (${context.appOutDir}):`);
+    console.log(`Files in context.appOutDir (${context.appOutDir}):`)
     files.forEach(file => {
-      console.log(file);
-    });
-    throw new Error('Could not apply electron fuses since target not exists: ' + appPath)
+      console.log(file)
+    })
+    throw new Error(
+      'Could not apply electron fuses since target not exists: ' + appPath
+    )
   }
 
   console.log('Applying electron fuses to:', appPath)
@@ -228,4 +236,3 @@ async function setFuses(context) {
   })
   console.log('Successfully flipped configured fuses')
 }
-

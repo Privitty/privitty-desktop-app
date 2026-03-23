@@ -34,9 +34,13 @@ async function getGitRef() {
       git_describe = gatherProcessStdout('git', ['describe', '--tags'])
     } catch (err) {
       // If no tags exist, use the short commit hash
-      git_describe = gatherProcessStdout('git', ['rev-parse', '--short', 'HEAD'])
+      git_describe = gatherProcessStdout('git', [
+        'rev-parse',
+        '--short',
+        'HEAD',
+      ])
     }
-    
+
     try {
       const git_symbolic_ref =
         process.env.GITHUB_HEAD_REF ||

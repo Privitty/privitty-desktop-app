@@ -34,11 +34,16 @@ execSync('node ./bin/link_core/link_catalog.js', { stdio: 'inherit' })
 
 // cargo / tauri
 try {
-  execSync(`cargo add deltachat deltachat-jsonrpc --git https://github.com/chatmail/core --tag v${newVersion}`, {
-    stdio: 'inherit',
-    cwd: resolve('packages/target-tauri/src-tauri'),
-  })
+  execSync(
+    `cargo add deltachat deltachat-jsonrpc --git https://github.com/chatmail/core --tag v${newVersion}`,
+    {
+      stdio: 'inherit',
+      cwd: resolve('packages/target-tauri/src-tauri'),
+    }
+  )
 } catch (error) {
-  console.error("Failed to link local core to tauri: please update Cargo.toml in packages/target-tauri/src-tauri manually")
+  console.error(
+    'Failed to link local core to tauri: please update Cargo.toml in packages/target-tauri/src-tauri manually'
+  )
   process.exit(1)
 }

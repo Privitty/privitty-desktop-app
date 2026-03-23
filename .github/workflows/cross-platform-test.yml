@@ -11,71 +11,71 @@ jobs:
         os: [ubuntu-latest, windows-latest, macos-latest]
         node-version: [20.x]
       fail-fast: false
-    
+
     name: Test on ${{ matrix.os }}
-    
+
     steps:
-    - name: Checkout code
-      uses: actions/checkout@v4
-      with:
-        fetch-depth: 0
-      
-    - name: Install pnpm
-      uses: pnpm/action-setup@v4
-      with:
-        version: 9.6.0
-        
-    - name: Setup Node.js ${{ matrix.node-version }}
-      uses: actions/setup-node@v4
-      with:
-        node-version: ${{ matrix.node-version }}
-        cache: 'pnpm'
-        
-    - name: Install dependencies
-      run: pnpm install --frozen-lockfile
-      
-    - name: Set version info
-      run: |
-        echo "VERSION_INFO_GIT_REF=${{ github.sha }}-${{ github.ref_name }}" >> $GITHUB_ENV
-      
-    - name: Run cross-platform compatibility tests
-      run: node bin/test-cross-platform.js
-      
-    - name: Test package.json scripts
-      run: |
-        echo "Testing reset:node_modules script..."
-        pnpm reset:node_modules
-        
-    - name: Test translation scripts
-      run: |
-        echo "Testing translation conversion..."
-        pnpm translations:convert
-        
-        echo "Testing find complete translations..."
-        node bin/find_complete_translations.js
-        
-    - name: Test cross-platform utilities
-      run: |
-        echo "Testing cross-platform utilities..."
-        node bin/cross-platform-utils.js mkdir -p test-dir
-        echo "test content" > test-dir/test.txt
-        node bin/cross-platform-utils.js cp test-dir/test.txt test-dir/test2.txt
-        node bin/cross-platform-utils.js rm -rf test-dir
-        
-    - name: Test build commands (basic)
-      run: |
-        echo "Testing basic build commands..."
-        # Test that the build scripts exist and can be parsed
-        echo "✅ Checking build script availability..."
-        pnpm --filter=@deltachat-desktop/target-electron run --help || echo "Build scripts are available"
-        echo "✅ Build commands are available and can be executed"
-        
-    - name: Upload test results
-      if: always()
-      uses: actions/upload-artifact@v4
-      with:
-        name: test-results-${{ matrix.os }}
-        path: |
-          node_modules/.cache
-          packages/*/dist
-        retention-days: 1 
+      - name: Checkout code
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Install pnpm
+        uses: pnpm/action-setup@v4
+        with:
+          version: 9.6.0
+
+      - name: Setup Node.js ${{ matrix.node-version }}
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ matrix.node-version }}
+          cache: 'pnpm'
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Set version info
+        run: |
+          echo "VERSION_INFO_GIT_REF=${{ github.sha }}-${{ github.ref_name }}" >> $GITHUB_ENV
+
+      - name: Run cross-platform compatibility tests
+        run: node bin/test-cross-platform.js
+
+      - name: Test package.json scripts
+        run: |
+          echo "Testing reset:node_modules script..."
+          pnpm reset:node_modules
+
+      - name: Test translation scripts
+        run: |
+          echo "Testing translation conversion..."
+          pnpm translations:convert
+
+          echo "Testing find complete translations..."
+          node bin/find_complete_translations.js
+
+      - name: Test cross-platform utilities
+        run: |
+          echo "Testing cross-platform utilities..."
+          node bin/cross-platform-utils.js mkdir -p test-dir
+          echo "test content" > test-dir/test.txt
+          node bin/cross-platform-utils.js cp test-dir/test.txt test-dir/test2.txt
+          node bin/cross-platform-utils.js rm -rf test-dir
+
+      - name: Test build commands (basic)
+        run: |
+          echo "Testing basic build commands..."
+          # Test that the build scripts exist and can be parsed
+          echo "✅ Checking build script availability..."
+          pnpm --filter=@deltachat-desktop/target-electron run --help || echo "Build scripts are available"
+          echo "✅ Build commands are available and can be executed"
+
+      - name: Upload test results
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: test-results-${{ matrix.os }}
+          path: |
+            node_modules/.cache
+            packages/*/dist
+          retention-days: 1

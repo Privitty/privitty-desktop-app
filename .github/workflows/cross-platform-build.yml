@@ -15,86 +15,86 @@ jobs:
           - os: macos-latest
             target: browser
       fail-fast: false
-    
+
     name: Test ${{ matrix.target }} build process on ${{ matrix.os }}
-    
+
     steps:
-    - name: Checkout code
-      uses: actions/checkout@v4
-      with:
-        fetch-depth: 0
-      
-    - name: Install pnpm
-      uses: pnpm/action-setup@v4
-      with:
-        version: 9.6.0
-        
-    - name: Setup Node.js 20.x
-      uses: actions/setup-node@v4
-      with:
-        node-version: 20.x
-        cache: 'pnpm'
-        
-    - name: Install dependencies
-      run: pnpm install --frozen-lockfile
-      
-    - name: Set version info
-      shell: bash
-      run: |
-        echo "VERSION_INFO_GIT_REF=${{ github.sha }}-${{ github.ref_name }}" >> $GITHUB_ENV
-      
-    - name: Test cross-platform scripts
-      run: |
-        echo "🧪 Testing cross-platform compatibility..."
-        node bin/test-cross-platform.js
-        
-    - name: Test translation processing
-      shell: bash
-      run: |
-        echo "🔄 Testing translation processing..."
-        pnpm translations:convert
-        node bin/find_complete_translations.js
-        
-    - name: Test build process (without full build)
-      shell: bash
-      run: |
-        echo "🧪 Testing build process for ${{ matrix.target }}..."
-        if [ "${{ matrix.target }}" = "electron" ]; then
-          echo "Testing Electron build steps..."
-          # Test individual build steps that work cross-platform
-          pnpm --filter=@deltachat-desktop/target-electron build:locales
-          echo "✅ Locales build step completed"
-        elif [ "${{ matrix.target }}" = "browser" ]; then
-          echo "Testing Browser build steps..."
-          # Test that the browser build command exists and can start
-          pnpm --filter=@deltachat-desktop/target-browser run --help
-          echo "✅ Browser build commands are available"
-        fi
-        
-    - name: Verify build process completion
-      shell: bash
-      run: |
-        echo "✅ Verifying build process completion..."
-        if [ "${{ matrix.target }}" = "electron" ]; then
-          echo "Electron build process test completed successfully"
-        elif [ "${{ matrix.target }}" = "browser" ]; then
-          echo "Browser build process test completed successfully"
-        fi
-        
-    - name: Upload test results
-      if: success()
-      uses: actions/upload-artifact@v4
-      with:
-        name: build-test-${{ matrix.target }}-${{ matrix.os }}
-        path: |
-          _locales/*.json
-        retention-days: 1
-        
-    - name: Upload logs
-      if: always()
-      uses: actions/upload-artifact@v4
-      with:
-        name: logs-${{ matrix.target }}-${{ matrix.os }}
-        path: |
-          node_modules/.cache/
-        retention-days: 1 
+      - name: Checkout code
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Install pnpm
+        uses: pnpm/action-setup@v4
+        with:
+          version: 9.6.0
+
+      - name: Setup Node.js 20.x
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20.x
+          cache: 'pnpm'
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Set version info
+        shell: bash
+        run: |
+          echo "VERSION_INFO_GIT_REF=${{ github.sha }}-${{ github.ref_name }}" >> $GITHUB_ENV
+
+      - name: Test cross-platform scripts
+        run: |
+          echo "🧪 Testing cross-platform compatibility..."
+          node bin/test-cross-platform.js
+
+      - name: Test translation processing
+        shell: bash
+        run: |
+          echo "🔄 Testing translation processing..."
+          pnpm translations:convert
+          node bin/find_complete_translations.js
+
+      - name: Test build process (without full build)
+        shell: bash
+        run: |
+          echo "🧪 Testing build process for ${{ matrix.target }}..."
+          if [ "${{ matrix.target }}" = "electron" ]; then
+            echo "Testing Electron build steps..."
+            # Test individual build steps that work cross-platform
+            pnpm --filter=@deltachat-desktop/target-electron build:locales
+            echo "✅ Locales build step completed"
+          elif [ "${{ matrix.target }}" = "browser" ]; then
+            echo "Testing Browser build steps..."
+            # Test that the browser build command exists and can start
+            pnpm --filter=@deltachat-desktop/target-browser run --help
+            echo "✅ Browser build commands are available"
+          fi
+
+      - name: Verify build process completion
+        shell: bash
+        run: |
+          echo "✅ Verifying build process completion..."
+          if [ "${{ matrix.target }}" = "electron" ]; then
+            echo "Electron build process test completed successfully"
+          elif [ "${{ matrix.target }}" = "browser" ]; then
+            echo "Browser build process test completed successfully"
+          fi
+
+      - name: Upload test results
+        if: success()
+        uses: actions/upload-artifact@v4
+        with:
+          name: build-test-${{ matrix.target }}-${{ matrix.os }}
+          path: |
+            _locales/*.json
+          retention-days: 1
+
+      - name: Upload logs
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: logs-${{ matrix.target }}-${{ matrix.os }}
+          path: |
+            node_modules/.cache/
+          retention-days: 1

@@ -125,12 +125,7 @@ if (!destination) {
       .replace(/\//g, '+')
       .replace(/\(|\)/g, '_')
       .replace(/_$/, '')
-    const source = join(
-      pnpmStore,
-      folderInStoreName,
-      'node_modules',
-      name
-    )
+    const source = join(pnpmStore, folderInStoreName, 'node_modules', name)
     const dest = join(destination, name)
     await mkdir(dest, { recursive: true })
     // console.log(source, dest)
@@ -139,7 +134,8 @@ if (!destination) {
       console.warn(
         `${yellow(
           'WARN:'
-        )} ${folderInStoreName} not found in pnpm store, skipped`, {name}
+        )} ${folderInStoreName} not found in pnpm store, skipped`,
+        { name }
       )
       continue
     }
