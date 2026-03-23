@@ -5,11 +5,13 @@
 $info-text-max-width: 400px;
 
 .message-wrapper {
-  --shortcut-menu-visibility: hidden;
-  --shortcut-menu-multiplier: 0;
+  // Keep shortcut menu always visible (but dimmed) so it's clickable on desktop
+  // and on touch devices where :hover doesn't exist. Previously visibility:hidden
+  // prevented clicks; on touch, no hover meant the menu never appeared.
+  --shortcut-menu-visibility: visible;
+  --shortcut-menu-multiplier: 0.6;
 
   &:hover {
-    --shortcut-menu-visibility: visible;
     --shortcut-menu-multiplier: 1;
   }
 }
