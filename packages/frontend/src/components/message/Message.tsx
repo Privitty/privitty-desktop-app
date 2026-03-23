@@ -357,6 +357,7 @@ async function buildContextMenu(
   }
 
   const showCopyImage = !!message.file && message.viewType === 'Image'
+  const showAttachmentOptions = !!message.file
   const _showResend =
     message.sender.id === C.DC_CONTACT_ID_SELF && message.viewType !== 'Call'
 
