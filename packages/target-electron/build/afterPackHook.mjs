@@ -197,7 +197,11 @@ async function deleteNotNeededPrebuildsFromUnpackedASAR(
 async function setFuses(context) {
   // Apply security fuses for all builds
   let appPath
-  let executableName = context.packager.executableName ?? 'DeltaChat'
+  // `executableName` may be undefined when not explicitly set in electron-builder
+  // config; fall back to `sanitizedProductName` (same source used for resources_dir).
+  const sanitizedName = context.packager.appInfo.sanitizedProductName
+  let executableName =
+    context.packager.executableName ?? sanitizedName ?? 'PrivittyChat'
   if (process.env.IS_PREVIEW) {
     executableName = executableName + '-DevBuild'
   }
@@ -210,7 +214,7 @@ async function setFuses(context) {
       appPath = `${context.appOutDir}/${executableName}.exe`
       break
     default:
-      appPath = `${context.appOutDir}/${context.packager.executableName ?? 'deltachat-desktop'}`
+      appPath = `${context.appOutDir}/${executableName}`
       break
   }
 
