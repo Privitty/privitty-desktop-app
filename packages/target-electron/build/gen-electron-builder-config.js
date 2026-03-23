@@ -136,7 +136,7 @@ build['asarUnpack'] = [
 // 'html-dist/xdcs/' should be in 'asarUnpack', but that had "file already exists" errors in the ci
 // see https://github.com/deltachat/deltachat-desktop/pull/3876, so we now do it "manually" in the afterPackHook
 
-build['afterPack'] = './build/afterPackHook.cjs'
+build['afterPack'] = './build/afterPackHook.mjs'
 
 // Only enable afterSign (notarization) if signing is enabled
 if (shouldSign) {
@@ -271,6 +271,7 @@ const languages = [
   'el',
   // 'eo',  not supported by ms-store
   'es',
+  'et',
   'eu',
   'fa',
   'fi',
@@ -281,7 +282,6 @@ const languages = [
   'id',
   'it',
   'ja-jp',
-  'km',
   'ko',
   'lt',
   'nb',

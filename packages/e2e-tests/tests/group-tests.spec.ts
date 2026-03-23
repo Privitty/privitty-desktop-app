@@ -1,4 +1,4 @@
-import { test, expect } from '@playwright/test'
+import { expect, type Page } from '@playwright/test'
 
 import {
   groupName,
@@ -11,6 +11,7 @@ import {
   deleteAllProfiles,
   reloadPage,
   clickThroughTestIds,
+  test,
 } from '../playwright-helper'
 
 test.describe.configure({ mode: 'serial' })
@@ -19,39 +20,52 @@ let existingProfiles: User[] = []
 
 const numberOfProfiles = 3
 
-test.beforeAll(async ({ browser }) => {
-  const context = await browser.newContext()
-  const page = await context.newPage()
-  await reloadPage(page)
+// https://playwright.dev/docs/next/test-retries#reuse-single-page-between-tests
+let page: Page
 
-  existingProfiles = (await loadExistingProfiles(page)) ?? existingProfiles
+test.beforeAll(async ({ browser, isChatmail }) => {
+  const contextForProfileCreation = await browser.newContext()
+  const pageForProfileCreation = await contextForProfileCreation.newPage()
+  await reloadPage(pageForProfileCreation)
+
+  existingProfiles =
+    (await loadExistingProfiles(pageForProfileCreation)) ?? existingProfiles
   test.setTimeout(120_000)
+
   await createProfiles(
     numberOfProfiles,
     existingProfiles,
-    page,
-    context,
-    browser.browserType().name()
+    pageForProfileCreation,
+    browser.browserType().name(),
+    isChatmail
   )
 
-  await context.close()
+  await contextForProfileCreation.close()
+  page = await browser.newPage()
+  await reloadPage(page)
 })
 
-test.beforeEach(async ({ page }) => {
-  await reloadPage(page)
+test.afterEach(async () => {
+  // Pressing Escape a bunch of times should reset the UI state,
+  // so there is no need to reload the page.
+  for (let i = 0; i < 5; i++) {
+    await page.keyboard.press('Escape')
+  }
 })
 
 test.afterAll(async ({ browser }) => {
+  await page?.close()
+
   const context = await browser.newContext()
-  const page = await context.newPage()
-  await reloadPage(page)
-  await deleteAllProfiles(page, existingProfiles)
+  const pageForProfileDeletion = await context.newPage()
+  await reloadPage(pageForProfileDeletion)
+  await deleteAllProfiles(pageForProfileDeletion, existingProfiles)
   await context.close()
 })
 
-test('start chat with user', async ({ page, context, browserName }) => {
+test('start chat with user', async ({ browserName }) => {
   if (browserName.toLowerCase().indexOf('chrom') > -1) {
-    await context.grantPermissions(['clipboard-read', 'clipboard-write'])
+    await page.context().grantPermissions(['clipboard-read', 'clipboard-write'])
   }
   const userA = getUser(0, existingProfiles)
   const userB = getUser(1, existingProfiles)
@@ -90,9 +104,9 @@ test('start chat with user', async ({ page, context, browserName }) => {
   await expect(sentMessageText).toHaveText(messageText)
 })
 
-test('create group', async ({ page, context, browserName }) => {
+test('create group', async ({ browserName }) => {
   if (browserName.toLowerCase().indexOf('chrom') > -1) {
-    await context.grantPermissions(['clipboard-read', 'clipboard-write'])
+    await page.context().grantPermissions(['clipboard-read', 'clipboard-write'])
   }
   const userA = existingProfiles[0]
   const userB = existingProfiles[1]
@@ -128,13 +142,9 @@ test('create group', async ({ page, context, browserName }) => {
   await expect(badgeNumber).toHaveText('1')
 })
 
-test('Invite existing user to group', async ({
-  page,
-  context,
-  browserName,
-}) => {
+test('Invite existing user to group', async ({ browserName }) => {
   if (browserName.toLowerCase().indexOf('chrom') > -1) {
-    await context.grantPermissions(['clipboard-read', 'clipboard-write'])
+    await page.context().grantPermissions(['clipboard-read', 'clipboard-write'])
   }
   const userA = existingProfiles[0]
   const userB = existingProfiles[1]
@@ -168,7 +178,7 @@ test('Invite existing user to group', async ({
     userA.address
   )
   // verified chat after response from userA
-  await expect(page.locator('.verified-icon-info-msg')).toBeVisible()
+  await expect(page.locator('.e2ee-info')).toBeVisible()
   // userB has 2 new notifications now
   const badge = page
     .getByTestId(`account-item-${userB.id}`)
@@ -178,9 +188,9 @@ test('Invite existing user to group', async ({
   await expect(badge).toBeVisible()
 })
 
-test('Invite new user to group', async ({ page, context, browserName }) => {
+test('Invite new user to group', async ({ browserName }) => {
   if (browserName.toLowerCase().indexOf('chrom') > -1) {
-    await context.grantPermissions(['clipboard-read', 'clipboard-write'])
+    await page.context().grantPermissions(['clipboard-read', 'clipboard-write'])
   }
   const newUserName = userNames[3]
   const userA = existingProfiles[0]
@@ -221,7 +231,7 @@ test('Invite new user to group', async ({ page, context, browserName }) => {
     userA.address
   )
   // verified chat after response from userA
-  await expect(page.locator('.verified-icon-info-msg')).toBeVisible()
+  await expect(page.locator('.e2ee-info')).toBeVisible()
   await page.getByTestId('chat-info-button').click()
   // new user sees group members
   await expect(
@@ -235,7 +245,7 @@ test('Invite new user to group', async ({ page, context, browserName }) => {
   existingProfiles = await loadExistingProfiles(page)
 })
 
-test('Remove user from group', async ({ page }) => {
+test('Remove user from group', async () => {
   // user C removes user B
   const userB = existingProfiles[1]
   const userC = existingProfiles[2]
@@ -263,10 +273,12 @@ test('Remove user from group', async ({ page }) => {
   await page.getByTestId('view-group-dialog-header-close').click()
 })
 
-test('Readd user to group', async ({ page }) => {
+test('Readd user to group', async () => {
   // user A adds user B again
   const userA = existingProfiles[0]
   const userB = existingProfiles[1]
+  const userC = existingProfiles[2]
+  const userD = existingProfiles[3]
   await switchToProfile(page, userA.id)
   const chatListItem = page
     .locator('.chat-list .chat-list-item')
@@ -274,6 +286,18 @@ test('Readd user to group', async ({ page }) => {
   await expect(chatListItem).toBeVisible()
   await chatListItem.click()
   await page.getByTestId('chat-info-button').click()
+
+  // Wait for the removal of userB in the "View Group" dialog,
+  // because the "Add Members" dialog won't auto-update.
+  // We probably should make it auto-updateable as well.
+  const membersList = page
+    .getByTestId('view-group-dialog')
+    .getByRole('list', { name: /\d+ members/ })
+  await expect(membersList.getByRole('listitem')).toHaveCount(3)
+  await expect(membersList).not.toContainText(userB.name)
+  for (const name of ['Me', userC.name, userD.name]) {
+    await expect(membersList).toContainText(name)
+  }
 
   await page.locator('#addmember button').click()
   const addMemberDialog = page.getByTestId('add-member-dialog')
@@ -284,17 +308,14 @@ test('Readd user to group', async ({ page }) => {
   await userBRow.click()
   await expect(userBRow.locator('.checkmark')).toBeVisible()
   await addMemberDialog.getByTestId('ok').click()
-  await expect(
-    page
-      .locator('.group-member-contact-list-wrapper .contact-list-item')
-      .filter({ hasText: userB.name })
-  ).toHaveCount(1)
+  for (const name of ['Me', userB.name, userC.name, userD.name]) {
+    await expect(membersList).toContainText(name)
+  }
+  await expect(membersList.getByRole('listitem')).toHaveCount(4)
   await page.getByTestId('view-group-dialog-header-close').click()
 })
 
-test('Edit group profile from context menu and rename group', async ({
-  page,
-}) => {
+test('Edit group profile from context menu and rename group', async () => {
   const userA = existingProfiles[0]
   const userC = existingProfiles[2]
   await switchToProfile(page, userA.id)
@@ -321,3 +342,9 @@ test('Edit group profile from context menu and rename group', async ({
     .filter({ hasText: groupName + ' edited' })
   await expect(renamedGroupchatListItem).toBeVisible()
 })
+
+test.fixme('create channel and add members', async () => {})
+
+test.fixme('accept or decline channel invite', async () => {})
+
+test.fixme('leave channel and remove from channel', async () => {})

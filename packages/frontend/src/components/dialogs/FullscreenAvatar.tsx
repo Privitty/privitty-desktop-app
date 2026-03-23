@@ -32,7 +32,7 @@ export default function FullscreenAvatar(
       },
     },
     {
-      label: tx('save_as'),
+      label: tx('menu_export_attachment'),
       action: saveAs,
     },
   ])
@@ -41,16 +41,33 @@ export default function FullscreenAvatar(
     <Dialog unstyled onClose={onClose}>
       <div className='attachment-view'>
         <div className='image-container'>
-          <TransformWrapper initialScale={1}>
+          <TransformWrapper
+            initialScale={1}
+            wheel={{
+              wheelDisabled: true,
+            }}
+            panning={{
+              wheelPanning: true,
+            }}
+          >
             {utils => {
               resetImageZoom.current = () => {
                 utils.resetTransform()
               }
               return (
-                <TransformComponent>
+                <TransformComponent
+                  wrapperStyle={{
+                    maxWidth: '100%',
+                    maxHeight: '100vh',
+                  }}
+                  contentStyle={{
+                    padding: '0',
+                  }}
+                >
                   <div
                     className='image-context-menu-container'
                     onContextMenu={openMenu}
+                    aria-haspopup='menu'
                     tabIndex={0}
                   >
                     <img

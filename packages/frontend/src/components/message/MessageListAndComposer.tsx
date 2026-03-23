@@ -1,6 +1,6 @@
 import React, { useRef, useEffect, useCallback } from 'react'
 import { join, parse, ParsedPath } from 'path'
-import { T } from '@deltachat/jsonrpc-client'
+import { T } from '@privitty/jsonrpc-client'
 
 import Composer, { useDraft } from '../composer/Composer'
 import { getLogger } from '../../../../shared/logger'
@@ -14,7 +14,7 @@ import ConfirmSendingFiles from '../dialogs/ConfirmSendingFiles'
 import { ReactionsBarProvider } from '../ReactionsBar'
 import useDialog from '../../hooks/dialog/useDialog'
 import useMessage from '../../hooks/chat/useMessage'
-import { Viewtype } from '@deltachat/jsonrpc-client/dist/generated/types'
+import { Viewtype } from '@privitty/jsonrpc-client/dist/generated/types'
 
 const log = getLogger('renderer/MessageListAndComposer')
 
@@ -111,11 +111,12 @@ export default function MessageListAndComposer({ accountId, chat }: Props) {
     addFileToDraft,
     removeFile,
     clearDraftStateButKeepTextareaValue,
+    clearDraftStateAndUpdateTextareaValue,
+    setDraftStateAndUpdateTextareaValue,
   } = useDraft(
     accountId,
     chat.id,
     chat.isContactRequest,
-    chat.isProtectionBroken,
     chat.canSend,
     regularMessageInputRef
   )
@@ -253,20 +254,6 @@ export default function MessageListAndComposer({ accountId, chat }: Props) {
     [hasOpenDialogs]
   )
 
-  const onSelectionChange = useCallback(() => {
-    const selection = window.getSelection()
-
-    if (
-      selection?.type === 'Caret' ||
-      (selection?.type === 'Range' && selection.rangeCount > 0)
-    )
-      return
-
-    // Only one of these is actually rendered at any given moment.
-    regularMessageInputRef.current?.focus()
-    editMessageInputRef.current?.focus()
-  }, [])
-
   const onEscapeKeyUp = useCallback((ev: KeyboardEvent) => {
     if (ev.code === 'Escape') {
       // Only one of these is actually rendered at any given moment.
@@ -277,7 +264,6 @@ export default function MessageListAndComposer({ accountId, chat }: Props) {
 
   useEffect(() => {
     window.addEventListener('mouseup', onMouseUp)
-    document.addEventListener('selectionchange', onSelectionChange)
     window.addEventListener('keyup', onEscapeKeyUp)
 
     // Only one of these is actually rendered at any given moment.
@@ -286,10 +272,9 @@ export default function MessageListAndComposer({ accountId, chat }: Props) {
 
     return () => {
       window.removeEventListener('mouseup', onMouseUp)
-      document.removeEventListener('selectionchange', onSelectionChange)
       window.removeEventListener('keyup', onEscapeKeyUp)
     }
-  }, [onMouseUp, onEscapeKeyUp, onSelectionChange])
+  }, [onMouseUp, onEscapeKeyUp])
 
   const settingsStore = useSettingsStore()[0]
   // If you want to update this, don't forget to update
@@ -320,7 +305,6 @@ export default function MessageListAndComposer({ accountId, chat }: Props) {
         ref={refComposer}
         selectedChat={chat}
         isContactRequest={chat.isContactRequest}
-        isProtectionBroken={chat.isProtectionBroken}
         regularMessageInputRef={regularMessageInputRef}
         editMessageInputRef={editMessageInputRef}
         draftState={draftState}
@@ -331,6 +315,12 @@ export default function MessageListAndComposer({ accountId, chat }: Props) {
         removeFile={removeFile}
         clearDraftStateButKeepTextareaValue={
           clearDraftStateButKeepTextareaValue
+        }
+        clearDraftStateAndUpdateTextareaValue={
+          clearDraftStateAndUpdateTextareaValue
+        }
+        setDraftStateAndUpdateTextareaValue={
+          setDraftStateAndUpdateTextareaValue
         }
       />
     </div>

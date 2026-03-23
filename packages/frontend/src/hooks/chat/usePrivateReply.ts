@@ -4,7 +4,7 @@ import useChat from './useChat'
 import { BackendRemote } from '../../backend-com'
 import { createChatByContactId } from '../../backend/chat'
 
-import type { T } from '@deltachat/jsonrpc-client'
+import type { T } from '@privitty/jsonrpc-client'
 import { basename } from 'path'
 
 export type PrivateReply = (

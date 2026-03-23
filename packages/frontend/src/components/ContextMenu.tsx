@@ -36,10 +36,31 @@ export type ContextMenuItem =
     ))
   | { type: 'separator' }
 
+type MenuAriaAttrs = {
+  'aria-label'?: string
+  'aria-labelledby'?: string
+} & (
+  | {
+      'aria-label': string
+      'aria-labelledby'?: undefined
+    }
+  | {
+      'aria-label'?: undefined
+      'aria-labelledby': string
+    }
+)
+
 type showFnArguments = {
   x: number
   y: number
   items: (ContextMenuItem | false)[]
+  // TODO a11y: make this a required prop.
+  // https://www.w3.org/WAI/ARIA/apg/patterns/menubar/ :
+  // > An element with role menu either has:
+  // > - aria-labelledby set to a value that refers to the menuitem
+  // >   or button that controls its display.
+  // > - A label provided by aria-label.
+  ariaAttrs?: MenuAriaAttrs
 }
 
 type ContextMenuLevel = {
@@ -71,11 +92,14 @@ export function ContextMenuLayer({
     top: 0,
     left: 0,
   })
+  const [currentAriaAttrs, setCurrentAriaAttrs] = useState<
+    undefined | MenuAriaAttrs
+  >(undefined)
 
   const endPromiseRef = useRef<(() => void) | null>(null)
 
   const show = useCallback(
-    async ({ x, y, items: rawItems }: showFnArguments) => {
+    async ({ x, y, items: rawItems, ariaAttrs }: showFnArguments) => {
       if (!layerRef.current) {
         throw new Error('Somehow the ContextMenuLayer went missing')
       }
@@ -92,6 +116,7 @@ export function ContextMenuLayer({
       // Get required information
       setCurrentItems(items)
       window.__setContextMenuActive(true)
+      setCurrentAriaAttrs(ariaAttrs)
 
       await new Promise<void>((resolve, _reject) => {
         endPromiseRef.current = resolve
@@ -157,6 +182,10 @@ export function ContextMenuLayer({
       className='dc-context-menu-layer'
       onClick={cancel}
       onContextMenuCapture={cancel}
+      // The `<dialog>` is only used to make sure that the menu is on top
+      // of other content, and to trap focus.
+      // The dialog semantics are not needed, and are probably confusing.
+      role='presentation'
     >
       {currentItems.length > 0 && (
         <ContextMenu
@@ -169,6 +198,7 @@ export function ContextMenuLayer({
           items={currentItems}
           openCallback={showAfter}
           closeCallback={cancel}
+          ariaAttrs={currentAriaAttrs}
         />
       )}
     </dialog>
@@ -182,6 +212,8 @@ export function ContextMenu(props: {
   items: (ContextMenuItem | false)[]
   openCallback: (el: HTMLDivElement | null) => void
   closeCallback: (evt?: React.MouseEvent) => void
+  // TODO make this a required prop.
+  ariaAttrs?: MenuAriaAttrs
 }) {
   const { closeCallback } = props
 
@@ -346,13 +378,9 @@ export function ContextMenu(props: {
       }
     }
 
-    const onResize = () => closeCallback()
-
     document.addEventListener('keydown', onKeyDown)
-    window.addEventListener('resize', onResize)
     return () => {
       document.removeEventListener('keydown', onKeyDown)
-      window.removeEventListener('resize', onResize)
     }
   }, [openSublevels, closeCallback, expandMenu])
 
@@ -367,6 +395,8 @@ export function ContextMenu(props: {
           className='dc-context-menu'
           data-no-drag-region
           role='menu'
+          aria-label={props.ariaAttrs?.['aria-label']}
+          aria-labelledby={props.ariaAttrs?.['aria-labelledby']}
           tabIndex={-1}
           style={{
             top: `${props.top}px`,
@@ -377,11 +407,12 @@ export function ContextMenu(props: {
             if (item.type === 'separator') {
               return <hr className='separator' key={index} />
             }
+            const isExpanded = index === openSublevels[levelIdx]
             return (
               <button
                 className={classNames({
                   item: true,
-                  selected: index === openSublevels[levelIdx],
+                  selected: isExpanded,
                   danger: item.danger,
                 })}
                 onClick={(ev: React.MouseEvent) => {
@@ -408,6 +439,8 @@ export function ContextMenu(props: {
                 data-testid={item.dataTestid}
                 role='menuitem'
                 key={index}
+                aria-haspopup={item.subitems ? 'menu' : undefined}
+                aria-expanded={item.subitems ? isExpanded : undefined}
                 {...(item.subitems && { 'data-expandable-index': index })}
               >
                 {item.icon && <Icon className='left-icon' icon={item.icon} />}
@@ -446,7 +479,8 @@ export type ContextMenuItemsFactoryFn = () => ContextMenuItems
  */
 export function makeContextMenu(
   itemsOrItemsFactoryFn: ContextMenuItems | ContextMenuItemsFactoryFn,
-  openContextMenu: OpenContextMenu
+  openContextMenu: OpenContextMenu,
+  ariaAttrs?: MenuAriaAttrs
 ) {
   return (ev: React.MouseEvent<any, MouseEvent>) => {
     ev.preventDefault() // prevent default runtime context menu from opening
@@ -458,16 +492,18 @@ export function makeContextMenu(
 
     return openContextMenu({
       ...mouseEventToPosition(ev),
+      ariaAttrs,
       items,
     })
   }
 }
 
 export function useContextMenuWithActiveState(
-  itemsOrItemsFactoryFn: ContextMenuItems | ContextMenuItemsFactoryFn
+  itemsOrItemsFactoryFn: ContextMenuItems | ContextMenuItemsFactoryFn,
+  ariaAttrs?: Parameters<typeof useContextMenu>[1]
 ) {
   const [isContextMenuActive, setIsContextMenuActive] = useState(false)
-  const openFn = useContextMenu(itemsOrItemsFactoryFn)
+  const openFn = useContextMenu(itemsOrItemsFactoryFn, ariaAttrs)
 
   return {
     isContextMenuActive,

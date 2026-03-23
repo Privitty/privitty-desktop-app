@@ -64,6 +64,9 @@ export default function SelectChat(props: Props) {
               <AutoSizer disableWidth>
                 {({ height }) => (
                   <ChatListPart
+                    olElementAttrs={{
+                      'aria-label': tx('pref_chats'),
+                    }}
                     isRowLoaded={isChatLoaded}
                     loadMoreRows={loadChats}
                     rowCount={chatListIds.length}
@@ -76,8 +79,8 @@ export default function SelectChat(props: Props) {
                       chatListIds,
                       onChatClick: props.onChatClick,
 
-                      selectedChatId: null,
-                      activeContextMenuChatId: null,
+                      activeChatId: null,
+                      activeContextMenuChatIds: [],
                       openContextMenu: async () => {},
                     }}
                   >

@@ -1,4 +1,4 @@
-import { C } from '@deltachat/jsonrpc-client'
+import { C } from '@privitty/jsonrpc-client'
 import { msgStatus } from '../../types-app'
 
 export function mapCoreMsgStatus2String(state: number): msgStatus {

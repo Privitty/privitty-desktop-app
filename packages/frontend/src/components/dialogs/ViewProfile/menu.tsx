@@ -17,11 +17,11 @@ import useTranslationFunction from '../../../hooks/useTranslationFunction'
 import useChatDialog from '../../../hooks/chat/useChatDialog'
 import useConfirmationDialog from '../../../hooks/dialog/useConfirmationDialog'
 
-import type { T } from '@deltachat/jsonrpc-client'
-import { C } from '@deltachat/jsonrpc-client'
+import type { T } from '@privitty/jsonrpc-client'
+import { C } from '@privitty/jsonrpc-client'
 import type { DialogProps } from '../../../contexts/DialogContext'
 
-import debounce from 'debounce'
+import { throttle } from '@deltachat-desktop/shared/util'
 import useCreateDraftMessage from '../../../hooks/chat/useCreateDraftMesssage'
 import { runtime } from '@deltachat-desktop/runtime-interface'
 import SelectChat from '../SelectChat'
@@ -65,7 +65,7 @@ export default function useViewProfileMenu(
     return onDCEvent(
       accountId,
       'ContactsChanged',
-      debounce(onContactsUpdate, 500)
+      throttle(onContactsUpdate, 500)
     )
   }, [accountId, contact.id])
 
@@ -204,22 +204,26 @@ function ShareProfileDialog(
   const createDraftMessage = useCreateDraftMessage()
 
   const onChatClick = async (chatId: number) => {
-    const vcard = await BackendRemote.rpc.makeVcard(accountId, [contact.id])
+    if (contact.isKeyContact) {
+      const vcard = await BackendRemote.rpc.makeVcard(accountId, [contact.id])
 
-    const filePath = await runtime.writeTempFile('contact.vcard', vcard)
-    // treefit: I would like to use setDraftVcard here, but it requires a draft message, which we may now have:
-    // BackendRemote.rpc.setDraftVcard(accountId, msgId, contacts)
-    // and there is no way to create an empty draft message with the current api as far as I know
-    //
-    // why is this better? because we then only would need to ask to replace draft when there is a file
+      const filePath = await runtime.writeTempFile('contact.vcard', vcard)
+      // treefit: I would like to use setDraftVcard here, but it requires a draft message, which we may now have:
+      // BackendRemote.rpc.setDraftVcard(accountId, msgId, contacts)
+      // and there is no way to create an empty draft message with the current api as far as I know
+      //
+      // why is this better? because we then only would need to ask to replace draft when there is a file
 
+      await createDraftMessage(accountId, chatId, '', {
+        name: `${contact.displayName}.vcard`,
+        path: filePath,
+      })
+      runtime.removeTempFile(filePath)
+    } else {
+      await createDraftMessage(accountId, chatId, contact.address)
+    }
     onClose()
     onParentClose()
-    await createDraftMessage(accountId, chatId, '', {
-      name: `${contact.displayName}.vcard`,
-      path: filePath,
-    })
-    runtime.removeTempFile(filePath)
   }
 
   return (

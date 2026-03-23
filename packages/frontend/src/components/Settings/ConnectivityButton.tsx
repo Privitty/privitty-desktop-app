@@ -1,5 +1,5 @@
 import React, { useCallback, useEffect, useState } from 'react'
-import { C } from '@deltachat/jsonrpc-client'
+import { C } from '@privitty/jsonrpc-client'
 
 import SettingsIconButton from './SettingsIconButton'
 import { BackendRemote, onDCEvent } from '../../backend-com'

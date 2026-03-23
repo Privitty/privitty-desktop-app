@@ -1,4 +1,4 @@
-import { test, expect } from '@playwright/test'
+import { expect, type Page } from '@playwright/test'
 
 import {
   userNames,
@@ -12,6 +12,7 @@ import {
   getProfile,
   deleteProfile,
   clickThroughTestIds,
+  test,
 } from '../playwright-helper'
 
 /**
@@ -25,44 +26,59 @@ let existingProfiles: User[] = []
 
 const numberOfProfiles = 2
 
-test.beforeAll(async ({ browser }) => {
-  const context = await browser.newContext()
-  const page = await context.newPage()
+// https://playwright.dev/docs/next/test-retries#reuse-single-page-between-tests
+let page: Page
 
-  await reloadPage(page)
+test.beforeAll(async ({ browser, isChatmail }) => {
+  const contextForProfileCreation = await browser.newContext()
+  const pageForProfileCreation = await contextForProfileCreation.newPage()
 
-  existingProfiles = (await loadExistingProfiles(page)) ?? existingProfiles
+  console.log(
+    `Running tests with ${isChatmail ? 'isChatmail' : 'plain email'} profiles`
+  )
+
+  await reloadPage(pageForProfileCreation)
+
+  existingProfiles =
+    (await loadExistingProfiles(pageForProfileCreation)) ?? existingProfiles
 
   await createProfiles(
     numberOfProfiles,
     existingProfiles,
-    page,
-    context,
+    pageForProfileCreation,
     browser.browserType().name()
   )
 
-  await context.close()
+  await contextForProfileCreation.close()
+  page = await browser.newPage()
+  await reloadPage(page)
 })
 
-test.beforeEach(async ({ page }) => {
-  await reloadPage(page)
+test.afterEach(async () => {
+  // Pressing Escape a bunch of times should reset the UI state,
+  // so there is no need to reload the page.
+  for (let i = 0; i < 5; i++) {
+    await page.keyboard.press('Escape')
+  }
+
+  // These tests might add or delete profiles, so let's make sure
+  // that `existingProfiles` is always up to date.
+  existingProfiles = await loadExistingProfiles(page)
 })
 
 test.afterAll(async ({ browser }) => {
+  await page?.close()
+
   const context = await browser.newContext()
-  const page = await context.newPage()
-  await reloadPage(page)
-  await deleteAllProfiles(page, existingProfiles)
+  const pageForProfileDeletion = await context.newPage()
+  await reloadPage(pageForProfileDeletion)
+  await deleteAllProfiles(pageForProfileDeletion, existingProfiles)
   await context.close()
 })
 
-test('instant onboarding with contact invite link', async ({
-  page,
-  context,
-  browserName,
-}) => {
+test('instant onboarding with contact invite link', async ({ browserName }) => {
   if (browserName.toLowerCase().indexOf('chrom') > -1) {
-    await context.grantPermissions(['clipboard-read', 'clipboard-write'])
+    await page.context().grantPermissions(['clipboard-read', 'clipboard-write'])
   }
   const userA = getUser(0, existingProfiles)
   const userNameC = userNames[1]
@@ -109,13 +125,9 @@ test('instant onboarding with contact invite link', async ({
  * the same credentials for a new manual
  * account creation
  */
-test('onboarding with manual credentials', async ({
-  page,
-  context,
-  browserName,
-}) => {
+test('onboarding with manual credentials', async ({ browserName }) => {
   if (browserName.toLowerCase().indexOf('chrom') > -1) {
-    await context.grantPermissions(['clipboard-read', 'clipboard-write'])
+    await page.context().grantPermissions(['clipboard-read', 'clipboard-write'])
   }
   const userA = getUser(0, existingProfiles)
   const userB = getUser(1, existingProfiles)

@@ -3,7 +3,7 @@
 // FYI there is also `_main_screen.scss`.
 
 :global(.main-screen.small-screen.chat-view-open) {
-  .chatListAndNavbar {
+  .chatListAndHeader {
     display: none;
   }
 }
@@ -24,7 +24,7 @@
   flex-shrink: 0;
 }
 
-.chatListAndNavbar {
+.chatListAndHeader {
   display: flex;
   flex-direction: column;
 
@@ -34,7 +34,7 @@
 
   min-width: 295px;
 
-  .chatListNavbar {
+  .chatListHeader {
     @include navbar;
     display: flex;
     align-items: center;
@@ -46,6 +46,7 @@
       white-space: nowrap;
       text-overflow: ellipsis;
       font-size: 18px;
+      user-select: none;
     }
   }
 }
@@ -53,7 +54,7 @@
   // Otherwise e.g. the contents of the gallery view
   // (tabs, sepcifically) will refuse to shrink,
   // and this element (`.chatAndNavbar`) will overflow the parent.
-  // Also this ensures that `.chatListAndNavbar` and `.chatAndNavbar`
+  // Also this ensures that `.chatListAndHeader` and `.chatAndNavbar`
   // take respectively 3 and 8 parts of the width of the parent
   // on wide screens.
   width: 0;
@@ -74,28 +75,48 @@
       width: 0;
       flex-grow: 1;
     }
-    :global(.navbar-heading--button) {
-      @include mixins.button-reset;
-    }
     :global(.navbar-heading) {
+      position: relative;
+
+      width: fit-content;
       // See `.chatNavbarHeadingWrapper`.
       max-width: 100%;
 
       display: flex;
       align-items: center;
-      padding-left: 5px;
-      margin-right: 0px;
+      padding-inline-start: 5px;
+      margin-inline-end: 0px;
       overflow-x: hidden;
       white-space: nowrap;
       text-overflow: ellipsis;
       font-size: 18px;
       font-weight: bold;
       overflow: hidden;
+
+      h1,
+      h2,
+      h3,
+      h4,
+      h5,
+      h6 {
+        font-size: inherit;
+        font-weight: inherit;
+        display: block;
+        margin: 0;
+      }
+    }
+    :global(.navbar-heading-chat-info-button) {
+      // Fill the parent, overlay the siblings.
+      position: absolute;
+      inset: 0;
+      background-color: transparent;
+      border: none;
     }
 
     :global(.views) {
       display: flex;
       height: 100%;
+      padding: 4px 0;
     }
 
     :global(.navbar-button) {
@@ -127,7 +148,8 @@
 
 .webxdcIconButton {
   display: inline-block !important;
-  margin: 0 10px 0 0;
+  margin: 0;
+  margin-inline-end: 10px;
   padding: 0 !important;
   border-radius: 0 !important;
 }

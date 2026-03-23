@@ -13,7 +13,7 @@ import SecureImageViewer from '../dialogs/SecureImageViewer'
 import SecureVideoViewer from '../dialogs/SecureVideoViewer'
 
 import type { OpenDialog } from '../../contexts/DialogContext'
-import { C, type T } from '@deltachat/jsonrpc-client'
+import { C, type T } from '@privitty/jsonrpc-client'
 import ConfirmDeleteMessageDialog from '../dialogs/ConfirmDeleteMessage'
 import { extname } from 'path'
 
@@ -659,12 +659,14 @@ export async function openMessageHTML(messageId: number) {
     receivedTimestamp,
   } = await BackendRemote.rpc.getMessage(accountId, messageId)
   const receiveTime = moment(receivedTimestamp * 1000).format('LLLL')
-  const { isContactRequest, isProtectionBroken } =
-    await BackendRemote.rpc.getBasicChatInfo(accountId, chatId)
+  const { isContactRequest } = await BackendRemote.rpc.getBasicChatInfo(
+    accountId,
+    chatId
+  )
   runtime.openMessageHTML(
     accountId,
     messageId,
-    isContactRequest || isProtectionBroken,
+    isContactRequest,
     subject,
     displayName,
     receiveTime,
@@ -676,7 +678,10 @@ export async function downloadFullMessage(messageId: number) {
   await BackendRemote.rpc.downloadFullMessage(selectedAccountId(), messageId)
 }
 
-export async function openWebxdc(message: Type.Message) {
+export async function openWebxdc(
+  message: Type.Message,
+  webxdcInfo?: T.WebxdcMessageInfo
+) {
   const accountId = selectedAccountId()
-  internalOpenWebxdc(accountId, message)
+  internalOpenWebxdc(accountId, message, webxdcInfo)
 }

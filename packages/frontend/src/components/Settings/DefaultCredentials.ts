@@ -1,4 +1,4 @@
-import { T } from '@deltachat/jsonrpc-client'
+import { T } from '@privitty/jsonrpc-client'
 
 export type Credentials = T.EnteredLoginParam
 

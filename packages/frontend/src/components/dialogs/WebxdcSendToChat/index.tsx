@@ -1,5 +1,5 @@
 import React, { useCallback } from 'react'
-import { C } from '@deltachat/jsonrpc-client'
+import { C } from '@privitty/jsonrpc-client'
 
 import { BackendRemote } from '../../../backend-com'
 import { selectedAccountId } from '../../../ScreenController'
@@ -68,7 +68,7 @@ export default function WebxdcSaveToChatDialog(props: Props) {
           <FooterActions align='start'>
             {file && (
               <FooterActionButton onClick={onSaveClick}>
-                {tx('save_as')}
+                {tx('menu_export_attachment')}
               </FooterActionButton>
             )}
           </FooterActions>

@@ -11,7 +11,7 @@ import useTranslationFunction from '../../hooks/useTranslationFunction'
 
 import type { DialogProps } from '../../contexts/DialogContext'
 import { BackendRemote, Type } from '../../backend-com'
-import { C } from '@deltachat/jsonrpc-client'
+import { C } from '@privitty/jsonrpc-client'
 import { ScreenContext } from '../../contexts/ScreenContext'
 
 export type Props = {
@@ -30,7 +30,8 @@ export default function ConfirmDeleteMessageDialog(props: Props) {
     msg.sender.id === C.DC_CONTACT_ID_SELF &&
     !msg.isInfo &&
     chat.canSend &&
-    !chat.isSelfTalk
+    !chat.isSelfTalk &&
+    chat.isEncrypted
 
   const deleteMessage = (deleteForEveryone: boolean) => {
     if (deleteForEveryone) {

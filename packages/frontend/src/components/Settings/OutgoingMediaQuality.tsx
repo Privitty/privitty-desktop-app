@@ -1,5 +1,5 @@
 import React from 'react'
-import { C } from '@deltachat/jsonrpc-client'
+import { C } from '@privitty/jsonrpc-client'
 
 import SettingsStoreInstance, {
   SettingsStoreState,

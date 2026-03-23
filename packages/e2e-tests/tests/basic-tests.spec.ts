@@ -1,4 +1,4 @@
-import { test, expect } from '@playwright/test'
+import { expect, type Page } from '@playwright/test'
 
 import {
   getUser,
@@ -10,6 +10,7 @@ import {
   clickThroughTestIds,
   reloadPage,
   sendMessage,
+  test,
 } from '../playwright-helper'
 
 /**
@@ -32,40 +33,54 @@ let existingProfiles: User[] = []
 
 const numberOfProfiles = 2
 
-test.beforeAll(async ({ browser }) => {
-  const context = await browser.newContext()
-  const page = await context.newPage()
+// https://playwright.dev/docs/next/test-retries#reuse-single-page-between-tests
+let page: Page
 
+test.beforeAll(async ({ browser, isChatmail }) => {
+  console.log(
+    `Running tests with ${isChatmail ? 'chatmail' : 'plain email'} profiles`
+  )
+
+  const contextForProfiles = await browser.newContext()
+  const pageForProfiles = await contextForProfiles.newPage()
+
+  await reloadPage(pageForProfiles)
+
+  existingProfiles =
+    (await loadExistingProfiles(pageForProfiles)) ?? existingProfiles
+
+  await contextForProfiles.close()
+  page = await browser.newPage()
   await reloadPage(page)
-
-  existingProfiles = (await loadExistingProfiles(page)) ?? existingProfiles
-
-  await context.close()
 })
 
-test.beforeEach(async ({ page }) => {
-  await reloadPage(page)
+test.afterEach(async () => {
+  // Pressing Escape a bunch of times should reset the UI state,
+  // so there is no need to reload the page.
+  for (let i = 0; i < 5; i++) {
+    await page.keyboard.press('Escape')
+  }
 })
 
-/**
- * covers creating a profile with preconfigured
- * chatmail server on first start or after
- */
-test('create profiles', async ({ page, context, browserName }) => {
+test.afterAll(async () => {
+  await page?.close()
+})
+
+test('create profiles', async ({ browserName, isChatmail }) => {
   test.setTimeout(120_000)
   await createProfiles(
     numberOfProfiles,
     existingProfiles,
     page,
-    context,
-    browserName
+    browserName,
+    isChatmail
   )
   expect(existingProfiles.length).toBe(numberOfProfiles)
 })
 
-test('start chat with user', async ({ page, context, browserName }) => {
+test('start chat with user', async ({ browserName }) => {
   if (browserName.toLowerCase().indexOf('chrom') > -1) {
-    await context.grantPermissions(['clipboard-read', 'clipboard-write'])
+    await page.context().grantPermissions(['clipboard-read', 'clipboard-write'])
   }
   const userA = getUser(0, existingProfiles)
   const userB = getUser(1, existingProfiles)
@@ -94,7 +109,7 @@ test('start chat with user', async ({ page, context, browserName }) => {
 /**
  * user A sends two messages to user B
  */
-test('send message', async ({ page }) => {
+test('send message', async () => {
   const userA = existingProfiles[0]
   const userB = existingProfiles[1]
   // prepare last open chat for receiving user
@@ -151,10 +166,51 @@ test('send message', async ({ page }) => {
   await expect(receivedMessageText).toHaveText(messageText)
 })
 
+test('message menu items presence', async () => {
+  const userA = existingProfiles[0]
+  const userB = existingProfiles[1]
+  await switchToProfile(page, userA.id)
+  await page
+    .locator('.chat-list .chat-list-item')
+    .filter({ hasText: userB.name })
+    .click()
+
+  const someRegularOutgoingMessage = page
+    .getByLabel('Messages')
+    .getByText('Hello')
+    .first()
+  await someRegularOutgoingMessage.click({ button: 'right' })
+  await expect(page.getByRole('menu').getByRole('menuitem')).toHaveText([
+    'Reply',
+    'Forward',
+    'React',
+    'Edit',
+    'Save',
+    'Copy Text',
+    'Resend',
+    'Info',
+    'Delete Message',
+  ])
+  await page.keyboard.press('Escape')
+
+  const someInfoMessage = page
+    .getByLabel('Messages')
+    .getByText('Messages are end-to-end encrypted')
+    .first()
+  await someInfoMessage.click({ button: 'right' })
+  await expect(page.getByRole('menu').getByRole('menuitem')).toHaveText([
+    'Forward',
+    'Copy Text',
+    'Info',
+    'Delete Message',
+  ])
+  await page.keyboard.press('Escape')
+})
+
 /**
  * user A deletes one message for himself
  */
-test('delete message', async ({ page }) => {
+test('delete message', async () => {
   const userA = existingProfiles[0]
   const userB = existingProfiles[1]
   await switchToProfile(page, userA.id)
@@ -181,7 +237,7 @@ test('delete message', async ({ page }) => {
 /**
  * user A deletes one message for all
  */
-test('delete message for all', async ({ page }) => {
+test('delete message for all', async () => {
   const userA = existingProfiles[0]
   const userB = existingProfiles[1]
   await switchToProfile(page, userA.id)
@@ -208,7 +264,7 @@ test('delete message for all', async ({ page }) => {
 /**
  * user A sends and edits a message
  */
-test('edit message', async ({ page }) => {
+test('edit message', async () => {
   const userA = existingProfiles[0]
   const userB = existingProfiles[1]
   await switchToProfile(page, userA.id)
@@ -250,7 +306,7 @@ test('edit message', async ({ page }) => {
   await expect(page.locator('body')).not.toContainText(originalMessageText)
 })
 
-test('add app from picker to chat', async ({ page }) => {
+test('add app from picker to chat', async () => {
   const userA = existingProfiles[0]
   const userB = existingProfiles[1]
   await switchToProfile(page, userA.id)
@@ -258,6 +314,13 @@ test('add app from picker to chat', async ({ page }) => {
     .locator('.chat-list .chat-list-item')
     .filter({ hasText: userB.name })
   await chatListItem.click()
+
+  // Check initial number of app icons (if any exist)
+  const initialAppIconsCount = await page
+    .getByTestId('last-used-apps')
+    .locator('img')
+    .count()
+
   await page.getByTestId('open-attachment-menu').click()
   await page.getByTestId('open-app-picker').click()
   const apps = page.locator('.styles_module_appPickerList button').first()
@@ -283,11 +346,26 @@ test('add app from picker to chat', async ({ page }) => {
   await page.locator('button.send-button').click()
   const webxdcMessage = page.locator('.msg-body .webxdc')
   await expect(webxdcMessage).toContainText(appName)
+
+  // Check if the new app icon appears in the AppIcons component in the navbar
+  const appIconsContainer = page.getByTestId('last-used-apps')
+  await expect(appIconsContainer).toBeVisible()
+
+  // Check if the Calendar app icon is present in the navbar
+  const calendarAppIcon = appIconsContainer.locator(
+    'img[alt="' + appName + '"]'
+  )
+  await expect(calendarAppIcon).toBeVisible()
+
+  // Verify that the number of app icons has increased
+  const finalAppIconsCount = await page
+    .getByTestId('last-used-apps')
+    .locator('img')
+    .count()
+  expect(finalAppIconsCount).toBeGreaterThan(initialAppIconsCount)
 })
 
-test('focuses first visible item on arrow down key on input in create chat dialog', async ({
-  page,
-}) => {
+test('focuses first visible item on arrow down key on input in create chat dialog', async () => {
   const userA = existingProfiles[0]
   await switchToProfile(page, userA.id)
   await page.locator('#new-chat-button').click()
@@ -298,7 +376,7 @@ test('focuses first visible item on arrow down key on input in create chat dialo
   await expect(page.locator('*:focus')).toContainText('New Contact')
 })
 
-test('correct handling of changed profile displaynames', async ({ page }) => {
+test('correct handling of changed profile displaynames', async () => {
   const userA = existingProfiles[0]
   const userB = existingProfiles[1]
   const newDisplayName = 'Alice Wonderland'
@@ -332,16 +410,16 @@ test('correct handling of changed profile displaynames', async ({ page }) => {
     .locator('.chat-list .chat-list-item')
     .filter({ hasText: newDisplayName })
     .click()
-  const profileButton = page.getByTestId('chat-info-button')
-  await expect(profileButton).toContainText(newDisplayName)
-  await profileButton.click()
+  const chatHeading = page.getByRole('heading', { name: 'Chat' })
+  await expect(chatHeading).toContainText(newDisplayName)
+  await page.getByTestId('chat-info-button').click()
   await page.locator('#view-profile-menu').click()
   await page.getByTestId('edit-contact-name').click()
   await page.getByTestId('edit-contact-name-input').fill(contactNameGivenByMe)
   await page.getByTestId('ok').click()
   await page.getByTestId('dialog-header-close').click()
   // profile shows the name I gave to the contact
-  await expect(profileButton).toContainText(contactNameGivenByMe)
+  await expect(chatHeading).toContainText(contactNameGivenByMe)
 
   await switchToProfile(page, userA.id)
   await editProfileName('Alice Wonderland 2')
@@ -355,7 +433,7 @@ test('correct handling of changed profile displaynames', async ({ page }) => {
   ).toBeVisible()
 })
 
-test('delete profiles', async ({ page }) => {
+test('delete profiles', async () => {
   if (existingProfiles.length < 1) {
     throw new Error('Not existing profiles to delete!')
   }

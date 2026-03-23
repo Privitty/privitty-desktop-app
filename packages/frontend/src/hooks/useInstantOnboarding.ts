@@ -6,7 +6,7 @@ import { ConfigureProgressDialog } from '../components/dialogs/ConfigureProgress
 import { DEFAULT_CHATMAIL_QR_URL } from '../components/screens/WelcomeScreen/chatmailInstances'
 import { InstantOnboardingContext } from '../contexts/InstantOnboardingContext'
 
-import type { T } from '@deltachat/jsonrpc-client'
+import type { T } from '@privitty/jsonrpc-client'
 import type { WelcomeQrWithUrl } from '../contexts/InstantOnboardingContext'
 import type {
   AccountQr,

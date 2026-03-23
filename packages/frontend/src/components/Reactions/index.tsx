@@ -6,7 +6,7 @@ import ReactionsDialog from '../dialogs/ReactionsDialog'
 
 import styles from './styles.module.scss'
 
-import type { T } from '@deltachat/jsonrpc-client'
+import type { T } from '@privitty/jsonrpc-client'
 import useTranslationFunction from '../../hooks/useTranslationFunction'
 
 // Reactions are sorted by their frequencies in the core, that is, the

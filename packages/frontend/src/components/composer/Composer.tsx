@@ -8,7 +8,7 @@ import React, {
   useMemo,
   useContext,
 } from 'react'
-import { C, T } from '@deltachat/jsonrpc-client'
+import { C, T } from '@privitty/jsonrpc-client'
 import { extension } from 'mime-types'
 
 import MenuAttachment from './menuAttachment'
@@ -29,7 +29,6 @@ import { selectedAccountId } from '../../ScreenController'
 import { MessageTypeAttachmentSubset } from '../attachment/Attachment'
 import { runtime } from '@deltachat-desktop/runtime-interface'
 import { confirmDialog } from '../message/messageFunctions'
-import { ProtectionBrokenDialog } from '../dialogs/ProtectionStatusDialog'
 import useDialog from '../../hooks/dialog/useDialog'
 import useTranslationFunction from '../../hooks/useTranslationFunction'
 import useMessage from '../../hooks/chat/useMessage'
@@ -62,7 +61,6 @@ const Composer = forwardRef<
   any,
   {
     isContactRequest: boolean
-    isProtectionBroken: boolean
     selectedChat: Type.FullChat
     regularMessageInputRef: React.MutableRefObject<ComposerMessageInput | null>
     editMessageInputRef: React.MutableRefObject<ComposerMessageInput | null>
@@ -79,11 +77,12 @@ const Composer = forwardRef<
     ) => Promise<void>
     removeFile: () => void
     clearDraftStateButKeepTextareaValue: () => void
+    clearDraftStateAndUpdateTextareaValue: () => void
+    setDraftStateAndUpdateTextareaValue: (newValue: DraftObject) => void
   }
 >((props, ref) => {
   const {
     isContactRequest,
-    isProtectionBroken,
     selectedChat,
     regularMessageInputRef,
     editMessageInputRef,
@@ -214,54 +213,69 @@ const Composer = forwardRef<
         if (textareaRef) {
           if (textareaRef.disabled) {
             throw new Error(
-              'text area is disabled, this means it is either already sending or loading the draft'
+              'text area is disabled, this means it is loading the draft'
             )
           }
-          textareaRef.disabled = true
         }
+        const message = regularMessageInputRef.current?.getText() || ''
+        if (!regularMessageInputRef.current?.hasText() && !draftState.file) {
+          log.debug(`Empty message: don't send it...`)
+          return
+        }
+
+        const preSendDraftState = draftState
+        const sendMessagePromise = sendMessage(accountId, chatId, {
+          text: replaceColonsSafe(message),
+          file: draftState.file || undefined,
+          filename: draftState.fileName || undefined,
+          quotedMessageId:
+            draftState.quote?.kind === 'WithMessage'
+              ? draftState.quote.messageId
+              : null,
+          viewtype: draftState.viewType,
+        })
+        // _Immediately_ clear the draft from React state.
+        // This does _not_ remove the draft from the back-end yet.
+        // This is primarily to make sure that you can't accidentally
+        // doube-send the same message.
+        //
+        // We could instead disable the textarea
+        // and disable sending the next message
+        // until the previous one has been sent,
+        // but it's unnecessary to block the user in such a way,
+        // because it's not often that `sendMessage` fails.
+        // And also disabling an input makes it lose focus,
+        // so we'd have to re-focus it, which would make screen readers
+        // re-announce it, which is disorienting.
+        // See https://github.com/deltachat/deltachat-desktop/issues/4590#issuecomment-2821985528.
+        props.clearDraftStateAndUpdateTextareaValue()
+
+        let sentSuccessfully: boolean
         try {
-          const message = regularMessageInputRef.current?.getText() || ''
-          if (!regularMessageInputRef.current?.hasText() && !draftState.file) {
-            log.debug(`Empty message: don't send it...`)
-            return
-          }
-          //const { sharedData } = useSharedData();
-          const sendMessagePromise = sendMessage(
-            accountId,
-            chatId,
-            {
-              text: replaceColonsSafe(message),
-              file: draftState.file || undefined,
-              filename: draftState.fileName || undefined,
-              quotedMessageId:
-                draftState.quote?.kind === 'WithMessage'
-                  ? draftState.quote.messageId
-                  : null,
-              viewtype: draftState.viewType,
-            }
-            //sharedData
-          )
 
           await sendMessagePromise
-
-          // Ensure that the draft is cleared
-          // and the state is reflected in the UI.
-          //
-          // At this point we know that sending has succeeded,
-          // so we do not accidentally remove the draft
-          // if the core fails to send.
-          await BackendRemote.rpc.removeDraft(selectedAccountId(), chatId)
-          window.__reloadDraft && window.__reloadDraft()
-        } catch (error) {
+          sentSuccessfully = true
+        } catch (err) {
+          sentSuccessfully = false
           openDialog(AlertDialog, {
-            message: unknownErrorToString(error),
+            message:
+              tx('systemmsg_failed_sending_to', selectedChat.name) +
+              '\n' +
+              tx('error_x', unknownErrorToString(err)),
           })
-          log.error(error)
-        } finally {
-          if (textareaRef) {
-            textareaRef.disabled = false
-          }
-          regularMessageInputRef.current?.focus()
+          // Restore the draft, since we failed to send.
+          // Note that this will not save the draft to the backend.
+          //
+          // TODO fix: hypothetically by this point the user
+          // could have started typing a new message already,
+          // and so this would override it on the frontend.
+          props.setDraftStateAndUpdateTextareaValue(preSendDraftState)
+        }
+        if (sentSuccessfully) {
+          // TODO fix: hypothetically by this point the user
+          // could have started typing (and even have sent!)
+          // a new message already, so this would override it on the backend.
+          await BackendRemote.rpc.removeDraft(accountId, chatId)
         }
       }
 
@@ -346,19 +360,42 @@ const Composer = forwardRef<
     ? null
     : async (appInfo: AppInfo) => {
         log.debug('App selected', appInfo)
-        const response = await BackendRemote.rpc.getHttpResponse(
+        const downloadUrl = AppStoreUrl + appInfo.cache_relname
+        const responseP = BackendRemote.rpc.getHttpResponse(
           selectedAccountId(),
           AppStoreUrl + appInfo.cache_relname
         )
-        if (response?.blob?.length) {
-          const path = await runtime.writeTempFileFromBase64(
-            appInfo.cache_relname,
-            response.blob
-          )
-          await addFileToDraft(path, appInfo.cache_relname, 'File')
-          await runtime.removeTempFile(path)
-          setShowAppPicker(false)
+        let response: Awaited<typeof responseP>
+        try {
+          response = await responseP
+          if (!(response?.blob?.length > 0)) {
+            throw new Error(
+              'BackendRemote.rpc.getHttpResponse did not return a body'
+            )
+          }
+        } catch (error) {
+          openDialog(AlertDialog, {
+            message: tx(
+              'error_x',
+              'Failed download the app file from the store:\n' +
+                unknownErrorToString(error) +
+                '\n\n' +
+                'You may try to download the app manually from\n\n' +
+                downloadUrl +
+                '\n\n' +
+                'or\n' +
+                'https://webxdc.org/apps'
+            ),
+          })
+          return
         }
+        const path = await runtime.writeTempFileFromBase64(
+          appInfo.cache_relname,
+          response.blob
+        )
+        await addFileToDraft(path, appInfo.cache_relname, 'File')
+        await runtime.removeTempFile(path)
+        setShowAppPicker(false)
       }
 
   // Paste file functionality
@@ -437,12 +474,12 @@ const Composer = forwardRef<
   }, [settingsStore])
 
   if (chatId === null) {
-    return <div ref={ref}>Error, chatid missing</div>
+    return <section ref={ref}>Error, chatid missing</section>
   }
 
   if (isContactRequest) {
     return (
-      <div ref={ref} className='composer contact-request'>
+      <section ref={ref} className='composer contact-request'>
         <button
           className='contact-request-button delete'
           onClick={async () => {
@@ -475,34 +512,31 @@ const Composer = forwardRef<
         >
           {tx('accept')}
         </button>
-      </div>
-    )
-  } else if (isProtectionBroken) {
-    return (
-      <div ref={ref} className='composer contact-request'>
-        <button
-          className='contact-request-button'
-          onClick={async () => {
-            openDialog(ProtectionBrokenDialog, { name: selectedChat.name })
-          }}
-        >
-          {tx('more_info_desktop')}
-        </button>
-        <button
-          className='contact-request-button'
-          onClick={() => {
-            EffectfulBackendActions.acceptChat(selectedAccountId(), chatId)
-          }}
-        >
-          {tx('ok')}
-        </button>
-      </div>
+      </section>
     )
   } else if (!selectedChat.canSend) {
     return null
   } else {
     return (
-      <div className='composer' ref={ref}>
+      <section
+        className='composer'
+        ref={ref}
+        role='region'
+        // Note that there are other `return`s in this component,
+        // but this `aria-label` doesn't seem to apply to them.
+        //
+        // TODO a11y: when `isEditingModeActive`, we have an "Edit message"
+        // text, which we can use as the label / header.
+        aria-label={
+          messageEditing.isEditingModeActive
+            ? window.static_translate('edit_message')
+            : window.static_translate('write_message_desktop')
+          // We could also add chat name here to make it extra clear
+          // which chat we're in,
+          // but the "Chat" region label
+          // (`id='chat-section-heading'`) is probably enough.
+        }
+      >
         <div className='upper-bar'>
           {!messageEditing.isEditingModeActive ? (
             <>
@@ -607,7 +641,6 @@ const Composer = forwardRef<
                       }
                 }
                 chatId={chatId}
-                chatName={selectedChat.name}
                 updateDraftText={updateDraftText}
                 onPaste={handlePaste ?? undefined}
                 onChange={setCurrentEditText}
@@ -621,7 +654,6 @@ const Composer = forwardRef<
                   messageEditing.doSendEditRequest ?? (() => {})
                 }
                 chatId={chatId}
-                chatName={selectedChat.name}
                 // We don't store the edits as "drafts" anywhere except
                 // inside the <ComposerMessageInput> component itself,
                 // so this can be a no-op.
@@ -695,7 +727,7 @@ const Composer = forwardRef<
             hideStickerPicker={messageEditing.isEditingModeActive}
           />
         )}
-      </div>
+      </section>
     )
   }
 })
@@ -704,7 +736,7 @@ export default Composer
 
 export type DraftObject = { chatId: number } & Pick<
   Type.Message,
-  'id' | 'text' | 'file' | 'quote' | 'viewType' | 'vcardContact' | 'webxdcInfo'
+  'id' | 'text' | 'file' | 'quote' | 'viewType' | 'vcardContact'
 > &
   MessageTypeAttachmentSubset
 
@@ -720,7 +752,6 @@ function emptyDraft(chatId: number | null): DraftObject {
     quote: null,
     viewType: 'Text',
     vcardContact: null,
-    webxdcInfo: null,
   }
 }
 
@@ -728,7 +759,6 @@ export function useDraft(
   accountId: number,
   chatId: number | null,
   isContactRequest: boolean,
-  isProtectionBroken: boolean,
   canSend: boolean, // no draft needed in chats we can't send messages
   inputRef: React.MutableRefObject<ComposerMessageInput | null>
 ): {
@@ -747,6 +777,8 @@ export function useDraft(
   ) => Promise<void>
   removeFile: () => void
   clearDraftStateButKeepTextareaValue: () => void
+  clearDraftStateAndUpdateTextareaValue: () => void
+  setDraftStateAndUpdateTextareaValue: (newValue: DraftObject) => void
 } {
   const [
     draftState,
@@ -774,6 +806,17 @@ export function useDraft(
   draftRef.current = draftState
 
   /**
+   * @see {@link _setDraftStateButKeepTextareaValue}.
+   */
+  const setDraftStateAndUpdateTextareaValue = useCallback(
+    (newValue: DraftObject) => {
+      _setDraftStateButKeepTextareaValue(newValue)
+      inputRef.current?.setText(newValue.text)
+    },
+    [inputRef]
+  )
+
+  /**
    * Reset `draftState` to "empty draft" value,
    * but don't save it to backend and don't change the value
    * of the textarea.
@@ -781,6 +824,12 @@ export function useDraft(
   const clearDraftStateButKeepTextareaValue = useCallback(() => {
     _setDraftStateButKeepTextareaValue(_ => emptyDraft(chatId))
   }, [chatId])
+  /**
+   * @see {@link clearDraftStateButKeepTextareaValue}
+   */
+  const clearDraftStateAndUpdateTextareaValue = useCallback(() => {
+    setDraftStateAndUpdateTextareaValue(emptyDraft(chatId))
+  }, [chatId, setDraftStateAndUpdateTextareaValue])
 
   const loadDraft = useCallback(
     (chatId: number) => {
@@ -806,7 +855,6 @@ export function useDraft(
             viewType: newDraft.viewType,
             quote: newDraft.quote,
             vcardContact: newDraft.vcardContact,
-            webxdcInfo: newDraft.webxdcInfo,
           }))
           inputRef.current?.setText(newDraft.text)
         }
@@ -827,15 +875,10 @@ export function useDraft(
     return () => {
       window.__reloadDraft = null
     }
-  }, [chatId, loadDraft, isContactRequest, isProtectionBroken])
+  }, [chatId, loadDraft, isContactRequest])
 
   const saveDraft = useCallback(async () => {
     if (chatId === null || !canSend) {
-      return
-    }
-    if (inputRef.current?.textareaRef.current?.disabled) {
-      // Guard against strange races
-      log.warn('Do not save draft while sending')
       return
     }
     const accountId = selectedAccountId()
@@ -901,7 +944,6 @@ export function useDraft(
         viewType: newDraft.viewType,
         quote: newDraft.quote,
         vcardContact: newDraft.vcardContact,
-        webxdcInfo: newDraft.webxdcInfo,
       }))
       // don't load text to prevent bugging back
     } else {
@@ -1076,6 +1118,8 @@ export function useDraft(
     addFileToDraft,
     removeFile,
     clearDraftStateButKeepTextareaValue,
+    clearDraftStateAndUpdateTextareaValue,
+    setDraftStateAndUpdateTextareaValue,
   }
 }
 

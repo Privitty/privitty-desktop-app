@@ -1,6 +1,6 @@
 import React from 'react'
 import classNames from 'classnames'
-import { T } from '@deltachat/jsonrpc-client'
+import { T } from '@privitty/jsonrpc-client'
 
 import Timestamp from '../conversations/Timestamp'
 import { isImage, isVideo } from '../attachment/Attachment'
@@ -21,10 +21,12 @@ type PrivittyStatus =
   | undefined
 
 type Props = {
-  padlock: boolean
+  encrypted: boolean
   fileMime: string | null
   direction?: 'incoming' | 'outgoing'
   status: msgStatus
+  error: string | null
+  downloadState: T.DownloadState
   isEdited: boolean
   hasText: boolean
   timestamp: number
@@ -75,10 +77,12 @@ export default function MessageMetaData(props: Props) {
   const tx = useTranslationFunction()
 
   const {
-    padlock,
+    encrypted,
     fileMime,
     direction,
     status,
+    error,
+    downloadState,
     isEdited,
     hasText,
     timestamp,
@@ -91,6 +95,7 @@ export default function MessageMetaData(props: Props) {
   } = props
 
   const privittyIcon = getPrivittyStatusIcon(privittyStatus, hasText, direction)
+  const padlock = encrypted
 
   return (
     <div
@@ -103,16 +108,19 @@ export default function MessageMetaData(props: Props) {
       })}
     >
       {padlock && (
+        <div aria-hidden={true} className='padlock-icon' />
+      )}
+      {/* FYI the email doesn't need `aria-live`
+      as we don't expect it to get removed. See
+      https://github.com/deltachat/deltachat-desktop/pull/5023#discussion_r2059382983 */}
+      {!encrypted && downloadState === 'Done' && (
+        // if a message is not yet downloaded we don't know if it is encrypted or not
         <div
-          aria-label={tx('a11y_encryption_padlock')}
+          aria-label={tx('email')}
           // We should not announce this for _every_ message.
           // This is available in the "Message info" dialog.
-          // In addition, if the message is not encerypted,
-          // we simply don't display the padlock,
-          // but arguably "not encrypted" is more important of a status
-          // than "encrypted".
           aria-hidden={true}
-          className={'padlock-icon'}
+          className={'email-icon'}
         />
       )}
       <div
@@ -149,42 +157,40 @@ export default function MessageMetaData(props: Props) {
 
       <span className='spacer' />
 
-      {direction === 'outgoing' && (
-        <button
-          className={classNames('status-icon', status)}
-          // The main point of `aria-live` here is to let the user know
-          // that their message has been sent or delievered
-          // right after they they send it.
-          // We want at least some indication of something happening
-          // after they press "Enter".
-          // But this is also useful to announce when the message has been read.
-          //
-          // Note that this this applies to _all_ loaded messages
-          // and not just the last one.
-          //
-          // TODO fix: NVDA announces the change twice for some reason,
-          // even when you modify just `aria-label` through the dev tools.
-          // We probably ought to keep `aria-label` fixed to "Delivery status",
-          // and only update the content, i.e. "Delivered", "Read".
-          aria-live='polite'
-          aria-label={tx(
-            `a11y_delivery_status_${
-              status as Exclude<
-                typeof status,
-                // '' is not supposed to happen.
-                // The others are not supposed to happen
-                // as long as direction is outgoing.
-                | ''
-                | (typeof direction extends 'outgoing'
-                    ? 'in_fresh' | 'in_seen' | 'in_noticed'
-                    : never)
-              >
-            }`
+      {(direction === 'outgoing' || error !== null) && (
+        <div className='delivery-status-wrapper'>
+          <div
+            role='status'
+            className={classNames(
+              'status-icon',
+              error !== null ? 'error' : status
+            )}
+          >
+            <span className='visually-hidden'>
+              {tx(
+                `a11y_delivery_status_${
+                  error !== null
+                    ? 'error'
+                    : (status as Exclude<
+                        typeof status,
+                        '' | 'in_fresh' | 'in_seen' | 'in_noticed'
+                      >)
+                }`
+              )}
+            </span>
+          </div>
+          {error !== null && (
+            <button
+              className='error-button'
+              tabIndex={tabindexForInteractiveContents}
+              onClick={onClickError}
+            >
+              <span className='visually-hidden'>
+                {tx('menu_message_details')}
+              </span>
+            </button>
           )}
-          disabled={status !== 'error'}
-          tabIndex={status === 'error' ? tabindexForInteractiveContents : -1}
-          onClick={status === 'error' ? onClickError : undefined}
-        />
+        </div>
       )}
     </div>
   )

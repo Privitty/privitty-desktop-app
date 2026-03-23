@@ -7,7 +7,7 @@ import { runtime } from '@deltachat-desktop/runtime-interface'
 import SettingsStoreInstance from '../stores/settings'
 import AccountNotificationStoreInstance from '../stores/accountNotifications'
 
-import { C, type T } from '@deltachat/jsonrpc-client'
+import { C, type T } from '@privitty/jsonrpc-client'
 
 const log = getLogger('renderer/notifications')
 
@@ -191,11 +191,15 @@ async function showNotification(
             message.parentId
           )
         }
-        if (message.webxdcInfo) {
+        const webxdcInfo = await BackendRemote.rpc.getWebxdcInfo(
+          accountId,
+          message.id
+        )
+        if (webxdcInfo) {
           summaryText = eventText
-          summaryPrefix = `${message.webxdcInfo.name}`
-          if (message.webxdcInfo.icon) {
-            const iconName = message.webxdcInfo.icon
+          summaryPrefix = `${webxdcInfo.name}`
+          if (webxdcInfo.icon) {
+            const iconName = webxdcInfo.icon
             const iconBlob = await BackendRemote.rpc.getWebxdcBlob(
               accountId,
               message.id,

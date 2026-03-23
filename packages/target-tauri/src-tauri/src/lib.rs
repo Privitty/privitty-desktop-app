@@ -78,7 +78,7 @@ const DEFAULT_WINDOW_HEIGHT: f64 = 600.;
 // Learn more about Tauri commands at https://tauri.app/develop/calling-rust/
 #[tauri::command]
 fn greet(name: &str) -> String {
-    format!("Hello, {}! You've been greeted from Rust!", name)
+    format!("Hello, {name}! You've been greeted from Rust!")
 }
 
 #[tauri::command]
@@ -177,10 +177,17 @@ pub fn run() -> i32 {
         builder = builder
             .plugin(
                 tauri_plugin_window_state::Builder::new()
-                    // Disabled for webxdc, because we generate a new UUID label
-                    // every time we create a webxdc window,
-                    // so it doesn't make sense to store it. TODO (https://github.com/deltachat/deltachat-desktop/issues/4468)
-                    .with_filter(|label| !label.starts_with("webxdc:"))
+                    .map_label(|original_label| {
+                        if original_label.starts_with("html-window:") {
+                            // HTML email viewer window label
+                            // contains account ID and message ID.
+                            // Let's not store state
+                            // for each individual message.
+                            "html-window:"
+                        } else {
+                            original_label
+                        }
+                    })
                     .build(),
             )
             .plugin(tauri_plugin_single_instance::init(move |app, args, cwd| {

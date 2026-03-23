@@ -3,8 +3,9 @@ import useChat from './useChat'
 import { BackendRemote } from '../../backend-com'
 import { ChatView } from '../../contexts/ChatContext'
 import { getLogger } from '../../../../shared/logger'
+import { notifyWebxdcMessageSent } from '../useWebxdcMessageSent'
 
-import type { T } from '@deltachat/jsonrpc-client'
+import type { T } from '@privitty/jsonrpc-client'
 //import { ContextMenuContext } from '../../contexts/ContextMenuContext'
 import { useSharedDataOptional } from '../../contexts/FileAttribContext'
 import { runtime } from '@deltachat-desktop/runtime-interface'
@@ -102,16 +103,11 @@ export default function useMessage() {
         msgChatId = (await BackendRemote.rpc.getMessage(accountId, msgId))
           .chatId
       }
-      // Check if target message is in same chat, if not switch first
-      if (msgChatId !== chatId) {
-        await selectChat(accountId, msgChatId)
-
-        // See `msgParentId` docstring.
-        msgParentId = undefined
-      }
-      setChatView(ChatView.MessageList)
 
       // Workaround to actual jump to message in regarding mounted component view
+      // We must set this before the potential `await selectChat()`,
+      // i.e. before the render of the message list
+      // so that it shows the target message right away.
       window.__internal_jump_to_message_asap = {
         accountId,
         chatId: msgChatId,
@@ -120,12 +116,21 @@ export default function useMessage() {
             msgId,
             highlight,
             focus,
-            addMessageIdToStack: msgParentId,
+            // Don't add to the stack if the message is in a different chat,
+            // see `msgParentId` docstring.
+            addMessageIdToStack: msgChatId === chatId ? msgParentId : undefined,
             scrollIntoViewArg,
           },
         ],
       }
       window.__internal_check_jump_to_message?.()
+
+      // Check if target message is in same chat, if not switch first
+      if (msgChatId !== chatId) {
+        await selectChat(accountId, msgChatId)
+      }
+      setChatView(ChatView.MessageList)
+
       window.__closeAllDialogs?.()
     },
     [chatId, selectChat, setChatView]
@@ -193,6 +198,9 @@ export default function useMessage() {
           ...message,
         })
       }
+
+      // Notify about the sent message (listeners can filter by message type if needed)
+      notifyWebxdcMessageSent(accountId, chatId, message)
 
       // Jump down on sending
       jumpToMessage({

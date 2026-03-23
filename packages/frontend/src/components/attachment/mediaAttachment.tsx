@@ -28,12 +28,13 @@ import MessageDetail from '../dialogs/MessageDetail/MessageDetail'
 import { ContextMenuContext } from '../../contexts/ContextMenuContext'
 import AudioPlayer from '../AudioPlayer'
 
-import type { T } from '@deltachat/jsonrpc-client'
+import type { T } from '@privitty/jsonrpc-client'
 import type { OpenDialog } from '../../contexts/DialogContext'
 import type { JumpToMessage, DeleteMessage } from '../../hooks/chat/useMessage'
 import { useRovingTabindex } from '../../contexts/RovingTabindex'
 import ConfirmDeleteMessageDialog from '../dialogs/ConfirmDeleteMessage'
 import { BackendRemote } from '../../backend-com'
+import { useRpcFetch } from '../../hooks/useFetch'
 
 const log = getLogger('mediaAttachment')
 
@@ -108,10 +109,10 @@ const contextMenuFactory = (
     },
     viewType === 'Webxdc' && {
       label: tx('start_app'),
-      action: openWebxdc.bind(null, message),
+      action: openWebxdc.bind(null, message, undefined),
     },
     {
-      label: tx('save_as'),
+      label: tx('menu_export_attachment'),
       action: onDownload.bind(null, message),
     },
     showCopyImage && {
@@ -285,6 +286,7 @@ export function ImageAttachment({
         className={'media-attachment-media broken ' + rovingTabindex.className}
         title={loadResult.error}
         onContextMenu={onContextMenu}
+        aria-haspopup='menu'
         {...rovingTabindexProps}
       >
         <div className='attachment-content'>
@@ -315,6 +317,7 @@ export function ImageAttachment({
           isBroken ? openInShell : openFullscreenMedia.bind(null, message)
         }
         onContextMenu={openContextMenu}
+        aria-haspopup='menu'
         {...rovingTabindexProps}
       >
         {isBroken ? (
@@ -367,6 +370,7 @@ export function VideoAttachment({
         className={'media-attachment-media broken ' + rovingTabindex.className}
         title={loadResult.error}
         onContextMenu={onContextMenu}
+        aria-haspopup='menu'
         {...rovingTabindexProps}
       >
         <div className='attachment-content'>
@@ -396,6 +400,7 @@ export function VideoAttachment({
           isBroken ? openInShell : openFullscreenMedia.bind(null, message)
         }
         onContextMenu={openContextMenu}
+        aria-haspopup='menu'
         {...rovingTabindexProps}
       >
         {isBroken ? (
@@ -449,6 +454,7 @@ export function AudioAttachment({
         className={'media-attachment-audio broken ' + rovingTabindex.className}
         title={loadResult.error}
         onContextMenu={onContextMenu}
+        aria-haspopup='menu'
         {...rovingTabindexProps}
       >
         <div className='heading'>
@@ -479,6 +485,7 @@ export function AudioAttachment({
           rovingTabindex.className
         }`}
         onContextMenu={openContextMenu}
+        aria-haspopup='menu'
         onKeyDown={e => {
           // Audio elements have controls that utilize
           // arrows. That is seeking, changing volume.
@@ -576,6 +583,7 @@ export function FileAttachmentRow({
         }
         title={loadResult.error}
         onContextMenu={onContextMenu}
+        aria-haspopup='menu'
         {...rovingTabindexProps}
       >
         <div className='file-icon'>
@@ -608,6 +616,7 @@ export function FileAttachmentRow({
           openInShell()
         }}
         onContextMenu={openContextMenu}
+        aria-haspopup='menu'
         {...rovingTabindexProps}
       >
         <div
@@ -628,7 +637,7 @@ export function FileAttachmentRow({
             ? highlightQuery(fileName, queryText)
             : fileName}
         </div>
-        <div className='size'>{fileBytes ? filesize(fileBytes) : '?'}</div>
+        <div className='size'>{filesize(fileBytes ?? 0)}</div>
         <div className='date'>
           <Timestamp
             timestamp={timestamp * 1000}
@@ -668,7 +677,6 @@ export function WebxdcAttachment({
   loadResult,
 }: GalleryAttachmentElementProps) {
   const { openDialog } = useDialog()
-  const tx = useTranslationFunction()
   const contextMenu = useContext(ContextMenuContext)
   const { jumpToMessage, deleteMessage } = useMessage()
   const accountId = selectedAccountId()
@@ -681,31 +689,23 @@ export function WebxdcAttachment({
     tabIndex: rovingTabindex.tabIndex,
   } as const
 
-  if (loadResult.kind === 'loadingError') {
-    const onContextMenu = getBrokenMediaContextMenu(
-      contextMenu.openContextMenu,
-      openDialog,
-      deleteMessage,
-      messageId,
-      accountId
+  const webxdcInfoFetch = useRpcFetch(
+    BackendRemote.rpc.getWebxdcInfo,
+    loadResult.kind === 'message' ? [accountId, messageId] : null
+  )
+  if (webxdcInfoFetch?.result?.ok === false) {
+    log.error(
+      `Failed to load webxdc info for message:
+      messageId: ${messageId},
+      accountId: ${accountId},
+      error: ${webxdcInfoFetch.result.err}`
     )
+  }
+  const webxdcInfo = webxdcInfoFetch?.result?.ok
+    ? webxdcInfoFetch.result.value
+    : null
 
-    return (
-      <div
-        ref={interactiveElRef}
-        className={'media-attachment-webxdc broken ' + rovingTabindex.className}
-        title={loadResult.error}
-        onContextMenu={onContextMenu}
-        {...rovingTabindexProps}
-      >
-        <div className='icon'></div>
-        <div className='text-part'>
-          <div className='name'>{tx('attachment_failed_to_load')}</div>
-          <div className='summary'></div>
-        </div>
-      </div>
-    )
-  } else if (loadResult.webxdcInfo == null) {
+  if (webxdcInfoFetch?.loading) {
     const onContextMenu = getBrokenMediaContextMenu(
       contextMenu.openContextMenu,
       openDialog,
@@ -713,13 +713,40 @@ export function WebxdcAttachment({
       messageId,
       accountId
     )
-    // webxdc info is not set, show different error
-    log.error('message.webxdcInfo is undefined, msgid:', messageId)
     return (
       <div
         ref={interactiveElRef}
         className={'media-attachment-webxdc ' + rovingTabindex.className}
         onContextMenu={onContextMenu}
+        aria-haspopup='menu'
+        {...rovingTabindexProps}
+      >
+        <img
+          className='icon'
+          src={runtime.getWebxdcIconURL(selectedAccountId(), messageId)}
+        />
+        <div className='text-part'>
+          <div className='name'>Loading...</div>
+          <div className='summary'></div>
+        </div>
+      </div>
+    )
+  } else if (webxdcInfo == null || loadResult.kind !== 'message') {
+    const onContextMenu = getBrokenMediaContextMenu(
+      contextMenu.openContextMenu,
+      openDialog,
+      deleteMessage,
+      messageId,
+      accountId
+    )
+    log.error('webxdcInfo is not available, msgid:', messageId)
+
+    return (
+      <div
+        ref={interactiveElRef}
+        className={'media-attachment-webxdc broken' + rovingTabindex.className}
+        onContextMenu={onContextMenu}
+        aria-haspopup='menu'
         {...rovingTabindexProps}
       >
         <img
@@ -729,7 +756,7 @@ export function WebxdcAttachment({
         <div className='text-part'>
           <div className='name'>Error loading info</div>
           <div className='summary'>
-            {'message.webxdcInfo is undefined, msgid:' + messageId}
+            {'webxdcInfo is not available!, msgid:' + messageId}
           </div>
         </div>
       </div>
@@ -742,13 +769,14 @@ export function WebxdcAttachment({
       loadResult,
       accountId
     )
-    const { summary, name, document } = loadResult.webxdcInfo
+    const { summary, name, document } = webxdcInfo
     return (
       <button
         ref={interactiveElRef}
         className={'media-attachment-webxdc ' + rovingTabindex.className}
         onContextMenu={openContextMenu}
-        onClick={openWebxdc.bind(null, loadResult)}
+        aria-haspopup='menu'
+        onClick={openWebxdc.bind(null, loadResult, webxdcInfo ?? undefined)}
         {...rovingTabindexProps}
       >
         <img

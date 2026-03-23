@@ -1,4 +1,4 @@
-import { C } from '@deltachat/jsonrpc-client'
+import { C } from '@privitty/jsonrpc-client'
 
 import { getLogger } from '../../shared/logger'
 import { BackendRemote } from './backend-com'
@@ -20,21 +20,17 @@ export async function updateCoreStrings() {
   strings[C.DC_STR_VIDEO] = tx('video')
   strings[C.DC_STR_AUDIO] = tx('audio')
   strings[C.DC_STR_FILE] = tx('file')
-  strings[C.DC_STR_ENCRYPTEDMSG] = tx('encrypted_message')
   // strings[C.DC_STR_E2E_AVAILABLE] = tx('DC_STR_E2E_AVAILABLE')
   // strings[C.DC_STR_ENCR_TRANSP] = tx('DC_STR_ENCR_TRANSP')
   // strings[C.DC_STR_ENCR_NONE] = tx('DC_STR_ENCR_NONE')
   strings[C.DC_STR_FINGERPRINTS] = tx('qrscan_fingerprint_label')
   strings[C.DC_STR_CANTDECRYPT_MSG_BODY] = tx('systemmsg_cannot_decrypt')
-  strings[C.DC_STR_E2E_PREFERRED] = tx('autocrypt_prefer_e2ee')
   strings[C.DC_STR_ARCHIVEDCHATS] = tx('chat_archived_chats_title')
   strings[C.DC_STR_CANNOT_LOGIN] = tx('login_error_cannot_login')
   strings[C.DC_STR_DEVICE_MESSAGES] = tx('device_talk')
   strings[C.DC_STR_NEW_GROUP_SEND_FIRST_MESSAGE] = tx('chat_new_group_hint')
   strings[C.DC_STR_SAVED_MESSAGES] = tx('saved_messages')
   strings[C.DC_STR_CONTACT_VERIFIED] = tx('contact_verified')
-  strings[C.DC_STR_CONTACT_NOT_VERIFIED] = tx('contact_not_verified')
-  strings[C.DC_STR_CONTACT_SETUP_CHANGED] = tx('contact_setup_changed')
   strings[C.DC_STR_DEVICE_MESSAGES_HINT] = tx('device_talk_explain')
   strings[C.DC_STR_WELCOME_MESSAGE] = tx('device_talk_welcome_message2')
   strings[C.DC_STR_UNKNOWN_SENDER_FOR_CHAT] = tx(
@@ -54,7 +50,11 @@ export async function updateCoreStrings() {
   strings[C.DC_STR_LOCATION] = tx('location')
   strings[C.DC_STR_STICKER] = tx('sticker')
   strings[C.DC_STR_BAD_TIME_MSG_BODY] = tx('devicemsg_bad_time')
-  strings[C.DC_STR_UPDATE_REMINDER_MSG_BODY] = tx('devicemsg_update_reminder')
+  // Privitty uses its own versioning (1.x.x) independent of Delta Chat core versioning.
+  // Setting this to empty suppresses the core's outdated-version device message,
+  // which would otherwise trigger because our version (1.2.2) is below the core's
+  // internal minimum version threshold.
+  strings[C.DC_STR_UPDATE_REMINDER_MSG_BODY] = ''
   //strings[C.DC_STR_ERROR_NO_NETWORK] = tx('')
   strings[C.DC_STR_SELF_DELETED_MSG_BODY] = tx('devicemsg_self_deleted')
   //strings[C.DC_STR_SERVER_TURNED_OFF] = tx('')
@@ -77,16 +77,13 @@ export async function updateCoreStrings() {
   strings[C.DC_STR_ERROR] = tx('error_x')
   strings[C.DC_STR_NOT_SUPPORTED_BY_PROVIDER] = tx('not_supported_by_provider')
   strings[C.DC_STR_MESSAGES] = tx('messages')
-  strings[C.DC_STR_BROADCAST_LIST] = tx('broadcast_list')
+  strings[C.DC_STR_BROADCAST_LIST] = tx('channel')
   strings[C.DC_STR_PART_OF_TOTAL_USED] = tx('part_of_total_used')
   strings[C.DC_STR_SECURE_JOIN_STARTED] = tx('secure_join_started')
-  strings[C.DC_STR_SECUREJOIN_TAKES_LONGER] = tx('secure_join_takes_longer')
   strings[C.DC_STR_SECURE_JOIN_REPLIES] = tx('secure_join_replies')
   strings[C.DC_STR_SETUP_CONTACT_QR_DESC] = tx('qrshow_join_contact_hint')
   strings[C.DC_STR_SECURE_JOIN_GROUP_QR_DESC] = tx('qrshow_join_group_hint')
   strings[C.DC_STR_NOT_CONNECTED] = tx('connectivity_not_connected')
-  strings[C.DC_STR_AEAP_ADDR_CHANGED] = tx('aeap_addr_changed')
-  strings[C.DC_STR_AEAP_EXPLANATION_AND_LINK] = tx('aeap_explanation')
   strings[C.DC_STR_GROUP_NAME_CHANGED_BY_YOU] = tx('group_name_changed_by_you')
   strings[C.DC_STR_GROUP_NAME_CHANGED_BY_OTHER] = tx(
     'group_name_changed_by_other'
@@ -123,9 +120,11 @@ export async function updateCoreStrings() {
   strings[C.DC_STR_EPHEMERAL_TIMER_SECONDS_BY_OTHER] = tx(
     'ephemeral_timer_seconds_by_other'
   )
+  // deprecated only used in older versions
   strings[C.DC_STR_EPHEMERAL_TIMER_1_MINUTE_BY_YOU] = tx(
     'ephemeral_timer_1_minute_by_you'
   )
+  // deprecated only used in older versions
   strings[C.DC_STR_EPHEMERAL_TIMER_1_MINUTE_BY_OTHER] = tx(
     'ephemeral_timer_1_minute_by_other'
   )
@@ -171,11 +170,14 @@ export async function updateCoreStrings() {
   strings[C.DC_STR_EPHEMERAL_TIMER_WEEKS_BY_OTHER] = tx(
     'ephemeral_timer_weeks_by_other'
   )
+  strings[C.DC_STR_EPHEMERAL_TIMER_1_YEAR_BY_YOU] = tx(
+    'ephemeral_timer_1_year_by_you'
+  )
+  strings[C.DC_STR_EPHEMERAL_TIMER_1_YEAR_BY_OTHER] = tx(
+    'ephemeral_timer_1_year_by_other'
+  )
   strings[C.DC_STR_CHAT_PROTECTION_ENABLED] = tx(
     'chat_protection_enabled_tap_to_learn_more'
-  )
-  strings[C.DC_STR_CHAT_PROTECTION_DISABLED] = tx(
-    'chat_protection_broken_tap_to_learn_more'
   )
   strings[C.DC_STR_INVALID_UNENCRYPTED_MAIL] = tx(
     'invalid_unencrypted_tap_to_learn_more'
@@ -183,6 +185,7 @@ export async function updateCoreStrings() {
   strings[C.DC_STR_BACKUP_TRANSFER_QR] = tx('multidevice_qr_subtitle')
   strings[C.DC_STR_YOU_REACTED] = tx('reaction_by_you')
   strings[C.DC_STR_REACTED_BY] = tx('reaction_by_other')
+  strings[C.DC_STR_DONATION_REQUEST] = tx('donate_device_msg')
 
   await BackendRemote.rpc.setStockStrings(strings)
 }

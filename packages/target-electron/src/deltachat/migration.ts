@@ -6,7 +6,7 @@ import { existsSync, lstatSync } from 'fs'
 import { join } from 'path'
 import { Logger } from '../../../shared/logger.js'
 import { mkdir, readdir, rename, rm, rmdir, stat } from 'fs/promises'
-import { DcEvent } from '@deltachat/jsonrpc-client'
+import { DcEvent } from '@privitty/jsonrpc-client'
 
 /**
  *

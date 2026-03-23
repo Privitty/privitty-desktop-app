@@ -18,7 +18,7 @@ import ContactName from '../../ContactName'
 import styles from './styles.module.scss'
 
 import type { DialogProps } from '../../../contexts/DialogContext'
-import { type T, C } from '@deltachat/jsonrpc-client'
+import { type T, C } from '@privitty/jsonrpc-client'
 
 import useOpenViewProfileDialog from '../../../hooks/dialog/useOpenViewProfileDialog'
 import {

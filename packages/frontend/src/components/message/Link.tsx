@@ -86,12 +86,14 @@ export const LabeledLink = ({
   }
   return (
     <a
-      href={'#' + target}
+      href={target}
       x-target-url={target}
       title={realUrl}
       onClick={onClick}
       tabIndex={tabIndex}
       onContextMenu={ev => ((ev as any).t = ev.currentTarget)}
+      // aria-haspopup='menu' probably doesn't make sense here,
+      // because we don't have any special context menu actions for links.
     >
       {label}
     </a>
@@ -210,7 +212,7 @@ export const Link = ({
 
   return (
     <a
-      href='#'
+      href={asciiUrl}
       x-target-url={asciiUrl}
       title={asciiUrl}
       onClick={onClick}

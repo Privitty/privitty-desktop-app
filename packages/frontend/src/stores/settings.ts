@@ -1,10 +1,10 @@
-import { C } from '@deltachat/jsonrpc-client'
+import { C } from '@privitty/jsonrpc-client'
 import { DesktopSettingsType, RC_Config } from '../../../shared/shared-types'
 import { BackendRemote, Type } from '../backend-com'
 import { onReady } from '../onready'
 import { runtime } from '@deltachat-desktop/runtime-interface'
 import { Store, useStore } from './store'
-import { debouncedUpdateBadgeCounter } from '../system-integration/badge-counter'
+import { throttledUpdateBadgeCounter } from '../system-integration/badge-counter'
 
 export interface SettingsStoreState {
   accountId: number
@@ -13,7 +13,6 @@ export interface SettingsStoreState {
     [P in (typeof settingsKeys)[number]]: {
       sentbox_watch: string
       mvbox_move: string
-      e2ee_enabled: string
       addr: string
       displayname: string
       selfstatus: string
@@ -37,7 +36,6 @@ export interface SettingsStoreState {
 const settingsKeys = [
   'sentbox_watch',
   'mvbox_move',
-  'e2ee_enabled',
   'addr',
   'displayname',
   'selfstatus',
@@ -178,7 +176,7 @@ class SettingsStore extends Store<SettingsStoreState | null> {
           if (this.state?.accountId) {
             BackendRemote.rpc.startIo(this.state.accountId)
           }
-          debouncedUpdateBadgeCounter()
+          throttledUpdateBadgeCounter()
           window.__updateAccountListSidebar?.()
         }
         this.reducer.setDesktopSetting(key, value)

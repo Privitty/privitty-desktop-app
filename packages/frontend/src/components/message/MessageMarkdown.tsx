@@ -215,7 +215,9 @@ function EmailLink({
   const createChatByEmail = useCreateChatByEmail()
   const { selectChat } = useChat()
 
-  const handleClick = async () => {
+  const handleClick: React.MouseEventHandler<HTMLAnchorElement> = async ev => {
+    ev.preventDefault()
+    ev.stopPropagation()
     const chatId = await createChatByEmail(accountId, email)
     if (chatId) {
       selectChat(accountId, chatId)
@@ -224,7 +226,7 @@ function EmailLink({
 
   return (
     <a
-      href={'#'}
+      href={`mailto:${email}`}
       x-not-a-link='email'
       x-target-email={email}
       onClick={handleClick}

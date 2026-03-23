@@ -9,7 +9,7 @@ import classNames from 'classnames'
 import useDialog from '../../hooks/dialog/useDialog'
 import { selectedAccountId } from '../../ScreenController'
 import { BackendRemote } from '../../backend-com'
-import { T } from '@deltachat/jsonrpc-client'
+import { T } from '@privitty/jsonrpc-client'
 import SmallSelectDialogPrivitty, {
   SelectedValue,
 } from '../SmallSelectDialogPrivitty'

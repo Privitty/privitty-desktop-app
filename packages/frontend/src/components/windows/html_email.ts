@@ -23,7 +23,7 @@ import { isInviteLink, truncateText } from '@deltachat-desktop/shared/util.js'
 import { tx } from '../../../../target-electron/src/load-translations.js'
 import { open_url } from '../../../../target-electron/src/open_url.js'
 import { loadTheme } from '../../../../target-electron/src/themes.js'
-import { getDCJsonrpcClient } from '../../../../target-electron/src/ipc.js'
+import { getDCJsonrpcRemote as getDCJsonrpcClient } from '../../../../target-electron/src/ipc.js'
 import { getLogger } from '@deltachat-desktop/shared/logger.js'
 
 import * as mainWindow from './main.js'

@@ -5,7 +5,7 @@ import useDialog from '../dialog/useDialog'
 import useTranslationFunction from '../useTranslationFunction'
 import { createChatByContactId, getChatInfoByEmail } from '../../backend/chat'
 
-import type { T } from '@deltachat/jsonrpc-client'
+import type { T } from '@privitty/jsonrpc-client'
 
 type ChatId = T.FullChat['id']
 
@@ -31,6 +31,12 @@ export default function useCreateChatByEmail(): CreateChatByEmail {
       if (chatId) {
         return chatId
       }
+      /**
+       * Although we know that creating a new chat will probably fail on chatmail accounts,
+       * since we can't create an encrypted chat based on an email address, we continue
+       * here.
+       * see https://github.com/deltachat/deltachat-android/issues/3361
+       */
 
       // Ask user if they want to proceed with creating a new contact and / or chat
       const continueProcess = await new Promise((resolve, _reject) => {

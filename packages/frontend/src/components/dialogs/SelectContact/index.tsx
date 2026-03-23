@@ -1,5 +1,5 @@
 import React, { useEffect, useRef, useState } from 'react'
-import { C } from '@deltachat/jsonrpc-client'
+import { C } from '@privitty/jsonrpc-client'
 import Dialog, {
   DialogBody,
   DialogFooter,
@@ -9,7 +9,7 @@ import Dialog, {
 } from '../../Dialog'
 import styles from './styles.module.scss'
 import useTranslationFunction from '../../../hooks/useTranslationFunction'
-import type { T } from '@deltachat/jsonrpc-client'
+import type { T } from '@privitty/jsonrpc-client'
 import { DialogProps } from '../../../contexts/DialogContext'
 import { useLazyLoadedContacts } from '../../contact/ContactList'
 import { ContactListItem } from '../../contact/ContactListItem'

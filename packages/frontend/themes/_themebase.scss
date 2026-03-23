@@ -2,6 +2,7 @@
 
 $hover-contrast-change: 2%;
 // set light theme variables as fallback
+$themeDarkOrLight: light !default;
 $colorPrimary: #42a5f5 !default;
 $bellIconColor: #fff;
 $colorDanger: #f96856 !default;
@@ -33,6 +34,8 @@ $keybindingKeyBorder: gray !default;
 $keybindingKeyShadow: rgba(0, 0, 0, 0.35) !default;
 
 $floatingActionButtonBg: #42a5f5 !default;
+$newChatButtonBg: #42a5f5 !default;
+$messageOutgoingStatusColor: #4caf50 !default;
 $chatListItemSelectedBg: #e3f2fd !default;
 $scrollbarTransparency: 0.34 !default;
 

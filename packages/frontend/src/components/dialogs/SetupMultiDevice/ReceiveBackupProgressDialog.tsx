@@ -1,4 +1,4 @@
-import { DcEventType } from '@deltachat/jsonrpc-client'
+import { DcEventType } from '@privitty/jsonrpc-client'
 import React, { useEffect, useState } from 'react'
 
 import { getLogger } from '../../../../../shared/logger'

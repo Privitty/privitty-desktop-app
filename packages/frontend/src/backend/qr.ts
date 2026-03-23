@@ -1,6 +1,6 @@
 import { BackendRemote } from '../backend-com'
 
-import type { T } from '@deltachat/jsonrpc-client'
+import type { T } from '@privitty/jsonrpc-client'
 
 export type AccountQr = Extract<T.Qr, { kind: 'account' }>
 

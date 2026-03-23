@@ -29,7 +29,7 @@ import type {
   RuntimeAppPath,
 } from '@deltachat-desktop/runtime-interface'
 
-import { BaseDeltaChat, yerpc } from '@deltachat/jsonrpc-client'
+import { BaseDeltaChat, yerpc } from '@privitty/jsonrpc-client'
 import type { LocaleData } from '@deltachat-desktop/shared/localize.js'
 import type {
   getLogger as getLoggerFunction,
@@ -204,6 +204,7 @@ class TauriRuntime implements Runtime {
       showNotificationContent: true,
       enterKeySends: false,
       enableAVCalls: false,
+      enableAVCallsV2: false,
       enableBroadcastLists: false,
       enableChatAuditLog: false,
       enableOnDemandLocationStreaming: false,
@@ -564,6 +565,9 @@ class TauriRuntime implements Runtime {
   }
   notifyWebxdcInstanceDeleted(accountId: number, instanceId: number): void {
     invoke('on_webxdc_message_deleted', { accountId, instanceId })
+  }
+  startOutgoingVideoCall(): void {
+    throw new Error('Method not implemented.101')
   }
   restartApp(): void {
     // will not be implemented in tauri for now, as this method is currently unused

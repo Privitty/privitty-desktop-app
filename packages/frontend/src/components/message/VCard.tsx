@@ -1,7 +1,7 @@
 import React from 'react'
 import styles from './styles.module.scss'
 import classNames from 'classnames'
-import { T } from '@deltachat/jsonrpc-client'
+import { T } from '@privitty/jsonrpc-client'
 import { BackendRemote } from '../../backend-com'
 import { selectedAccountId } from '../../ScreenController'
 import { createChatByContactId } from '../../backend/chat'

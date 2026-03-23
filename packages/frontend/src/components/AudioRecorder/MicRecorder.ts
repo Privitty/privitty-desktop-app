@@ -156,7 +156,10 @@ class MicRecorder {
       } else {
         resolve([
           finalBuffer,
-          new Blob(finalBuffer as BlobPart[], { type: 'audio/mp3' }),
+          new Blob(
+            finalBuffer.map(buffer => new Uint8Array(buffer)),
+            { type: 'audio/mp3' }
+          ),
         ])
         this.lameEncoder?.clearBuffer()
       }

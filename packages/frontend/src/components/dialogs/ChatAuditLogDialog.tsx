@@ -5,7 +5,7 @@ import React, {
   useContext,
   useCallback,
 } from 'react'
-import { C } from '@deltachat/jsonrpc-client'
+import { C } from '@privitty/jsonrpc-client'
 import moment from 'moment'
 
 import Dialog, { DialogBody, DialogContent, DialogHeader } from '../Dialog'
@@ -39,6 +39,8 @@ function buildContextMenu(
   closeDialogCallback: DialogProps['onClose']
 ) {
   const tx = window.static_translate // don't use the i18n context here for now as this component is inefficient (rendered one menu for every message)
+  const isInfoOrCallInvitation =
+    message.isInfo || message.viewType === 'VideochatInvitation'
   return [
     // Show in Chat
     {
@@ -78,7 +80,9 @@ function buildContextMenu(
       },
     },
     // Reply
-    {
+    // TODO also check `chat.canSend`, as with `showReply` in `Message.tsx`,
+    // and double-check other items.
+    !isInfoOrCallInvitation && {
       label: tx('reply_noun'),
       action: () => {
         setQuoteInDraft(message.id)
@@ -87,6 +91,7 @@ function buildContextMenu(
     },
     // Reply privately -> only show in groups, don't show on info messages or outgoing messages
     isGroup &&
+      !isInfoOrCallInvitation &&
       message.fromId > C.DC_CONTACT_ID_LAST_SPECIAL && {
         label: tx('reply_privately'),
         action: () => {
@@ -249,10 +254,12 @@ export default function ChatAuditLogDialog(
                     <li
                       key={id}
                       className='info'
+                      // TODO make this element focusable.
                       onClick={ev => showMenu(message, ev)}
                       onContextMenu={ev => showMenu(message, ev)}
+                      aria-haspopup='menu'
                     >
-                      <p>
+                      <div>
                         <div className='timestamp'>
                           {moment.unix(timestamp).format('LT')}
                         </div>
@@ -273,7 +280,7 @@ export default function ChatAuditLogDialog(
                               aria-label={tx(`a11y_delivery_status_${status}`)}
                             />
                           )}
-                      </p>
+                      </div>
                     </li>
                   )
                 })}

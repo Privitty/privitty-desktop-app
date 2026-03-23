@@ -1,6 +1,6 @@
 import React, { useCallback, useEffect, useState, useRef } from 'react'
-import { C } from '@deltachat/jsonrpc-client'
-import type { T } from '@deltachat/jsonrpc-client'
+import { C } from '@privitty/jsonrpc-client'
+import type { T } from '@privitty/jsonrpc-client'
 
 import { QrCodeShowQrInner } from './QrCode'
 import { useThemeCssVar } from '../../ThemeManager'
@@ -11,7 +11,10 @@ import {
   PseudoListItemAddMember,
 } from '../helpers/PseudoListItem'
 import ViewProfile from './ViewProfile'
-import { avatarInitial } from '../Avatar'
+import {
+  avatarInitial,
+  shouldDisableClickForFullscreen as shouldDisableFullscreenAvatar,
+} from '../Avatar'
 import { DeltaInput } from '../Login-Styles'
 import { BackendRemote, onDCEvent } from '../../backend-com'
 import { selectedAccountId } from '../../ScreenController'
@@ -42,9 +45,19 @@ import { unknownErrorToString } from '../helpers/unknownErrorToString'
 import { getLogger } from '@deltachat-desktop/shared/logger'
 const log = getLogger('ViewGroup')
 
+/**
+ * This dialog is used to for groups of various types:
+ * - encrypted groups
+ * - non encrypted groups (email groups)
+ * - channels if the current account is the sender (DC_CHAT_TYPE_OUT_BROADCAST)
+ *
+ * Mailinglists and channels (receiver side) have an own dialog
+ * since you don't see other receivers in those chats
+ * (see MailingListProfile)
+ */
 export default function ViewGroup(
   props: {
-    chat: T.FullChat
+    chat: Parameters<typeof ViewGroupInner>[0]['chat']
   } & DialogProps
 ) {
   const { chat, onClose } = props
@@ -173,11 +186,13 @@ export const useGroup = (accountId: number, chat: T.FullChat) => {
 
 function ViewGroupInner(
   props: {
-    chat: T.FullChat
+    chat: T.FullChat & {
+      chatType: C.DC_CHAT_TYPE_GROUP | C.DC_CHAT_TYPE_OUT_BROADCAST
+    }
   } & DialogProps
 ) {
   const { chat, onClose } = props
-  const isBroadcast = chat.chatType === C.DC_CHAT_TYPE_BROADCAST
+  const isBroadcast = chat.chatType === C.DC_CHAT_TYPE_OUT_BROADCAST
   const { openDialog } = useDialog()
   const accountId = selectedAccountId()
   const openConfirmationDialog = useConfirmationDialog()
@@ -280,7 +295,7 @@ function ViewGroupInner(
       const confirmed = await openConfirmationDialog({
         message: !isBroadcast
           ? tx('ask_remove_members', contact.displayName)
-          : tx('ask_remove_from_broadcast', contact.displayName),
+          : tx('ask_remove_from_channel', contact.displayName),
         confirmLabel: tx('delete'),
         dataTestid: 'remove-group-member-dialog',
       })
@@ -298,18 +313,32 @@ function ViewGroupInner(
       groupImage,
       groupColor: chat.color,
       onOk: (groupName: string, groupImage: string | null) => {
-        //(treefit): TODO this check should be way earlier, you should not be able to "OK" the dialog if there is no group name
+        // TODO this check should be way earlier, you should not be able to "OK" the dialog if there is no group name
         if (groupName.length > 1) {
           setGroupName(groupName)
         }
 
         setGroupImage(groupImage)
       },
-      isBroadcast: isBroadcast,
+      isBroadcast,
     })
   }
 
   const listFlags = C.DC_GCL_ADD_SELF
+
+  // Note that we are not checking `chat.isEncrypted`,
+  // unlike in "New E-Mail" dialog.
+  // See https://github.com/deltachat/deltachat-desktop/issues/5294
+  // > the chat itself picks up "group wording"
+  const membersOrRecipients = isBroadcast ? 'recipients' : 'members'
+
+  // We don't allow editing of non encryped groups (email groups)
+  // i.e. changing name, avatar or recipients
+  // since it cannot be guaranteed that the recipients will adapt
+  // these changes (image is not shown at all in MTAs, group name is
+  // just the subject and recipients are basically just an email
+  // distribution list)
+  const allowEdit = !chatDisabled && group.isEncrypted
 
   const showAddMemberDialog = () => {
     openDialog(AddMemberDialog, {
@@ -317,7 +346,7 @@ function ViewGroupInner(
       groupMembers: group.contactIds,
       groupChatId: chat.id,
       onOk: addMembers,
-      isBroadcast: isBroadcast,
+      titleMembersOrRecipients: membersOrRecipients,
       isVerificationRequired: chat.isProtected,
     })
   }
@@ -349,24 +378,38 @@ function ViewGroupInner(
     <>
       {!profileContact && (
         <>
-          <DialogHeader
-            title={!isBroadcast ? tx('tab_group') : tx('broadcast_list')}
-            onClickEdit={onClickEdit}
-            onClose={onClose}
-            dataTestid='view-group-dialog-header'
-          />
+          {allowEdit && (
+            <DialogHeader
+              title={!isBroadcast ? tx('tab_group') : tx('channel')}
+              onClickEdit={onClickEdit}
+              onClose={onClose}
+              dataTestid='view-group-dialog-header'
+            />
+          )}
+          {!allowEdit && (
+            <DialogHeader
+              title={tx('tab_group')}
+              onClose={onClose}
+              dataTestid='view-group-dialog-header'
+            />
+          )}
           <DialogBody>
             <DialogContent paddingBottom>
               <ProfileInfoHeader
                 avatarPath={groupImage ? groupImage : undefined}
                 color={chat.color}
                 displayName={groupName}
-                isVerified={chat.isProtected}
+                disableFullscreen={shouldDisableFullscreenAvatar(chat)}
               />
             </DialogContent>
             {isRelatedChatsEnabled && chatListIds.length > 0 && (
               <>
-                <div className='group-separator'>{tx('related_chats')}</div>
+                <div
+                  id='view-group-related-chats-title'
+                  className='group-separator'
+                >
+                  {tx('related_chats')}
+                </div>
                 <div
                   ref={relatedChatsListWrapperRef}
                   className='group-related-chats-list-wrapper'
@@ -375,6 +418,9 @@ function ViewGroupInner(
                     wrapperElementRef={relatedChatsListWrapperRef}
                   >
                     <ChatListPart
+                      olElementAttrs={{
+                        'aria-labelledby': 'view-group-related-chats-title',
+                      }}
                       isRowLoaded={isChatLoaded}
                       loadMoreRows={loadChats}
                       rowCount={chatListIds.length}
@@ -387,8 +433,8 @@ function ViewGroupInner(
                         chatListIds,
                         onChatClick,
 
-                        selectedChatId: null,
-                        activeContextMenuChatId: null,
+                        activeChatId: null,
+                        activeContextMenuChatIds: [],
                         openContextMenu: async () => {},
                       }}
                     >
@@ -398,7 +444,10 @@ function ViewGroupInner(
                 </div>
               </>
             )}
-            <div className='group-separator'>
+            <div
+              id='view-group-members-recipients-title'
+              className='group-separator'
+            >
               {!isBroadcast
                 ? tx('n_members', group.contactIds.length.toString(), {
                     quantity: group.contactIds.length,
@@ -414,11 +463,11 @@ function ViewGroupInner(
               <RovingTabindexProvider
                 wrapperElementRef={groupMemberContactListWrapperRef}
               >
-                {!chatDisabled && (
+                {!chatDisabled && group.isEncrypted && (
                   <>
                     <PseudoListItemAddMember
                       onClick={() => showAddMemberDialog()}
-                      isBroadcast={isBroadcast}
+                      labelMembersOrRecipients={membersOrRecipients}
                     />
                     {!isBroadcast && (
                       <PseudoListItemShowQrCode
@@ -429,7 +478,7 @@ function ViewGroupInner(
                 )}
                 <ContactList
                   contacts={group.contacts}
-                  showRemove={!chatDisabled}
+                  showRemove={!chatDisabled && group.isEncrypted}
                   onClick={contact => {
                     if (contact.id === C.DC_CONTACT_ID_SELF) {
                       return
@@ -437,12 +486,20 @@ function ViewGroupInner(
                     setProfileContact(contact)
                   }}
                   onRemoveClick={showRemoveGroupMemberConfirmationDialog}
+                  olElementAttrs={{
+                    'aria-labelledby': 'view-group-members-recipients-title',
+                  }}
                 />
               </RovingTabindexProvider>
             </div>
             {pastContacts.length > 0 && (
               <>
-                <div className='group-separator'>{tx('past_members')}</div>
+                <div
+                  id='view-group-past-members-title'
+                  className='group-separator'
+                >
+                  {tx('past_members')}
+                </div>
                 <div
                   className='group-member-contact-list-wrapper'
                   ref={groupPastMemberContactListWrapperRef}
@@ -458,6 +515,9 @@ function ViewGroupInner(
                           return
                         }
                         setProfileContact(contact)
+                      }}
+                      olElementAttrs={{
+                        'aria-labelledby': 'view-group-past-members-title',
                       }}
                     />
                   </RovingTabindexProvider>
@@ -535,9 +595,7 @@ export function EditGroupNameDialog({
     <Dialog onClose={onClose} canOutsideClickClose={false} fixed>
       <DialogHeader
         title={
-          !isBroadcast
-            ? tx('menu_group_name_and_image')
-            : tx('broadcast_list_name')
+          !isBroadcast ? tx('menu_group_name_and_image') : tx('channel_name')
         }
       />
       <DialogBody>
@@ -546,21 +604,17 @@ export function EditGroupNameDialog({
             className='profile-image-username center'
             style={{ marginBottom: '30px' }}
           >
-            {!isBroadcast && (
-              <GroupImageSelector
-                groupName={groupName}
-                groupColor={groupColor}
-                groupImage={groupImage}
-                setGroupImage={setGroupImage}
-              />
-            )}
+            <GroupImageSelector
+              groupName={groupName}
+              groupColor={groupColor}
+              groupImage={groupImage}
+              setGroupImage={setGroupImage}
+            />
           </div>
           <DeltaInput
             key='groupname'
             id='groupname'
-            placeholder={
-              !isBroadcast ? tx('group_name') : tx('broadcast_list_name')
-            }
+            placeholder={!isBroadcast ? tx('group_name') : tx('channel_name')}
             value={groupName}
             onChange={(
               event: React.FormEvent<HTMLElement> &
@@ -581,7 +635,7 @@ export function EditGroupNameDialog({
             >
               {!isBroadcast
                 ? tx('group_please_enter_group_name')
-                : tx('please_enter_broadcast_list_name')}
+                : tx('please_enter_channel_name')}
             </p>
           )}
         </DialogContent>
