@@ -156,20 +156,27 @@ async function deleteNotNeededPrebuildsFromUnpackedASAR(
   // Other entries in @privitty (privitty-core, privitty-core-*, and the
   // deltachat-rpc-server meta package without a platform suffix) must be
   // left untouched — they have different naming structures and are all needed.
+  // Package names: deltachat-rpc-server-{os}-{arch} (e.g. win32-x64, darwin-arm64).
+  const currentPlatform = context.electronPlatformName
+  const currentArch = convertArch(context.arch)
+
   const toDelete = prebuilds.filter(name => {
     if (!name.startsWith('deltachat-rpc-server-')) return false
-    const architecture = name.split('-')[4] // deltachat-rpc-server-{os}-{arch}
-    if (architecture === convertArch(context.arch)) {
-      return false
-    } else if (
-      // convertArch(context.arch) === 'universal' && does not work for some reason
+    const parts = name.split('-')
+    if (parts.length !== 5) return false
+    const pkgOs = parts[3]
+    const pkgArch = parts[4]
+
+    if (pkgOs !== currentPlatform) return true // delete: wrong OS
+
+    if (pkgArch === currentArch) return false // keep: matches platform + arch
+    if (
       isMacBuild &&
-      (architecture === 'arm64' || architecture === 'x64')
+      (pkgArch === 'arm64' || pkgArch === 'x64')
     ) {
-      return false
-    } else {
-      return true
+      return false // keep: Mac universal needs both
     }
+    return true // delete: wrong arch
   })
 
   console.log({ prebuilds, toDelete })
