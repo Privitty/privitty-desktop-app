@@ -88,6 +88,7 @@ $scrollbarTransparency: 0.34 !default;
   /* ChatView */
   --chatViewBg: #{$bgChatView};
   --chatViewBgImgPath: #{$bgImage};
+  --messageOutgoingTextColor: #fff;
   /* ChatView - Composer */
   --composerBg: #{$bgPrimary};
   --composerText: #{$textPrimary};
