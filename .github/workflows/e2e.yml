@@ -18,35 +18,35 @@ jobs:
         os: [ubuntu-latest]
       fail-fast: false
     steps:
-    - uses: actions/checkout@v4
-    - name: Install pnpm
-      uses: pnpm/action-setup@v4
-      with:
-        version: 9.6.0
-    - name: Setup Node.js 20.x
-      uses: actions/setup-node@v4
-      with:
-        node-version: 20.x
-        cache: 'pnpm'
-    - name: Install dependencies
-      run: pnpm install --frozen-lockfile
-    - name: Set version info
-      shell: bash
-      run: |
-        echo "VERSION_INFO_GIT_REF=${{ github.sha }}-${{ github.ref_name }}" >> $GITHUB_ENV
-    - name: Install Playwright Browsers
-      working-directory: ./packages/e2e-tests
-      run: npx playwright install --with-deps --only-shell chromium
-    - name: create data dir
-      run: mkdir -p packages/target-browser/data
-    - name: Run e2e tests
-      run: pnpm e2e --project Chrome
-    - uses: actions/upload-artifact@v4
-      # We may want to not upload artifacts if tests pass,
-      # (`if: ${{ failure() && !cancelled() }}`)
-      # but we want to debug flaky tests, so let's always upload them.
-      if: ${{ !cancelled() }}
-      with:
-        name: e2e-report
-        path: packages/e2e-tests/playwright-report
-        retention-days: 45
+      - uses: actions/checkout@v4
+      - name: Install pnpm
+        uses: pnpm/action-setup@v4
+        with:
+          version: 9.6.0
+      - name: Setup Node.js 20.x
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20.x
+          cache: 'pnpm'
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+      - name: Set version info
+        shell: bash
+        run: |
+          echo "VERSION_INFO_GIT_REF=${{ github.sha }}-${{ github.ref_name }}" >> $GITHUB_ENV
+      - name: Install Playwright Browsers
+        working-directory: ./packages/e2e-tests
+        run: npx playwright install --with-deps --only-shell chromium
+      - name: create data dir
+        run: mkdir -p packages/target-browser/data
+      - name: Run e2e tests
+        run: pnpm e2e --project Chrome
+      - uses: actions/upload-artifact@v4
+        # We may want to not upload artifacts if tests pass,
+        # (`if: ${{ failure() && !cancelled() }}`)
+        # but we want to debug flaky tests, so let's always upload them.
+        if: ${{ !cancelled() }}
+        with:
+          name: e2e-report
+          path: packages/e2e-tests/playwright-report
+          retention-days: 45

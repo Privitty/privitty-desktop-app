@@ -252,7 +252,6 @@ const Composer = forwardRef<
 
         let sentSuccessfully: boolean
         try {
-
           await sendMessagePromise
           sentSuccessfully = true
         } catch (err) {

@@ -750,10 +750,16 @@ export default function Attachment({
           className='text-part'
           style={fileColors ? { color: fileColors.textColor } : undefined}
         >
-          <div className='name' style={fileColors ? { color: fileColors.textColor } : undefined}>
+          <div
+            className='name'
+            style={fileColors ? { color: fileColors.textColor } : undefined}
+          >
             {fileName}
           </div>
-          <div className='size' style={fileColors ? { color: fileColors.textColor } : undefined}>
+          <div
+            className='size'
+            style={fileColors ? { color: fileColors.textColor } : undefined}
+          >
             {fileBytes ? filesize(fileBytes) : '?'}
           </div>
         </div>

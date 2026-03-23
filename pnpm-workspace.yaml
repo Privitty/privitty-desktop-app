@@ -5,7 +5,7 @@ catalog:
   '@privitty/jsonrpc-client': 2.15.0
   '@privitty/deltachat-rpc-server': 2.15.0
   '@webxdc/types': ^2.1.2
-  'calls-webapp#build-for-deltachat-desktop': "github:deltachat/calls-webapp#build-for-deltachat-desktop"
+  'calls-webapp#build-for-deltachat-desktop': 'github:deltachat/calls-webapp#build-for-deltachat-desktop'
 
   # dependencies
   '@types/mime-types': ^2.1.4

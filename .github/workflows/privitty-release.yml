@@ -22,7 +22,6 @@ on:
         default: ''
 
 jobs:
-
   # ── macOS: universal DMG (unsigned) ──────────────────────────────────────
   build-mac:
     name: macOS – universal DMG (unsigned)

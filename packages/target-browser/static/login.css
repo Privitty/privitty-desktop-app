@@ -1,4 +1,5 @@
-html, body {
+html,
+body {
   background-color: white;
   width: 100%;
   height: 100%;
@@ -69,7 +70,7 @@ html, body {
 
 .formDiv form button:hover {
   background-color: #000000;
-  color:white;
+  color: white;
 }
 
 .formDiv form button[type='submit']:focus {
