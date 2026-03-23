@@ -156,20 +156,30 @@ async function deleteNotNeededPrebuildsFromUnpackedASAR(
   // Other entries in @privitty (privitty-core, privitty-core-*, and the
   // deltachat-rpc-server meta package without a platform suffix) must be
   // left untouched — they have different naming structures and are all needed.
+  // Package names: deltachat-rpc-server-{os}-{arch} (e.g. win32-x64, darwin-arm64).
+  // Windows/Linux: only arch-specific packages exist; we keep the one matching
+  // platform+arch. Mac: may have darwin-universal (lipo fat binary) for universal DMG.
+  const currentPlatform = context.electronPlatformName
+  const currentArch = convertArch(context.arch)
+
   const toDelete = prebuilds.filter(name => {
     if (!name.startsWith('deltachat-rpc-server-')) return false
-    const architecture = name.split('-')[4] // deltachat-rpc-server-{os}-{arch}
-    if (architecture === convertArch(context.arch)) {
-      return false
-    } else if (
-      // convertArch(context.arch) === 'universal' && does not work for some reason
+    const parts = name.split('-')
+    if (parts.length !== 5) return false
+    const pkgOs = parts[3]
+    const pkgArch = parts[4]
+
+    if (pkgOs !== currentPlatform) return true // delete: wrong OS
+
+    if (pkgArch === currentArch) return false // keep: matches platform + arch
+    if (isMacBuild && pkgArch === 'universal') return false // keep: universal DMG fat binary
+    if (
       isMacBuild &&
-      (architecture === 'arm64' || architecture === 'x64')
+      (pkgArch === 'arm64' || pkgArch === 'x64')
     ) {
-      return false
-    } else {
-      return true
+      return false // keep: Mac single-arch or non-universal needs both
     }
+    return true // delete: wrong arch
   })
 
   console.log({ prebuilds, toDelete })
@@ -197,7 +207,11 @@ async function deleteNotNeededPrebuildsFromUnpackedASAR(
 async function setFuses(context) {
   // Apply security fuses for all builds
   let appPath
-  let executableName = context.packager.executableName ?? 'DeltaChat'
+  // `executableName` may be undefined when not explicitly set in electron-builder
+  // config; fall back to `sanitizedProductName` (same source used for resources_dir).
+  const sanitizedName = context.packager.appInfo.sanitizedProductName
+  let executableName =
+    context.packager.executableName ?? sanitizedName ?? 'PrivittyChat'
   if (process.env.IS_PREVIEW) {
     executableName = executableName + '-DevBuild'
   }
@@ -210,7 +224,7 @@ async function setFuses(context) {
       appPath = `${context.appOutDir}/${executableName}.exe`
       break
     default:
-      appPath = `${context.appOutDir}/${context.packager.executableName ?? 'deltachat-desktop'}`
+      appPath = `${context.appOutDir}/${executableName}`
       break
   }
 
