@@ -24,7 +24,12 @@ export type EncryptFileForChatResult = {
 export async function encryptFileForChat(
   accountId: number,
   chatId: number,
-  plainFilePath: string
+  plainFilePath: string,
+  fileAttribute: {
+    allowDownload: boolean
+    allowForward: boolean
+    allowedTime: string
+  } = DEFAULT_FILE_ATTR
 ): Promise<EncryptFileForChatResult | null> {
   const normalized = plainFilePath.replace(/\\/g, '/')
   let encryptedFile: string
@@ -47,9 +52,9 @@ export async function encryptFileForChat(
         event_data: {
           chat_id: String(chatId),
           file_path: normalized,
-          allow_download: DEFAULT_FILE_ATTR.allowDownload,
-          allow_forward: DEFAULT_FILE_ATTR.allowForward,
-          access_duration: Number(DEFAULT_FILE_ATTR.allowedTime),
+          allow_download: fileAttribute.allowDownload,
+          allow_forward: fileAttribute.allowForward,
+          access_duration: Number(fileAttribute.allowedTime || 0),
         },
       })
     }

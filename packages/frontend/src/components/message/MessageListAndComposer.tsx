@@ -1,6 +1,6 @@
 import React, { useRef, useEffect, useCallback } from 'react'
 import { basename, join, parse } from 'path'
-import { T } from '@privitty/jsonrpc-client'
+import { C, T } from '@privitty/jsonrpc-client'
 
 import Composer, { useDraft } from '../composer/Composer'
 import { getLogger } from '../../../../shared/logger'
@@ -16,6 +16,10 @@ import useDialog from '../../hooks/dialog/useDialog'
 import useMessage from '../../hooks/chat/useMessage'
 import { useSharedData } from '../../contexts/FileAttribContext'
 import { encryptFileForChat } from '../../utils/privittyEncryptFile'
+import SmallSelectDialogPrivitty, {
+  SelectedValue,
+} from '../SmallSelectDialogPrivitty'
+import { BackendRemote } from '../../backend-com'
 
 const log = getLogger('renderer/MessageListAndComposer')
 
@@ -142,62 +146,125 @@ export default function MessageListAndComposer({ accountId, chat }: Props) {
         // (unless the file has no extension, then the things are even worse).
         .map(path => ({ parsed: parse(path), pathStr: path }))
 
-      // send single file — encrypt via Privitty before adding to draft (same as menuAttachment)
+      // send single file — open file attribute dialog first
       if (sanitized.length == 1) {
         const file = sanitized[0]
-        const enc = await encryptFileForChat(accountId, chat.id, file.pathStr)
-        if (!enc) {
-          return
-        }
-        await addFileToDraft(
-          enc.encryptedPath,
-          basename(enc.encryptedPath),
-          'File'
-        )
-        setSharedData({
-          allowDownload: false,
-          allowForward: false,
-          allowedTime: '',
-          FileDirectory: enc.originalPath,
-          oneTimeKey: enc.oneTimeKey,
-          encryptedFilePath: enc.encryptedPath,
+        if (hasOpenDialogs) return
+        openDialog(SmallSelectDialogPrivitty, {
+          title: 'File Attributes',
+          initialSelectedValue: {
+            allowDownload: false,
+            allowForward: false,
+            allowedTime: '',
+          },
+          onSave: async (selectedValue: SelectedValue) => {
+            // For group chats, we keep the same defaults as menuAttachment.
+            let fileAttribute: SelectedValue = selectedValue
+            try {
+              const basicChat = await BackendRemote.rpc.getBasicChatInfo(
+                accountId,
+                chat.id
+              )
+              if (basicChat.chatType === C.DC_CHAT_TYPE_GROUP) {
+                fileAttribute = {
+                  allowDownload: false,
+                  allowForward: false,
+                  allowedTime: '',
+                }
+              }
+            } catch {
+              // Ignore chat type check errors and use user selection.
+            }
+
+            const enc = await encryptFileForChat(
+              accountId,
+              chat.id,
+              file.pathStr,
+              fileAttribute
+            )
+            if (!enc) return
+
+            await addFileToDraft(
+              enc.encryptedPath,
+              basename(enc.encryptedPath),
+              'File'
+            )
+            setSharedData({
+              allowDownload: fileAttribute.allowDownload,
+              allowForward: fileAttribute.allowForward,
+              allowedTime: fileAttribute.allowedTime,
+              FileDirectory: enc.originalPath,
+              oneTimeKey: enc.oneTimeKey,
+              encryptedFilePath: enc.encryptedPath,
+            })
+          },
         })
       }
       // send multiple files
       else if (sanitized.length > 1 && !hasOpenDialogs) {
-        openDialog(ConfirmSendingFiles, {
-          sanitizedFileList: sanitized.map(path => ({
-            name: path.parsed.name,
-          })),
-          chatName: chat.name,
-          onClick: async (isConfirmed: boolean) => {
-            if (!isConfirmed) {
-              return
+        openDialog(SmallSelectDialogPrivitty, {
+          title: 'File Attributes',
+          initialSelectedValue: {
+            allowDownload: false,
+            allowForward: false,
+            allowedTime: '',
+          },
+          onSave: async (selectedValue: SelectedValue) => {
+            let fileAttribute: SelectedValue = selectedValue
+            try {
+              const basicChat = await BackendRemote.rpc.getBasicChatInfo(
+                accountId,
+                chat.id
+              )
+              if (basicChat.chatType === C.DC_CHAT_TYPE_GROUP) {
+                fileAttribute = {
+                  allowDownload: false,
+                  allowForward: false,
+                  allowedTime: '',
+                }
+              }
+            } catch {
+              // Ignore chat type check errors and use user selection.
             }
 
-            for (const file of sanitized) {
-              const enc = await encryptFileForChat(
-                accountId,
-                chat.id,
-                file.pathStr
-              )
-              if (!enc) {
-                continue
-              }
-              setSharedData({
-                allowDownload: false,
-                allowForward: false,
-                allowedTime: '',
-                FileDirectory: enc.originalPath,
-                oneTimeKey: enc.oneTimeKey,
-                encryptedFilePath: enc.encryptedPath,
+            // SmallSelectDialogPrivitty closes *after* onSave returns,
+            // so we delay to avoid two dialogs being open at once.
+            setTimeout(() => {
+              openDialog(ConfirmSendingFiles, {
+                sanitizedFileList: sanitized.map(path => ({
+                  name: path.parsed.name,
+                })),
+                chatName: chat.name,
+                onClick: async (isConfirmed: boolean) => {
+                  if (!isConfirmed) return
+
+                  for (const file of sanitized) {
+                    const enc = await encryptFileForChat(
+                      accountId,
+                      chat.id,
+                      file.pathStr,
+                      fileAttribute
+                    )
+                    if (!enc) continue
+
+                    setSharedData({
+                      allowDownload: fileAttribute.allowDownload,
+                      allowForward: fileAttribute.allowForward,
+                      allowedTime: fileAttribute.allowedTime,
+                      FileDirectory: enc.originalPath,
+                      oneTimeKey: enc.oneTimeKey,
+                      encryptedFilePath: enc.encryptedPath,
+                    })
+
+                    await sendMessage(accountId, chat.id, {
+                      file: enc.encryptedPath,
+                      filename: basename(enc.encryptedPath),
+                      viewtype: 'File',
+                    })
+                  }
+                },
               })
-              await sendMessage(accountId, chat.id, {
-                file: enc.encryptedPath,
-                filename: basename(enc.encryptedPath),
-                viewtype: 'File',
-              })
-            }
+            }, 0)
           },
         })
       }
