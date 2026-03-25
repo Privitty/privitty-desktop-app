@@ -6,7 +6,6 @@ import { getLogger } from '../../../shared/logger'
 
 const log = getLogger('renderer/privittyEncryptFile')
 
-/** Same defaults as group / menu path in menuAttachment.tsx (addFilenameFile). */
 const DEFAULT_FILE_ATTR = {
   allowDownload: false,
   allowForward: false,
@@ -20,9 +19,7 @@ export type EncryptFileForChatResult = {
 }
 
 /**
- * Encrypts a local file for the given chat using the same APIs as menuAttachment:
- * - group: `groupFileEncryptRequest`
- * - 1:1: `fileEncryptRequest` with default attributes
+ * Encrypts a local file for the given chat using fileEncryptRequest as menuAttachment:
  */
 export async function encryptFileForChat(
   accountId: number,
@@ -32,7 +29,10 @@ export async function encryptFileForChat(
   const normalized = plainFilePath.replace(/\\/g, '/')
   let encryptedFile: string
   try {
-    const basicChat = await BackendRemote.rpc.getBasicChatInfo(accountId, chatId)
+    const basicChat = await BackendRemote.rpc.getBasicChatInfo(
+      accountId,
+      chatId
+    )
     if (basicChat.chatType === C.DC_CHAT_TYPE_GROUP) {
       encryptedFile = await runtime.PrivittySendMessage('sendEvent', {
         event_type: 'groupFileEncryptRequest',

@@ -145,11 +145,7 @@ export default function MessageListAndComposer({ accountId, chat }: Props) {
       // send single file — encrypt via Privitty before adding to draft (same as menuAttachment)
       if (sanitized.length == 1) {
         const file = sanitized[0]
-        const enc = await encryptFileForChat(
-          accountId,
-          chat.id,
-          file.pathStr
-        )
+        const enc = await encryptFileForChat(accountId, chat.id, file.pathStr)
         if (!enc) {
           return
         }

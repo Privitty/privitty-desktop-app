@@ -4,6 +4,7 @@ import Dialog from '../../Dialog'
 import ImageBackdrop from '../../ImageBackdrop'
 import InstantOnboardingScreen from './InstantOnboardingScreen'
 import OnboardingScreen from './OnboardingScreen'
+import ScanInvitationCodeScreen from './ScanInvitationCodeScreen'
 import useInstantOnboarding from '../../../hooks/useInstantOnboarding'
 import { getConfiguredAccounts } from '../../../backend/account'
 import { BackendRemote, EffectfulBackendActions } from '../../../backend-com'
@@ -23,12 +24,10 @@ type Props = {
  */
 
 export default function WelcomeScreen({ selectedAccountId, ...props }: Props) {
-  const {
-    resetInstantOnboarding,
-    showInstantOnboarding,
-    startInstantOnboardingFlow,
-  } = useInstantOnboarding()
+  const { resetInstantOnboarding, showInstantOnboarding } =
+    useInstantOnboarding()
   const [hasConfiguredAccounts, setHasConfiguredAccounts] = useState(false)
+  const [showScanInvitationCode, setShowScanInvitationCode] = useState(false)
   const { openDialog } = useDialog()
 
   useLayoutEffect(() => {
@@ -75,13 +74,21 @@ export default function WelcomeScreen({ selectedAccountId, ...props }: Props) {
         dataTestid='onboarding-dialog'
       >
         {!showInstantOnboarding ? (
-          <OnboardingScreen
-            onNextStep={() => startInstantOnboardingFlow()}
-            selectedAccountId={selectedAccountId}
-            hasConfiguredAccounts={hasConfiguredAccounts}
-            onClose={onClose}
-            {...props}
-          />
+          showScanInvitationCode ? (
+            <ScanInvitationCodeScreen
+              selectedAccountId={selectedAccountId}
+              onBack={() => setShowScanInvitationCode(false)}
+              onScanDone={() => setShowScanInvitationCode(false)}
+            />
+          ) : (
+            <OnboardingScreen
+              onNextStep={() => setShowScanInvitationCode(true)}
+              selectedAccountId={selectedAccountId}
+              hasConfiguredAccounts={hasConfiguredAccounts}
+              onClose={onClose}
+              {...props}
+            />
+          )
         ) : (
           <InstantOnboardingScreen
             selectedAccountId={selectedAccountId}
