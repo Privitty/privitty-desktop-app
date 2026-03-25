@@ -1,5 +1,5 @@
 import React, { useRef, useEffect, useCallback } from 'react'
-import { join, parse, ParsedPath } from 'path'
+import { basename, join, parse } from 'path'
 import { T } from '@privitty/jsonrpc-client'
 
 import Composer, { useDraft } from '../composer/Composer'
@@ -14,7 +14,8 @@ import ConfirmSendingFiles from '../dialogs/ConfirmSendingFiles'
 import { ReactionsBarProvider } from '../ReactionsBar'
 import useDialog from '../../hooks/dialog/useDialog'
 import useMessage from '../../hooks/chat/useMessage'
-import { Viewtype } from '@privitty/jsonrpc-client/dist/generated/types'
+import { useSharedData } from '../../contexts/FileAttribContext'
+import { encryptFileForChat } from '../../utils/privittyEncryptFile'
 
 const log = getLogger('renderer/MessageListAndComposer')
 
@@ -89,17 +90,13 @@ export function getBackgroundImageStyle(
   return style
 }
 
-function isImage(file: ParsedPath) {
-  const imageExtensions = ['.jpg', '.jpeg', '.png']
-  return imageExtensions.includes(file.ext)
-}
-
 export default function MessageListAndComposer({ accountId, chat }: Props) {
   const conversationRef = useRef<HTMLDivElement>(null)
   const refComposer = useRef(null)
 
   const { openDialog, hasOpenDialogs } = useDialog()
   const { sendMessage } = useMessage()
+  const { setSharedData } = useSharedData()
 
   const regularMessageInputRef = useRef<ComposerMessageInput>(null)
   const editMessageInputRef = useRef<ComposerMessageInput>(null)
@@ -145,15 +142,26 @@ export default function MessageListAndComposer({ accountId, chat }: Props) {
         // (unless the file has no extension, then the things are even worse).
         .map(path => ({ parsed: parse(path), pathStr: path }))
 
-      // send single file
+      // send single file — encrypt via Privitty before adding to draft (same as menuAttachment)
       if (sanitized.length == 1) {
         const file = sanitized[0]
-        const msgViewType: Viewtype = isImage(file.parsed) ? 'Image' : 'File'
+        const enc = await encryptFileForChat(accountId, chat.id, file.pathStr)
+        if (!enc) {
+          return
+        }
         await addFileToDraft(
-          file.pathStr,
-          file.parsed.name + file.parsed.ext,
-          msgViewType
+          enc.encryptedPath,
+          basename(enc.encryptedPath),
+          'File'
         )
+        setSharedData({
+          allowDownload: false,
+          allowForward: false,
+          allowedTime: '',
+          FileDirectory: enc.originalPath,
+          oneTimeKey: enc.oneTimeKey,
+          encryptedFilePath: enc.encryptedPath,
+        })
       }
       // send multiple files
       else if (sanitized.length > 1 && !hasOpenDialogs) {
@@ -168,20 +176,41 @@ export default function MessageListAndComposer({ accountId, chat }: Props) {
             }
 
             for (const file of sanitized) {
-              const msgViewType: Viewtype = isImage(file.parsed)
-                ? 'Image'
-                : 'File'
-              sendMessage(accountId, chat.id, {
-                file: file.pathStr,
-                filename: file.parsed.name + file.parsed.ext,
-                viewtype: msgViewType,
+              const enc = await encryptFileForChat(
+                accountId,
+                chat.id,
+                file.pathStr
+              )
+              if (!enc) {
+                continue
+              }
+              setSharedData({
+                allowDownload: false,
+                allowForward: false,
+                allowedTime: '',
+                FileDirectory: enc.originalPath,
+                oneTimeKey: enc.oneTimeKey,
+                encryptedFilePath: enc.encryptedPath,
+              })
+              await sendMessage(accountId, chat.id, {
+                file: enc.encryptedPath,
+                filename: basename(enc.encryptedPath),
+                viewtype: 'File',
               })
             }
           },
         })
       }
     },
-    [accountId, addFileToDraft, chat, hasOpenDialogs, openDialog, sendMessage]
+    [
+      accountId,
+      addFileToDraft,
+      chat,
+      hasOpenDialogs,
+      openDialog,
+      sendMessage,
+      setSharedData,
+    ]
   )
 
   useEffect(() => {
