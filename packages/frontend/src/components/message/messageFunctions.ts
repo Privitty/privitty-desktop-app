@@ -105,7 +105,9 @@ export async function openAttachmentInShell(
 
       if (JSON.parse(fileAccessResponse).fileAccessState != 'revoked') {
         // Check if the decrypted file is a supported media type that should be opened in secure viewer
-        const decryptedFileExtension = extname(filePathName).toLowerCase()
+        const decryptedFileExtension = extname(
+          msg.fileName.replace('.prv', '')
+        ).toLowerCase()
         const supportedImageExtensions = [
           '.jpg',
           '.jpeg',
@@ -144,7 +146,12 @@ export async function openAttachmentInShell(
             useSecureViewer: true,
             filePath: filePathName,
             fileName: msg.fileName,
-            viewerType: decryptedFileExtension === '.pdf' ? 'pdf' : 'media',
+            viewerType:
+              decryptedFileExtension === '.pdf'
+                ? 'pdf'
+                : supportedImageExtensions.includes(decryptedFileExtension)
+                  ? 'image'
+                  : 'video',
           }
         }
         runtime.openPath(filePathName)
@@ -167,7 +174,9 @@ export async function openAttachmentInShell(
       if (parsed.result?.data?.success === 'false') {
         //if (JSON.parse(fileAccessResponse).status === 'false') {
         // Check if the decrypted file is a supported media type that should be opened in secure viewer
-        const decryptedFileExtension = extname(filePathName).toLowerCase()
+        const decryptedFileExtension = extname(
+          msg.fileName.replace('.prv', '')
+        ).toLowerCase()
         const supportedImageExtensions = [
           '.jpg',
           '.jpeg',

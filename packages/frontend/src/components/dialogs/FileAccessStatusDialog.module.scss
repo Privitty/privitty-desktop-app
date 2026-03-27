@@ -245,7 +245,7 @@
   @include mixins.button-reset;
   font-size: 13px;
   font-weight: 600;
-  color: var(--colorPrimary, #6750a4);
+  color: #6750a4;
   cursor: pointer;
   white-space: nowrap;
 
@@ -272,7 +272,7 @@
   width: 34px;
   height: 34px;
   border-radius: 10px;
-  background: var(--colorPrimary, #6750a4);
+  background: #6750a4;
   display: flex;
   align-items: center;
   justify-content: center;
