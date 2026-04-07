@@ -45,7 +45,11 @@ type Props = {
 }
 
 export default function SecurePDFViewer(props: Props & DialogProps) {
-  const { filePath, fileName, canDownload, onClose } = props
+  const { filePath, fileName: rawFileName, canDownload, onClose } = props
+  // remove .prv extension
+  const fileName =
+    rawFileName?.replace(/\.prv$/i, '') ||
+    basename(filePath).replace(/\.prv$/i, '')
   const tx = useTranslationFunction()
 
   const [pdf, setPdf] = useState<PDFDocumentProxy | null>(null)
@@ -84,18 +88,29 @@ export default function SecurePDFViewer(props: Props & DialogProps) {
       try {
         const workerPath = 'pdf.worker.min.mjs'
         const workerResponse = await fetch(workerPath)
-        if (workerResponse.ok) {
-          const workerBlob = await workerResponse.blob()
-          const workerBlobUrl = URL.createObjectURL(workerBlob)
-          pdfjsLibrary.GlobalWorkerOptions.workerSrc = workerBlobUrl
+        if (!workerResponse.ok) {
+          throw new Error(
+            `Worker file not accessible: ${workerResponse.status}`
+          )
         }
+        const workerBlob = await workerResponse.blob()
+        const workerBlobUrl = URL.createObjectURL(workerBlob)
+        pdfjsLibrary.GlobalWorkerOptions.workerSrc = workerBlobUrl
       } catch {
         // Fallback: disable worker and use main thread
-        pdfjsLibrary.GlobalWorkerOptions.workerSrc = null
+        try {
+          pdfjsLibrary.GlobalWorkerOptions.workerSrc = null
+        } catch (_disableError) {
+          // Final fallback: CDN with matching version
+          pdfjsLibrary.GlobalWorkerOptions.workerSrc = `https://cdnjs.cloudflare.com/ajax/libs/pdf.js/${pdfjsLibrary.version}/pdf.worker.min.js`
+        }
       }
 
       // Load file using Node.js fs (works on both Windows and macOS)
+      // Important: PDF.js is more reliable with raw bytes than with blob/file URLs
+      // in Electron (avoids range/network issues).
       let pdfSource: string | Uint8Array
+      let pdfSourceType: 'data' | 'url' = 'url'
 
       try {
         // eslint-disable-next-line @typescript-eslint/no-require-imports -- Node.js fs/path in Electron
@@ -118,11 +133,12 @@ export default function SecurePDFViewer(props: Props & DialogProps) {
           throw new Error(`File does not exist: ${normalizedPath}`)
         }
 
-        const fileBuffer = fs.readFileSync(normalizedPath)
-        const blob = new Blob([fileBuffer], { type: 'application/pdf' })
-        const blobUrl = URL.createObjectURL(blob)
-        pdfSource = blobUrl
-        blobUrlRef.current = blobUrl
+        const fileBuffer = fs.readFileSync(normalizedPath) as Buffer
+        // Ensure PDF.js receives a real Uint8Array (not a Node Buffer subclass),
+        // which avoids subtle parsing issues in some builds.
+        const bytes = new Uint8Array([...fileBuffer])
+        pdfSource = bytes
+        pdfSourceType = 'data'
 
         log.info('File loaded using Node.js fs', {
           fileSize: fileBuffer.length,
@@ -134,11 +150,17 @@ export default function SecurePDFViewer(props: Props & DialogProps) {
           normalizedFilePath = `file:///${normalizedFilePath.replace(/\\/g, '/')}`
         }
         pdfSource = normalizedFilePath
+        pdfSourceType = 'url'
         log.info('Using file:// URL fallback')
       }
 
       // Load the PDF document
-      const loadingTask = pdfjsLibrary.getDocument(pdfSource)
+      const loadingTask =
+        pdfSourceType === 'data'
+          ? pdfjsLibrary.getDocument({
+              data: pdfSource,
+            })
+          : pdfjsLibrary.getDocument(pdfSource)
       const pdfDoc = await loadingTask.promise
 
       setPdf(pdfDoc)
@@ -150,7 +172,11 @@ export default function SecurePDFViewer(props: Props & DialogProps) {
     } catch (err) {
       log.error('Failed to load PDF', err)
       const errorMessage =
-        err instanceof Error ? err.message : 'Unknown error occurred'
+        err instanceof Error
+          ? err.message
+          : typeof err === 'string'
+            ? err
+            : JSON.stringify(err)
       setError(errorMessage)
       setLoading(false)
     }

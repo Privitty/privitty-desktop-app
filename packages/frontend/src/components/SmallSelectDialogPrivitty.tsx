@@ -53,6 +53,12 @@ function getMinDateTime(): string {
   return formatDateTimeLocal(now)
 }
 
+function getDateAfterDays(days: number): string {
+  const date = new Date(Date.now() + days * 24 * 60 * 60 * 1000)
+  date.setSeconds(0, 0)
+  return formatDateTimeLocal(date)
+}
+
 export default function SmallSelectDialogPrivitty({
   initialSelectedValue: _initialSelectedValue,
   onSave,
@@ -69,6 +75,7 @@ export default function SmallSelectDialogPrivitty({
     getDefaultExpiryDateTime
   )
   const [validationError, setValidationError] = useState<string | null>(null)
+  const [selectedTab, setSelectedTab] = useState<number | null>(null)
 
   const minDateTime = useMemo(() => getMinDateTime(), [])
 
@@ -99,8 +106,15 @@ export default function SmallSelectDialogPrivitty({
     onClose()
   }
 
+  const handleTabClick = (days: number) => {
+    setSelectedTab(days)
+    setExpiryDateTime(getDateAfterDays(days))
+    setValidationError(null)
+  }
+
   const handleExpiryChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     setExpiryDateTime(e.target.value)
+    setSelectedTab(null)
     setValidationError(null)
   }
 
@@ -162,6 +176,51 @@ export default function SmallSelectDialogPrivitty({
               {validationError}
             </div>
           )}
+          <div style={{ marginBottom: 12 }}>
+            <div style={{ display: 'flex', gap: 8 }}>
+              <button
+                onClick={() => handleTabClick(2)}
+                style={{
+                  padding: '6px 12px',
+                  borderRadius: 6,
+                  border: '1px solid #ccc',
+                  background: selectedTab === 2 ? '#6750A4' : '#fff',
+                  color: selectedTab === 2 ? '#fff' : '#000',
+                  cursor: 'pointer',
+                }}
+              >
+                2 Days
+              </button>
+
+              <button
+                onClick={() => handleTabClick(3)}
+                style={{
+                  padding: '6px 12px',
+                  borderRadius: 6,
+                  border: '1px solid #ccc',
+                  background: selectedTab === 3 ? '#6750A4' : '#fff',
+                  color: selectedTab === 3 ? '#fff' : '#000',
+                  cursor: 'pointer',
+                }}
+              >
+                3 Days
+              </button>
+
+              <button
+                onClick={() => handleTabClick(7)}
+                style={{
+                  padding: '6px 12px',
+                  borderRadius: 6,
+                  border: '1px solid #ccc',
+                  background: selectedTab === 7 ? '#6750A4' : '#fff',
+                  color: selectedTab === 7 ? '#fff' : '#000',
+                  cursor: 'pointer',
+                }}
+              >
+                1 Week
+              </button>
+            </div>
+          </div>
         </DialogContent>
       </DialogBody>
       <DialogFooter>

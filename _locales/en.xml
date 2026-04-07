@@ -1197,5 +1197,5 @@
     <string name="ephemeral_timer_1_year_by_you">You set disappearing messages timer to 1 year.</string>
     <!-- %1$s will be replaced by name of the contact -->
     <string name="ephemeral_timer_1_year_by_other">Disappearing messages timer set to 1 year by %1$s.</string>
-    <string name="donate_device_msg">❤️ Seems you\'re enjoying Delta Chat!\n\nPlease consider donating to help ensure that Delta Chat stays free for everyone.\n\nWhile Delta Chat is free to use and open source, development costs money. Help us to keep Delta Chat independent and make it even more awesome in the future.\n\nhttps://delta.chat/donate</string>
+    <string name="donate_device_msg">❤️ Seems you\'re enjoying Delta Chat!\n\nPlease consider donating to help ensure that Delta Chat stays free for everyone.\n\nWhile Delta Chat is free to use and open source, development costs money. Help us to keep Delta Chat independent and make it even more awesome in the future.\n\n</string>
 </resources>

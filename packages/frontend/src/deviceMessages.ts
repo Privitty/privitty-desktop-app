@@ -32,7 +32,7 @@ export async function updateDeviceChat(
   // past labels (changelog-version-1.58.0, changelog-version-2.3.0) that were
   // already consumed during development.
   await addDeviceMessage(`privitty-2.3.0-update`, {
-    text: tx('update_2_0', 'https://delta.chat/donate'),
+    text: tx('update_2_0', 'Privitty 2.0 is here!'),
   })
 }
 

@@ -27,7 +27,6 @@ import useDialog from '../../../hooks/dialog/useDialog'
 import useKeyBindingAction from '../../../hooks/useKeyBindingAction'
 import useOpenViewGroupDialog from '../../../hooks/dialog/useOpenViewGroupDialog'
 import useOpenViewProfileDialog from '../../../hooks/dialog/useOpenViewProfileDialog'
-import useSelectLastChat from '../../../hooks/chat/useSelectLastChat'
 import useTranslationFunction from '../../../hooks/useTranslationFunction'
 import { KeybindAction } from '../../../keybindings'
 import { selectedAccountId } from '../../../ScreenController'
@@ -62,8 +61,10 @@ export default function MainScreen({ accountId }: Props) {
 }
 
 function MainScreenInner({ accountId }: Props) {
-  // Automatically select last known chat when account changed
-  useSelectLastChat(accountId)
+  // Do not auto-select the last opened chat on startup (privacy): keep
+  // selectedChat unset until the user clicks a thread (MessageListView shows
+  // NoChatSelected). ui.lastchatid is still saved when a chat is opened for
+  // notification deep-linking (RuntimeAdapter).
 
   const tx = useTranslationFunction()
 
