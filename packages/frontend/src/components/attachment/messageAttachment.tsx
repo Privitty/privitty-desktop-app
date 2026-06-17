@@ -28,7 +28,6 @@ import AudioPlayer from '../AudioPlayer'
 import { T, C } from '@privitty/jsonrpc-client'
 import { selectedAccountId } from '../../ScreenController'
 import { extname } from 'path'
-import { BackendRemote } from '../../backend-com'
 
 type PrivittyStatus =
   | 'active'

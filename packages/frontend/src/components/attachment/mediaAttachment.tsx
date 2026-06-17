@@ -92,9 +92,9 @@ const contextMenuFactory = (
             if (result?.useSecureViewer) {
               openSecureViewer(
                 openDialog,
-                result.filePath,
-                result.fileName,
-                result.viewerType
+                result.filePath!,
+                result.fileName!,
+                result.viewerType as 'pdf' | 'image' | 'video'
               )
             }
           } catch (error) {
@@ -163,10 +163,30 @@ const getMediaActions = (
   message: T.Message,
   accountId: number
 ) => {
-  // Check if this is a PDF file
-  const _isPDF =
-    message.fileName?.toLowerCase().endsWith('.pdf') ||
-    message.fileName?.toLowerCase().endsWith('.prv')
+  const supportedExtensions = [
+    '.pdf',
+    '.jpg',
+    '.jpeg',
+    '.png',
+    '.gif',
+    '.bmp',
+    '.webp',
+    '.svg',
+    '.mp4',
+    '.avi',
+    '.mov',
+    '.wmv',
+    '.flv',
+    '.webm',
+    '.mkv',
+    '.m4v',
+  ]
+
+  const isSupportedMedia =
+    message.fileName?.toLowerCase().endsWith('.prv') ||
+    supportedExtensions.some(ext =>
+      message.fileName?.toLowerCase().endsWith(ext)
+    )
 
   return {
     openContextMenu: makeContextMenu(
@@ -184,12 +204,24 @@ const getMediaActions = (
       if (isSupportedMedia) {
         try {
           const result = await openAttachmentInShell(message)
+
+          const decryptRequest = await runtime.PrivittySendMessage(
+            'sendEvent',
+            {
+              event_type: 'fileDecryptRequest',
+              event_data: {
+                chat_id: String(message.chatId),
+                prv_file: result.filePath,
+              },
+            }
+          )
+          const parsed = JSON.parse(decryptRequest)
           if (result?.useSecureViewer) {
             openSecureViewer(
               openDialog,
-              result.filePath,
-              result.fileName,
-              result.viewerType
+              parsed.result.data.file_path,
+              parsed.result.data.file_name,
+              result.viewerType as 'pdf' | 'image' | 'video'
             )
           }
         } catch (error) {
@@ -306,6 +338,7 @@ export function ImageAttachment({
     const { file, fileMime } = message
     const hasSupportedFormat = isImage(fileMime)
     const isBroken = !file || !hasSupportedFormat
+    const isEncrypted = message.fileName?.toLowerCase().endsWith('.prv')
 
     return (
       <button
@@ -314,7 +347,9 @@ export function ImageAttachment({
           rovingTabindex.className
         }`}
         onClick={
-          isBroken ? openInShell : openFullscreenMedia.bind(null, message)
+          isBroken || isEncrypted
+            ? openInShell
+            : openFullscreenMedia.bind(null, message)
         }
         onContextMenu={openContextMenu}
         aria-haspopup='menu'
@@ -390,6 +425,11 @@ export function VideoAttachment({
     const { file, fileMime } = message
     const hasSupportedFormat = isVideo(fileMime)
     const isBroken = !file || !hasSupportedFormat
+    const isEncrypted = message.fileName?.toLowerCase().endsWith('.prv')
+
+    console.log('FILE ==== 🔴🔴🔴', file)
+    console.log('FILE ==== 🔴🔴🔴', fileMime)
+
     return (
       <button
         ref={interactiveElRef}
@@ -397,7 +437,9 @@ export function VideoAttachment({
           rovingTabindex.className
         }`}
         onClick={
-          isBroken ? openInShell : openFullscreenMedia.bind(null, message)
+          isBroken || isEncrypted
+            ? openInShell
+            : openFullscreenMedia.bind(null, message)
         }
         onContextMenu={openContextMenu}
         aria-haspopup='menu'
@@ -527,9 +569,9 @@ export function AudioAttachment({
             module='date'
           />
         </div>
-        {hasSupportedFormat ? (
+        {hasSupportedFormat && file ? (
           <AudioPlayer
-            src={runtime.transformBlobURL(file || '')}
+            src={runtime.transformBlobURL(file)}
             // Despite the element having multiple interactive
             // (pseudo?) elements inside of it, tabindex applies to all of them.
             tabIndex={rovingTabindex.tabIndex}

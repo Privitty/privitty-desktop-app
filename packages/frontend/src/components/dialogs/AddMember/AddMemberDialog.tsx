@@ -16,6 +16,7 @@ export function AddMemberDialog({
   listFlags,
   titleMembersOrRecipients,
   isVerificationRequired = false,
+  isBroadcast = false,
 }: {
   onOk: (members: number[]) => void | Promise<void>
   groupChatId?: number
@@ -25,6 +26,7 @@ export function AddMemberDialog({
     typeof AddMemberInnerDialog
   >[0]['titleMembersOrRecipients']
   isVerificationRequired?: boolean
+  isBroadcast?: boolean
 } & DialogProps) {
   const [queryStr, setQueryStr] = useState('')
   const {

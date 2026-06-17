@@ -357,9 +357,6 @@ async function buildContextMenu(
   }
 
   const showCopyImage = !!message.file && message.viewType === 'Image'
-  const showAttachmentOptions = !!message.file
-  const _showResend =
-    message.sender.id === C.DC_CONTACT_ID_SELF && message.viewType !== 'Call'
 
   const isInfoOrCallInvitation =
     message.isInfo || message.viewType === 'VideochatInvitation'
@@ -449,11 +446,6 @@ async function buildContextMenu(
         }
       },
       rightIcon: 'bookmark-filled',
-    },
-    // Save attachment as
-    showAttachmentOptions && {
-      label: tx('menu_export_attachment'),
-      action: onDownload.bind(null, message),
     },
     // copy link
     link !== '' &&
