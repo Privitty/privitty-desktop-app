@@ -10,7 +10,7 @@ import electron, {
   WebContents,
   WebContentsView,
 } from 'electron'
-import { clipboard } from 'electron/common'
+import { clipboard } from 'electron'
 import { join } from 'path'
 import { platform } from 'os'
 

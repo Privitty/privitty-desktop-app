@@ -3,7 +3,7 @@ import electron, { BrowserWindow, Rectangle, session } from 'electron'
 import { isAbsolute, join, sep } from 'path'
 import { platform } from 'os'
 import { fileURLToPath } from 'url'
-import { Session } from 'electron/main'
+import { Session } from 'electron'
 
 import { appWindowTitle } from '@deltachat-desktop/shared/constants.js'
 import { getLogger } from '@deltachat-desktop/shared/logger.js'

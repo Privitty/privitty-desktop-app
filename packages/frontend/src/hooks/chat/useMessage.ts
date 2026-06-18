@@ -150,33 +150,9 @@ export default function useMessage() {
           ...message,
         })
 
-        if (sharedData.oneTimeKey) {
-          log.info('need to send otsp message:')
-
-          const pdu = sharedData.oneTimeKey
-          const MESSAGE_DEFAULT: T.MessageData = {
-            file: null,
-            filename: null,
-            viewtype: null,
-            html: null,
-            location: null,
-            overrideSenderName: null,
-            quotedMessageId: null,
-            quotedText: null,
-            text: null,
-          }
-          const message: Partial<T.MessageData> = {
-            text: pdu,
-            file: undefined,
-            filename: undefined,
-            quotedMessageId: null,
-            viewtype: 'Text',
-          }
-          BackendRemote.rpc.sendMsg(accountId, chatId, {
-            ...MESSAGE_DEFAULT,
-            ...message,
-          })
-        }
+        // OTK (one-time key) PDU is now queued automatically by the Privitty
+      // core inside privittySendFile / privittySendGroupFile, so we no longer
+      // need to send a separate text message here.
         // DELETE ENCRYPTED .prv FILE AFTER SUCCESSFUL SEND
         // (File is in user's folder, use deleteEncryptedFile not removeTempFile)
         if (sharedData?.encryptedFilePath) {

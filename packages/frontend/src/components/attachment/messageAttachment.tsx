@@ -72,12 +72,16 @@ function getPrivittyFileColors(
   } else {
     // For incoming messages, default is purple (#7F66C5) with white text
     switch (status) {
+      case 'none':
+      case 'not_found':
+        // Android: amber #9E6B00 for forwardee awaiting grant
+        return { backgroundColor: '#9E6B00', textColor: '#FFFFFF' }
       case 'revoked':
-        return { backgroundColor: '#C4891B', textColor: '#FFFFFF' } // Yellow with white text
+        return { backgroundColor: '#C4891B', textColor: '#FFFFFF' }
       case 'expired':
-        return { backgroundColor: '#808080', textColor: '#FFFFFF' } // Grey with white text
+        return { backgroundColor: '#808080', textColor: '#FFFFFF' }
       case 'denied':
-        return { backgroundColor: '#D93229', textColor: '#FFFFFF' } // Red with white text
+        return { backgroundColor: '#D93229', textColor: '#FFFFFF' }
       default:
         return null // Keep default purple with white text
     }
@@ -192,300 +196,198 @@ export default function Attachment({
             let filePathName = tmpFile.replace(/\\/g, '/')
 
             // Handle .prv files (encrypted files)
-            const isForwarded =
-              Boolean(message.isForwarded) && message.viewType === 'File'
-
-            // Normalize message.file to forward-slashes before sending to Privitty.
-            // On Windows, DeltaChat returns backslash paths (C:\...) which may not
-            // match the forward-slash paths stored in Privitty's internal database,
-            // causing getFileAccessStatus to return 'not_found' instead of 'active'.
+            // Normalize message.file to forward-slashes — required on Windows where
+            // DC returns backslash paths that don't match Privitty's internal paths.
             const blobFilePath = (message.file || '').replace(/\\/g, '/')
+            const accountIdForFile = selectedAccountId()
 
-            const accessStatusResp = await runtime.PrivittySendMessage(
-              'sendEvent',
-              {
-                event_type: 'getFileAccessStatus',
-                event_data: {
-                  chat_id: String(message.chatId),
-                  file_path: blobFilePath,
-                },
-              }
-            )
+            // Fetch file access status via JSONRPC
+            let fileId: T.I64 = 0 as unknown as T.I64
+            let displayStatus: T.PrivittyFileDisplayStatus | null = null
+            try {
+              fileId = await (BackendRemote.rpc as any).privittyGetFileIdByPath(
+                accountIdForFile,
+                blobFilePath
+              )
+              displayStatus = await (
+                BackendRemote.rpc as any
+              ).privittyGetFileDisplayStatus(accountIdForFile, fileId)
+            } catch (e) {
+              console.error('Failed to get Privitty file display status', e)
+            }
 
-            const accessStatusData = JSON.parse(accessStatusResp).result?.data
-            const fileAccessStatus = accessStatusData?.status
-            const canDownload =
-              !!accessStatusData && accessStatusData.is_download === true
-            // Use message metadata (isForwarded + viewType) to choose decrypt API.
-            // Do NOT use accessStatusData.is_forward — on Windows the API incorrectly
-            // returns is_forward: true for non-forwarded files, causing the wrong
-            // handler (forwardedFileDecryptRequest) to be called.
+            const fileAccessStatus = displayStatus?.state_str ?? null
+            const canDownload = displayStatus?.allow_download ?? false
+            // Use Privitty's own is_forwarded flag — more reliable than DC's
+            // isForwarded message flag which can be absent in some relay paths.
+            const isPrivittyForwarded =
+              displayStatus?.is_forwarded ??
+              (Boolean(message.isForwarded) && message.viewType === 'File')
             let decryptError: string | null = null
 
-            if (!isForwarded) {
-              if (direction === 'outgoing') {
-                const basicChat = await BackendRemote.rpc.getBasicChatInfo(
-                  selectedAccountId(),
-                  message.chatId
+            // Helper: decrypt via the correct JSONRPC API based on chat type.
+            // Both P2P and forwarded paths use the same underlying methods.
+            const decryptPrvFile = async (): Promise<string> => {
+              const basicChat = await BackendRemote.rpc.getBasicChatInfo(
+                accountIdForFile,
+                message.chatId
+              )
+              let decryptedPath: string
+              if (basicChat.chatType === C.DC_CHAT_TYPE_GROUP) {
+                decryptedPath = await (
+                  BackendRemote.rpc as any
+                ).privittyDecryptGroupFile(
+                  accountIdForFile,
+                  message.chatId,
+                  message.id,
+                  filePathName
                 )
-                let decryptRequest
-                if (basicChat.chatType === C.DC_CHAT_TYPE_GROUP) {
-                  decryptRequest = await runtime.PrivittySendMessage(
-                    'sendEvent',
-                    {
-                      event_type: 'groupFileDecryptRequest',
-                      event_data: {
-                        group_chat_id: String(message.chatId),
-                        prv_file: filePathName,
-                      },
-                    }
-                  )
-                } else {
-                  decryptRequest = await runtime.PrivittySendMessage(
-                    'sendEvent',
-                    {
-                      event_type: 'fileDecryptRequest',
-                      event_data: {
-                        chat_id: String(message.chatId),
-                        prv_file: filePathName,
-                      },
-                    }
-                  )
-                }
+              } else {
+                decryptedPath = await (
+                  BackendRemote.rpc as any
+                ).privittyDecryptFile(
+                  accountIdForFile,
+                  message.chatId,
+                  message.id,
+                  filePathName
+                )
+              }
+              return decryptedPath.replace(/\\/g, '/')
+            }
 
-                const newResponse = JSON.parse(decryptRequest)
-                if (!newResponse.result?.success) {
+            if (!isPrivittyForwarded) {
+              if (direction === 'outgoing') {
+                // Sender always decrypts — they own the file, no access check needed.
+                try {
+                  filePathName = await decryptPrvFile()
+                } catch (e) {
                   decryptError =
-                    newResponse.result?.message || 'File decryption failed.'
-                } else {
-                  const decryptedPath = newResponse.result?.data?.file_path
-                  if (decryptedPath && typeof decryptedPath === 'string') {
-                    filePathName = decryptedPath.replace(/\\/g, '/')
-                  }
+                    e instanceof Error ? e.message : 'File decryption failed.'
                 }
               } else {
-                // EXPIRED
+                // Receiver: gate on access status
                 if (fileAccessStatus === 'expired') {
                   const yes = await confirmDialog(
                     openDialog,
                     'This file is no longer accessible. You can request access from the owner to view it again.',
                     'SEND REQUEST'
                   )
-                  // If user presses NO → do nothing
                   if (!yes) return
-
-                  // If YES → send access request
-                  const forwardAccessResp = await runtime.PrivittySendMessage(
-                    'sendEvent',
-                    {
-                      event_type: 'initAccessGrantRequest',
-                      event_data: {
-                        chat_id: String(message.chatId),
-                        file_path: message.file,
-                      },
-                    }
-                  )
-
-                  const parsed = JSON.parse(forwardAccessResp)
-                  const pdu: string | undefined = parsed?.result?.data?.pdu
-
-                  if (!pdu) {
-                    throw new Error(
-                      'PDU not returned from initAccessGrantRequest'
+                  // Request renewal — core sends the PDU automatically
+                  try {
+                    await (
+                      BackendRemote.rpc as any
+                    ).privittyInitForwardAccessRequest(
+                      accountIdForFile,
+                      message.chatId,
+                      fileId
                     )
+                  } catch (e) {
+                    console.error('privittyInitForwardAccessRequest failed', e)
                   }
-
-                  const MESSAGE_DEFAULT: T.MessageData = {
-                    file: null,
-                    filename: null,
-                    viewtype: null,
-                    html: null,
-                    location: null,
-                    overrideSenderName: null,
-                    quotedMessageId: null,
-                    quotedText: null,
-                    text: null,
-                  }
-
-                  const messageR: Partial<T.MessageData> = {
-                    text: pdu,
-                    file: undefined,
-                    filename: undefined,
-                    quotedMessageId: null,
-                    viewtype: 'Text',
-                  }
-
-                  await BackendRemote.rpc.sendMsg(
-                    selectedAccountId(),
-                    message.chatId,
-                    {
-                      ...MESSAGE_DEFAULT,
-                      ...messageR,
-                    }
-                  )
-
                   return
                 }
 
-                // REVOKED
                 if (fileAccessStatus === 'revoked') {
                   await confirmDialog(
                     openDialog,
                     'This file is no longer accessible. This file is revoked',
                     'OK'
                   )
-
                   return
                 }
-                // ACTIVE (or not yet registered with Privitty on this device)
-                // 'not_found' / undefined means Privitty has not seen the file yet
-                // (common on Windows on first open). Attempt decryption anyway —
-                // the server will process the file during the decrypt call.
-                if (
-                  fileAccessStatus === 'active' ||
-                  !fileAccessStatus ||
-                  fileAccessStatus === 'not_found'
-                ) {
-                  const basicChat = await BackendRemote.rpc.getBasicChatInfo(
-                    selectedAccountId(),
-                    message.chatId
-                  )
 
-                  let decryptRequest
-
-                  if (basicChat.chatType === C.DC_CHAT_TYPE_GROUP) {
-                    decryptRequest = await runtime.PrivittySendMessage(
-                      'sendEvent',
-                      {
-                        event_type: 'groupFileDecryptRequest',
-                        event_data: {
-                          group_chat_id: String(message.chatId),
-                          prv_file: filePathName,
-                        },
-                      }
-                    )
-                  } else {
-                    decryptRequest = await runtime.PrivittySendMessage(
-                      'sendEvent',
-                      {
-                        event_type: 'fileDecryptRequest',
-                        event_data: {
-                          chat_id: String(message.chatId),
-                          prv_file: filePathName,
-                        },
-                      }
-                    )
-                  }
-
-                  const newResponse = JSON.parse(decryptRequest)
-                  if (!newResponse.result?.success) {
-                    decryptError =
-                      newResponse.result?.message || 'File decryption failed.'
-                  } else {
-                    const decryptedPath = newResponse.result?.data?.file_path
-                    if (decryptedPath && typeof decryptedPath === 'string') {
-                      filePathName = decryptedPath.replace(/\\/g, '/')
-                    }
-                  }
-                }
-              }
-            } else if (isForwarded) {
-              // ACTIVE
-              if (fileAccessStatus === 'active') {
-                const response = await runtime.PrivittySendMessage(
-                  'sendEvent',
-                  {
-                    event_type: 'forwardedFileDecryptRequest',
-                    event_data: {
-                      chat_id: String(message.chatId),
-                      prv_file: filePathName,
-                    },
-                  }
-                )
-
-                const newResponse = JSON.parse(response)
-                if (!newResponse.result?.success) {
+                // ACTIVE or not yet registered — attempt decryption.
+                try {
+                  filePathName = await decryptPrvFile()
+                } catch (e) {
                   decryptError =
-                    newResponse.result?.message || 'File decryption failed.'
-                } else {
-                  const decryptedPath = newResponse.result?.data?.file_path
-                  if (decryptedPath && typeof decryptedPath === 'string') {
-                    filePathName = decryptedPath.replace(/\\/g, '/')
-                  }
+                    e instanceof Error ? e.message : 'File decryption failed.'
+                }
+              }
+            } else {
+              // Forwarded .prv — mirror Android's ConversationItem click logic
+              const sendForwardAccessRequest = async () => {
+                try {
+                  await (
+                    BackendRemote.rpc as any
+                  ).privittyInitForwardAccessRequest(
+                    accountIdForFile,
+                    message.chatId,
+                    fileId
+                  )
+                  runtime.showNotification({
+                    title: 'Privitty',
+                    body: 'Requesting file access permission from owner…',
+                    icon: null,
+                    chatId: message.chatId,
+                    messageId: message.id,
+                    accountId: accountIdForFile,
+                    notificationType: 0,
+                  })
+                } catch (e) {
+                  console.error('privittyInitForwardAccessRequest failed', e)
                 }
               }
 
-              if (fileAccessStatus === 'expired') {
+              if (
+                fileAccessStatus === 'none' ||
+                fileAccessStatus === 'not_found' ||
+                !fileAccessStatus
+              ) {
+                // Access not yet requested — show dialog, Android parity
+                const yes = await confirmDialog(
+                  openDialog,
+                  'You need permission to access this file. Would you like to request access from the owner?',
+                  'Send Request'
+                )
+                if (!yes) return
+                await sendForwardAccessRequest()
+                return
+              } else if (
+                fileAccessStatus === 'requested' ||
+                fileAccessStatus === 'waiting_owner_action'
+              ) {
+                runtime.showNotification({
+                  title: 'Privitty',
+                  body: 'Access request already pending. Please wait for the owner to respond.',
+                  icon: null,
+                  chatId: message.chatId,
+                  messageId: message.id,
+                  accountId: accountIdForFile,
+                  notificationType: 0,
+                })
+                return
+              } else if (fileAccessStatus === 'expired') {
                 const yes = await confirmDialog(
                   openDialog,
                   'This file is no longer accessible. You can request access from the owner to view it again.',
                   'SEND REQUEST'
                 )
-                // If user presses NO → do nothing
                 if (!yes) return
-
-                // If YES → send access request
-                const forwardAccessResp = await runtime.PrivittySendMessage(
-                  'sendEvent',
-                  {
-                    event_type: 'initForwardAccessRequest',
-                    event_data: {
-                      chat_id: String(message.chatId),
-                      file_path: message.file,
-                    },
-                  }
-                )
-
-                const parsed = JSON.parse(forwardAccessResp)
-                const pdu: string | undefined = parsed?.result?.data?.pdu
-
-                if (!pdu) {
-                  throw new Error(
-                    'PDU not returned from initForwardAccessRequest'
-                  )
-                }
-
-                const MESSAGE_DEFAULT: T.MessageData = {
-                  file: null,
-                  filename: null,
-                  viewtype: null,
-                  html: null,
-                  location: null,
-                  overrideSenderName: null,
-                  quotedMessageId: null,
-                  quotedText: null,
-                  text: null,
-                }
-
-                const messageR: Partial<T.MessageData> = {
-                  text: pdu,
-                  file: undefined,
-                  filename: undefined,
-                  quotedMessageId: null,
-                  viewtype: 'Text',
-                }
-
-                await BackendRemote.rpc.sendMsg(
-                  selectedAccountId(),
-                  message.chatId,
-                  {
-                    ...MESSAGE_DEFAULT,
-                    ...messageR,
-                  }
-                )
-
+                await sendForwardAccessRequest()
                 return
-              }
-
-              // REVOKED
-              if (fileAccessStatus === 'revoked') {
+              } else if (fileAccessStatus === 'revoked') {
                 await confirmDialog(
                   openDialog,
-                  'This file is no longer accessible. This file is revoked',
+                  'This file is no longer accessible. Access has been revoked by the owner.',
                   'OK'
                 )
-
                 return
+              } else if (fileAccessStatus === 'denied') {
+                await confirmDialog(
+                  openDialog,
+                  'Access to this file was denied by the owner.',
+                  'OK'
+                )
+                return
+              } else if (fileAccessStatus === 'active') {
+                try {
+                  filePathName = await decryptPrvFile()
+                } catch (e) {
+                  decryptError =
+                    e instanceof Error ? e.message : 'File decryption failed.'
+                }
               }
             }
 

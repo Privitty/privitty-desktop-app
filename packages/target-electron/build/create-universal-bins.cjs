@@ -25,12 +25,8 @@ const NM = join(ROOT, 'node_modules', '@privitty')
 
 const PACKAGES = [
   {
-    name: 'deltachat-rpc-server',
+    name: 'stdio-rpc-server',
     binaryName: 'deltachat-rpc-server',
-  },
-  {
-    name: 'privitty-core',
-    binaryName: 'privitty-server',
   },
 ]
 

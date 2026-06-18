@@ -60,6 +60,7 @@ export type IconName =
   | 'settings'
   | 'swap_vert'
   | 'swap_hor'
+  | 'schedule'
   | 'upload-file'
 
 type PropsBase = {

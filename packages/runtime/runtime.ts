@@ -68,6 +68,35 @@ export interface Runtime {
    * Returns a cleanup/unsubscribe function (suitable for useEffect returns).
    */
   onPrivittyServerReady(callback: () => void): () => void
+  /**
+   * Subscribe to license status events emitted by the backend after each
+   * `privittyLicenseInit` call. The `statusCode` maps to the
+   * `PRIVITTY_STATUS_*` constants defined in `privittyLicense.ts`.
+   * Returns a cleanup/unsubscribe function (suitable for useEffect returns).
+   */
+  onPrivittyLicenseStatus(
+    callback: (accountId: number, statusCode: number) => void
+  ): () => void
+  /**
+   * Returns true if `<configPath>/license/privitty.lic` exists on disk.
+   * Used by WelcomeScreen to decide whether to show ImportLicenseScreen.
+   */
+  hasLicenseFile(): Promise<boolean>
+  /**
+   * Download the Privitty license JWT from the delivery URL, persist it to
+   * <configPath>/license/privitty.lic, and return the customer name.
+   *
+   * URL format: `https://plm.privittytech.com/v1/license/{token}`
+   * Throws if the URL is invalid, the server errors, or the JWT is absent.
+   */
+  importLicenseFromUrl(
+    url: string
+  ): Promise<{ customerName: string; licensePath: string }>
+  /**
+   * Copy a local `.lic` / JWT file to <configPath>/license/privitty.lic.
+   * Use as a fallback when the delivery server is unreachable.
+   */
+  importLicenseFromFile(filePath: string): Promise<{ licensePath: string }>
   checkFileExists(filePath: string): Promise<boolean>
   getDesktopSettings(): Promise<DesktopSettingsType>
   setDesktopSetting(

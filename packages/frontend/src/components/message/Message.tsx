@@ -24,6 +24,7 @@ import {
   openWebxdc,
   enterEditMessageMode,
 } from './messageFunctions'
+import { getPrivittyFileTypeLabel } from '../../utils/privittyFileTypeLabel'
 import Attachment from '../attachment/messageAttachment'
 import { runtime } from '@deltachat-desktop/runtime-interface'
 import { AvatarFromContact } from '../Avatar'
@@ -167,8 +168,7 @@ const ForwardedTitle = ({
   conversationType,
   overrideSenderName,
   tabIndex,
-  message,
-  openDialog,
+  bellSlot,
 }: {
   contact: T.Contact
   onContactClick: (contact: T.Contact) => void
@@ -176,111 +176,157 @@ const ForwardedTitle = ({
   conversationType: ConversationType
   overrideSenderName: string | null
   tabIndex: -1 | 0
-  message: T.Message
-  openDialog: OpenDialog
+  bellSlot?: React.ReactNode
 }) => {
   const tx = useTranslationFunction()
 
   const { displayName, color } = contact
 
-  // forwarded outgoing message bell
-  const handleBellClick = (e: React.MouseEvent) => {
-    e.preventDefault()
-    e.stopPropagation()
-    if (message.file && message.chatId) {
-      openDialog(FileAccessStatusDialog, {
-        chatId: message.chatId,
-        filePath: message.file,
-        fileName: message.fileName || undefined,
-      })
-    }
+  const forwardedTextStyle: React.CSSProperties = {
+    fontStyle: 'italic',
+    fontWeight: 'normal',
+    fontSize: '0.85em',
+    opacity: 0.72,
   }
 
-  return (
-    <div className='forwarded-indicator'>
-      {conversationType.hasMultipleParticipants && direction !== 'outgoing' ? (
-        reactStringReplace(tx('forwarded_by', '$$$'), '$$$', () => (
+  if (conversationType.hasMultipleParticipants && direction !== 'outgoing') {
+    // Group incoming: "Forwarded by Name" — keep left-aligned, italic
+    return (
+      <div
+        className='forwarded-indicator'
+        style={{ fontStyle: 'italic', fontWeight: 'normal', marginBottom: 6 }}
+      >
+        {reactStringReplace(tx('forwarded_by', '$$$'), '$$$', () => (
           <button
             className='forwarded-indicator-button'
             onClick={() => onContactClick(contact)}
             tabIndex={tabIndex}
             key='displayname'
-            style={{ color: color }}
+            style={{ color: color, fontStyle: 'italic' }}
           >
             {overrideSenderName ? `~${overrideSenderName}` : displayName}
           </button>
-        ))
-      ) : direction === 'outgoing' ? (
-        <button
-          onClick={() => onContactClick(contact)}
-          className='forwarded-indicator-button'
-          tabIndex={tabIndex}
-        >
-          {tx('forwarded_message')}
-        </button>
-      ) : null}
-      {message.file && direction === 'outgoing' && (
-        <button
-          onClick={handleBellClick}
-          className='file-access-bell-button'
-          tabIndex={tabIndex}
-          style={{
-            background: 'none',
-            border: 'none',
-            cursor: 'pointer',
-            padding: '4px',
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-          }}
-          aria-label='File Access Status'
-        >
-          <div
-            aria-label='Privitty status'
-            aria-hidden={true}
-            className={classNames('privitty-bell-icon')}
-          />
-        </button>
-      )}
+        ))}
+        {bellSlot}
+      </div>
+    )
+  }
+
+  // 1:1 or outgoing: "Forwarded Message" italic, right-aligned at the top corner
+  return (
+    <div
+      className='forwarded-indicator'
+      style={{
+        display: 'flex',
+        justifyContent: 'flex-end',
+        alignItems: 'center',
+        gap: 6,
+        marginBottom: 6,
+      }}
+    >
+      <span style={forwardedTextStyle}>{tx('forwarded_message')}</span>
+      {bellSlot}
     </div>
   )
 }
 
 async function showFileForward(message: T.Message): Promise<boolean> {
-  if (message.file && message.fileName) {
-    if (message.fromId === C.DC_CONTACT_ID_SELF) {
-      const response = await runtime.PrivittySendMessage('sendEvent', {
-        event_type: 'getFileAccessStatus',
-        event_data: {
-          chat_id: String(message.chatId),
-          file_path: message.file,
-        },
-      })
-      const jsonresp = JSON.parse(response)
-      if (jsonresp?.result?.data?.status === 'active') {
-        return Promise.resolve(true)
-      } else {
-        console.log('file cannot be forwarded:')
-      }
-    } else {
-      const response = await runtime.PrivittySendMessage('sendEvent', {
-        event_type: 'getFileAccessStatus',
-        event_data: {
-          chat_id: String(message.chatId),
-          file_path: `${message.file}`,
-        },
-      })
-      const jsonresp = JSON.parse(response)
-      if (jsonresp?.result?.data?.is_forward) {
-        return Promise.resolve(true)
-      } else {
-        console.log('file cannot be forwarded:')
-      }
-    }
-    return Promise.resolve(false)
-  } else {
-    return Promise.resolve(true)
+  if (!message.file || !message.fileName) return true
+  if (!message.fileName.toLowerCase().endsWith('.prv')) return true
+  try {
+    const accountId = selectedAccountId()
+    const filePath = message.file.replace(/\\/g, '/')
+    const fileId: T.I64 = await (
+      BackendRemote.rpc as any
+    ).privittyGetFileIdByPath(accountId, filePath)
+    const displayStatus: T.PrivittyFileDisplayStatus | null = await (
+      BackendRemote.rpc as any
+    ).privittyGetFileDisplayStatus(accountId, fileId)
+    return displayStatus?.allow_forward ?? false
+  } catch (e) {
+    console.error('showFileForward: failed to get file display status', e)
+    return false
   }
+}
+
+function isPrvFile(message: Pick<T.Message, 'file' | 'fileName'>): boolean {
+  return (
+    message.fileName?.toLowerCase().endsWith('.prv') ||
+    message.file?.toLowerCase().endsWith('.prv') ||
+    false
+  )
+}
+
+/**
+ * Privitty-forwarded .prv files often arrive without DC's isForwarded flag.
+ * Mirrors Android ConversationItem isPrvForwardedIncoming check.
+ */
+function isPrivittyForwardedPrvSync(message: T.Message): boolean {
+  if (!isPrvFile(message)) return false
+  if (message.isForwarded) return true
+  if (message.fromId === C.DC_CONTACT_ID_SELF) return false
+  const forwardedCount = message.privittyFileInfo?.forwarded?.length ?? 0
+  return forwardedCount > 0
+}
+
+function shouldShowForwardedIndicator(
+  message: T.Message,
+  isPrivittyForwarded: boolean
+): boolean {
+  return (
+    message.isForwarded ||
+    isPrivittyForwarded ||
+    isPrivittyForwardedPrvSync(message)
+  )
+}
+
+/**
+ * Mirrors Android FileAccessStatusData.isIncomingForwardeePrv().
+ * Forwardee incoming .prv messages hide the bell icon.
+ */
+function isIncomingForwardeePrv(message: T.Message): boolean {
+  if (!isPrvFile(message)) return false
+  if (message.fromId === C.DC_CONTACT_ID_SELF) return false
+
+  const info = message.privittyFileInfo
+  const senderAddr = message.sender?.address?.trim().toLowerCase()
+  if (senderAddr && info?.forwarded?.length) {
+    const senderInForwardedList = info.forwarded.some(
+      f => f.contactAddr?.trim().toLowerCase() === senderAddr
+    )
+    if (senderInForwardedList) return true
+  }
+
+  if (message.isForwarded && message.viewType === 'File') {
+    return true
+  }
+  if (!info) return false
+
+  const sharedStatus = info.shared?.status?.trim().toLowerCase()
+  const hasRealSharedAccess =
+    !!sharedStatus &&
+    sharedStatus !== 'not_found' &&
+    sharedStatus !== 'none'
+
+  if (hasRealSharedAccess) return false
+
+  if (info.forwarded.length > 0) {
+    const fwdStatus = info.forwarded[0]?.status?.trim().toLowerCase()
+    return !!fwdStatus && fwdStatus !== 'not_found'
+  }
+  return false
+}
+
+function shouldShowPrivittyBell(
+  message: T.Message,
+  direction: 'incoming' | 'outgoing',
+  isPrivittyForwarded: boolean
+): boolean {
+  if (!isPrvFile(message)) return false
+  // Outgoing relay copy: the forwarder (B) sent someone else's file — they
+  // cannot manage access control, so hide the bell (Android hideBellForForwarder).
+  if (direction === 'outgoing' && isPrivittyForwarded) return false
+  return true
 }
 
 async function buildContextMenu(
@@ -313,12 +359,7 @@ async function buildContextMenu(
   }
 
   const isWebxdcInfo = message.systemMessageType === 'WebxdcInfoMessage'
-  const isLink = Boolean(
-    clickTarget && !clickTarget.getAttribute('x-not-a-link')
-  )
   const email = clickTarget?.getAttribute('x-target-email')
-  const link: string =
-    clickTarget?.getAttribute('x-target-url') || clickTarget?.href || ''
   // grab selected text before clicking, otherwise the selection might be already gone
   const selectedText = window.getSelection()?.toString()
   const textSelected: boolean = selectedText !== null && selectedText !== ''
@@ -407,7 +448,7 @@ async function buildContextMenu(
     // Forward message
     showForward && {
       label: tx('forward'),
-      action: openForwardDialog.bind(null, openDialog, message),
+      action: openForwardDialog.bind(null, openDialog, message, chat.isSelfTalk),
       rightIcon: 'forward',
     },
     // Send emoji reaction
@@ -424,17 +465,6 @@ async function buildContextMenu(
       rightIcon: 'edit',
     },
     { type: 'separator' },
-    // Save Message
-    // For reference, the conditions when it's shown:
-    // https://github.com/deltachat/deltachat-android/blob/52c01976821803fa2d8a177f93576fa4082ef5bd/src/main/java/org/thoughtcrime/securesms/ConversationFragment.java#L342
-    !chat.isSelfTalk &&
-      !isSavedMessage &&
-      !isInfoOrCallInvitation && {
-        label: tx('save'),
-        action: () =>
-          BackendRemote.rpc.saveMsgs(selectedAccountId(), [message.id]),
-        rightIcon: 'bookmark-line',
-      },
     // Unsave
     isSavedMessage && {
       label: tx('unsave'),
@@ -447,14 +477,6 @@ async function buildContextMenu(
       },
       rightIcon: 'bookmark-filled',
     },
-    // copy link
-    link !== '' &&
-      !message.file &&
-      isLink && {
-        label: tx('menu_copy_link_to_clipboard'),
-        action: () => runtime.writeClipboardText(link),
-        rightIcon: 'link',
-      },
     // copy item (selection or all text)
     text !== '' &&
       !message.file &&
@@ -473,14 +495,6 @@ async function buildContextMenu(
       },
       rightIcon: 'copy',
     },
-    // Copy videocall link to clipboard
-    message.videochatUrl !== null &&
-      message.videochatUrl !== '' && {
-        label: tx('menu_copy_link_to_clipboard'),
-        action: () =>
-          runtime.writeClipboardText(message.videochatUrl as string),
-        rightIcon: 'link',
-      },
     // Save Sticker to sticker collection
     message.viewType === 'Sticker' && {
       label: tx('add_to_sticker_collection'),
@@ -600,9 +614,9 @@ function getPrivittyStatusLabel(status: PrivittyStatus | null): string | null {
     case 'waiting_owner_action':
       return 'Waiting for owner action'
     case 'not_found':
-      return 'File not found'
     case 'none':
-      return 'Checking access...'
+      // Android: "Access not yet granted" for incoming forwarded .prv
+      return 'Access not yet granted'
     case 'error':
     default:
       return null
@@ -621,6 +635,107 @@ function getPrivittyStatusColor(status: PrivittyStatus | null): string {
  * Mirrors Android FileAccessStatusData.setExpiryTime():
  * values below year-2000-in-ms are treated as seconds and multiplied by 1000.
  */
+function normalizePrivittyFilePath(filePath: string): string {
+  return filePath.replace(/\\/g, '/')
+}
+
+async function fetchPrivittyBubbleState(
+  accountId: number,
+  message: Pick<
+    T.Message,
+    | 'id'
+    | 'fromId'
+    | 'viewType'
+    | 'isForwarded'
+    | 'sender'
+    | 'file'
+    | 'fileName'
+    | 'privittyFileInfo'
+  >
+): Promise<{
+  status: PrivittyStatus
+  expiryTime: number | null
+  waitingCount: number
+  isPrivittyForwarded: boolean
+  isIncomingForwardee: boolean
+}> {
+  const file = message.file
+  if (!file) {
+    return {
+      status: 'none',
+      expiryTime: null,
+      waitingCount: 0,
+      isPrivittyForwarded: false,
+      isIncomingForwardee: isIncomingForwardeePrv(message),
+    }
+  }
+
+  const filePath = normalizePrivittyFilePath(file)
+  let status: PrivittyStatus = 'none'
+  let expiryTime: number | null = null
+  let waitingCount = 0
+  let isPrivittyForwarded = false
+  let isIncomingForwardee = isIncomingForwardeePrv(message)
+
+  try {
+    const fileId: T.I64 = await (
+      BackendRemote.rpc as any
+    ).privittyGetFileIdByPath(accountId, filePath)
+    const displayStatus: T.PrivittyFileDisplayStatus | null = await (
+      BackendRemote.rpc as any
+    ).privittyGetFileDisplayStatus(accountId, fileId)
+    status = (displayStatus?.state_str ?? 'none') as PrivittyStatus
+    isPrivittyForwarded = displayStatus?.is_forwarded ?? false
+    expiryTime =
+      displayStatus && displayStatus.expiry_time_ms > 0
+        ? Math.floor(Number(displayStatus.expiry_time_ms) / 1000)
+        : null
+  } catch (err) {
+    console.error('Privitty status error', err)
+    status = 'error'
+  }
+
+  try {
+    const info: T.PrivittyFileInfo | null = await (
+      BackendRemote.rpc as any
+    ).privittyGetFileAccessInfo(accountId, message.id)
+    if (info) {
+      const messageWithInfo = { ...message, privittyFileInfo: info }
+      isIncomingForwardee = isIncomingForwardeePrv(messageWithInfo)
+
+      const normalize = (s?: string) => s?.trim().toLowerCase()
+      if (normalize(info.shared?.status) === 'waiting_owner_action' ||
+          normalize(info.shared?.status) === 'requested') {
+        waitingCount++
+      }
+      waitingCount += info.forwarded.filter(f =>
+        ['waiting_owner_action', 'requested'].includes(
+          normalize(f?.status) ?? ''
+        )
+      ).length
+    }
+  } catch (err) {
+    console.error('Red dot count error:', err)
+  }
+
+  return { status, expiryTime, waitingCount, isPrivittyForwarded, isIncomingForwardee }
+}
+
+function matchesFileAccessChange(
+  payload: { chatId: number; msgId?: number; filePath?: string },
+  message: { id: number; chatId: number; file?: string | null }
+): boolean {
+  if (payload.chatId !== message.chatId) return false
+  if (payload.msgId != null && payload.msgId !== message.id) return false
+  if (payload.filePath && message.file) {
+    return (
+      normalizePrivittyFilePath(payload.filePath) ===
+      normalizePrivittyFilePath(message.file)
+    )
+  }
+  return true
+}
+
 function formatExpiryTime(rawMs: number): string {
   const ms = rawMs < 946_684_800_000 ? rawMs * 1000 : rawMs
   return new Date(ms).toLocaleString(undefined, {
@@ -761,6 +876,12 @@ export default function Message(props: {
     downloadState,
   } = message
   const [waitingCount, setWaitingCount] = useState(0)
+  const [isPrivittyForwarded, setIsPrivittyForwarded] = useState(() =>
+    isPrivittyForwardedPrvSync(message)
+  )
+  const [isIncomingForwardee, setIsIncomingForwardee] = useState(() =>
+    isIncomingForwardeePrv(message)
+  )
   // Synchronously hide on first render if the text looks like a raw Privitty
   // PDU (long, continuous base64 string with no spaces). This eliminates the
   // flash of gibberish while the async isPduMessage() server call completes.
@@ -814,58 +935,68 @@ export default function Message(props: {
     }
   }, [id, text])
 
-  // Fetch red-dot "requested access" status (only for .prv files)
+  // Fetch Privitty file status for .prv bubbles. Refreshes immediately when
+  // access changes (grant/deny/revoke) and on MsgsChanged — Android parity.
   useEffect(() => {
-    const filePath = file
-
-    if (!filePath || filePath === '' || !chatId || !filePath.endsWith('.prv')) {
-      return
-    }
+    if (!file || !file.endsWith('.prv')) return
 
     let cancelled = false
+    let intervalId: ReturnType<typeof setInterval> | null = null
 
-    const fetchRedDotStatus = async () => {
-      try {
-        const response = await runtime.PrivittySendMessage('sendEvent', {
-          event_type: 'getFileAccessStatusList',
-          event_data: {
-            chat_id: String(chatId),
-            file_path: filePath,
-          },
-        })
-
-        if (cancelled) return
-        const parsed =
-          typeof response === 'string' ? JSON.parse(response) : response
-        const file = parsed?.result?.data?.file
-        const normalize = (s?: string) => s?.trim().toLowerCase()
-        let count = 0
-
-        // shared_info
-        if (normalize(file?.shared_info?.status) === 'waiting_owner_action') {
-          count++
-        }
-
-        // forwarded_list
-        if (Array.isArray(file?.forwarded_list)) {
-          count += file.forwarded_list.filter(
-            (f: any) => normalize(f?.status) === 'waiting_owner_action'
-          ).length
-        }
-        if (!cancelled) setWaitingCount(count)
-      } catch (err) {
-        console.error('Red dot count error:', err)
-      }
+    const refreshPrivittyFileState = async () => {
+      if (cancelled) return
+      const next = await fetchPrivittyBubbleState(accountId, message)
+      if (cancelled) return
+      setPrivittyFileStatus(next.status)
+      setPrivittyExpiryTime(next.expiryTime)
+      setWaitingCount(next.waitingCount)
+      setIsPrivittyForwarded(next.isPrivittyForwarded)
+      setIsIncomingForwardee(next.isIncomingForwardee)
     }
 
-    fetchRedDotStatus()
+    const unsubscribeReady = privittyStore.onServerReady(() => {
+      if (cancelled) return
+      refreshPrivittyFileState()
+      intervalId = setInterval(refreshPrivittyFileState, 59_000)
+    })
+
+    const unsubscribeFileAccess = privittyStore.subscribeFileAccessChanged(
+      payload => {
+        if (matchesFileAccessChange(payload, { id, chatId, file })) {
+          refreshPrivittyFileState()
+        }
+      }
+    )
+
+    const unsubscribeMsgsChanged = onDCEvent(
+      accountId,
+      'MsgsChanged',
+      ({ chatId: eventChatId, msgId }) => {
+        if (eventChatId !== chatId) return
+        if (msgId !== 0 && msgId !== id) return
+        refreshPrivittyFileState()
+      }
+    )
+
+    const unsubscribeForwardAccessRequested = onDCEvent(
+      accountId,
+      'PrivittyForwardAccessRequested',
+      ({ chatId: eventChatId }) => {
+        if (eventChatId === chatId) {
+          refreshPrivittyFileState()
+        }
+      }
+    )
 
     return () => {
       cancelled = true
+      unsubscribeReady()
+      unsubscribeFileAccess()
+      unsubscribeMsgsChanged()
+      unsubscribeForwardAccessRequested()
+      if (intervalId) clearInterval(intervalId)
     }
-  }, [id, file, chatId])
-
-  // Fetch the human-readable replacement text for the first two Privitty
+  }, [accountId, id, file, chatId])
   // handshake messages. Must wait for server readiness — same reason as the
   // isPduMessage effect above: calling checkIsPrivittyMessage before
   // switchProfile completes returns false, causing replacement text to be
@@ -897,65 +1028,6 @@ export default function Message(props: {
     }
   }, [id, text, chatId, accountId])
 
-  useEffect(() => {
-    // Only fetch access status for Privitty-protected files (.prv extension)
-    if (!file || !file.endsWith('.prv')) return
-
-    let cancelled = false
-    let intervalId: NodeJS.Timeout | null = null
-
-    const fetchStatus = async () => {
-      if (cancelled) return
-
-      try {
-        const response = await runtime.PrivittySendMessage('sendEvent', {
-          event_type: 'getFileAccessStatus',
-          event_data: {
-            chat_id: String(chatId),
-            file_path: file,
-          },
-        })
-
-        if (cancelled) return
-        const parsed = JSON.parse(response)
-        const data = parsed?.result?.data
-        const status = data?.status
-        // Mirrors Android FileAccessStatusData.setExpiryTime() — present when
-        // status is 'active' or 'expired' to show the "Access Until:" label.
-        const rawExpiry =
-          typeof data?.expiry_time === 'number' && data.expiry_time > 0
-            ? data.expiry_time
-            : null
-        setPrivittyFileStatus(status as PrivittyStatus)
-        setPrivittyExpiryTime(rawExpiry)
-      } catch (err) {
-        if (cancelled) return
-        console.error('Privity status error', err)
-        setPrivittyFileStatus('error')
-      }
-    }
-
-    // Wait for the privitty-server to finish switchProfile before the first
-    // fetch. If the server is already ready (returning user opens chat),
-    // onServerReady calls fetchStatus immediately. If the server is still
-    // initialising, fetchStatus fires the moment it becomes ready — no more
-    // 18-second wait for the first status update.
-    const unsubscribeReady = privittyStore.onServerReady(() => {
-      if (!cancelled) {
-        fetchStatus()
-        // Poll for status changes after the initial fetch
-        intervalId = setInterval(fetchStatus, 59000)
-      }
-    })
-
-    return () => {
-      cancelled = true
-      unsubscribeReady()
-      if (intervalId) {
-        clearInterval(intervalId)
-      }
-    }
-  }, [id, file, chatId])
   const direction = getDirection(message)
   const status = mapCoreMsgStatus2String(message.state)
 
@@ -1344,11 +1416,71 @@ export default function Message(props: {
     if (message.file && message.chatId) {
       openDialog(FileAccessStatusDialog, {
         chatId: message.chatId,
+        msgId: message.id,
         filePath: message.file,
         fileName: fileName || undefined,
+        isPeer2Mode: direction === 'incoming',
       })
     }
   }
+
+  const showForwardedIndicator = shouldShowForwardedIndicator(
+    message,
+    isPrivittyForwarded
+  )
+  const showPrivittyFileHeader =
+    isPrvFile(message) && Boolean(showAttachment(message))
+  const showPrivittyBellIcon = shouldShowPrivittyBell(
+    message,
+    direction,
+    isPrivittyForwarded
+  )
+
+  const privittyBellButton = (
+    <div style={{ position: 'relative', display: 'inline-block' }}>
+      {direction === 'outgoing' && waitingCount > 0 && (
+        <div
+          style={{
+            position: 'absolute',
+            top: -4,
+            right: -4,
+            minWidth: 16,
+            height: 16,
+            background: 'red',
+            borderRadius: '50%',
+            color: '#fff',
+            fontSize: 10,
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            padding: '0 4px',
+            fontWeight: 600,
+            zIndex: 10,
+          }}
+          aria-label={`${waitingCount} pending access request${waitingCount === 1 ? '' : 's'}`}
+        >
+          {waitingCount}
+        </div>
+      )}
+      <button
+        onClick={handleBellClick}
+        className='file-access-bell-button'
+        style={{
+          background: 'none',
+          border: 'none',
+          cursor: 'pointer',
+          padding: '4px',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+        }}
+        aria-label='File Access Status'
+        tabIndex={tabindexForInteractiveContents}
+      >
+        <Icon icon='bell' size={20} />
+      </button>
+    </div>
+  )
 
   return (
     <div
@@ -1363,7 +1495,9 @@ export default function Message(props: {
           [styles.withReactions]: message.reactions,
           'type-sticker': viewType === 'Sticker',
           error: status === 'error',
-          forwarded: isForwarded,
+          // Only apply the DC forwarded CSS class for non-.prv messages.
+          // .prv forwarded files render their own inline badge.
+          forwarded: showForwardedIndicator && !showPrivittyFileHeader,
           'has-html': hasHtml,
         }
       )}
@@ -1385,7 +1519,8 @@ export default function Message(props: {
           style={{ borderColor: sender.color }}
           ref={messageContainerRef}
         >
-          {isForwarded ? (
+          {/* Standard DC forwarded indicator — only for non-.prv messages */}
+          {showForwardedIndicator && !showPrivittyFileHeader ? (
             <ForwardedTitle
               contact={sender}
               onContactClick={onContactClick}
@@ -1393,10 +1528,10 @@ export default function Message(props: {
               conversationType={conversationType}
               overrideSenderName={overrideSenderName}
               tabIndex={tabindexForInteractiveContents}
-              message={message}
-              openDialog={openDialog}
             />
-          ) : message.file && direction === 'outgoing' ? (
+          ) : null}
+          {/* Privitty .prv file header — file type label + forwarded badge + bell */}
+          {showPrivittyFileHeader && (
             <div
               style={{
                 display: 'flex',
@@ -1406,55 +1541,42 @@ export default function Message(props: {
                 marginBottom: '4px',
               }}
             >
-              <div style={{ color: '#FFF' }}>{message.viewType}</div>
+              <div
+                style={{
+                  color: direction === 'outgoing' ? '#FFF' : undefined,
+                  fontWeight: 500,
+                }}
+              >
+                {getPrivittyFileTypeLabel(fileName || message.fileName)}
+              </div>
 
-              {/* Bell wrapper */}
-              <div style={{ position: 'relative', display: 'inline-block' }}>
-                {/* Red notification dot */}
-                {waitingCount > 0 && (
-                  <div
+              <div
+                style={{
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: 4,
+                  marginLeft: 12,
+                }}
+              >
+                {showForwardedIndicator && (
+                  <span
                     style={{
-                      position: 'absolute',
-                      top: -4,
-                      right: -4,
-                      minWidth: 16,
-                      height: 16,
-                      background: 'red',
-                      borderRadius: '50%',
-                      color: '#fff',
-                      fontSize: 10,
-                      display: 'flex',
-                      alignItems: 'center',
-                      justifyContent: 'center',
-                      padding: '0 4px',
-                      fontWeight: 600,
-                      zIndex: 10,
+                      fontSize: 11,
+                      fontStyle: 'italic',
+                      fontWeight: 'normal',
+                      opacity: 0.72,
+                      color:
+                        direction === 'outgoing' ? '#FFF' : 'var(--messageText, #444)',
                     }}
                   >
-                    {waitingCount}
-                  </div>
+                    Forwarded Message
+                  </span>
                 )}
-                {/* Bell button */}
-                <button
-                  onClick={handleBellClick}
-                  className='file-access-bell-button'
-                  style={{
-                    background: 'none',
-                    border: 'none',
-                    cursor: 'pointer',
-                    padding: '4px',
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'center',
-                  }}
-                  aria-label='File Access Status'
-                >
-                  <Icon icon='bell' size={20} />
-                </button>
+                {showPrivittyBellIcon && privittyBellButton}
               </div>
             </div>
-          ) : null}
-          {!isForwarded && (
+          )}
+          {!showForwardedIndicator && (
             <div
               className={classNames('author-wrapper', {
                 'can-hide':

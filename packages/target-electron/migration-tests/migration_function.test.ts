@@ -9,7 +9,7 @@ import { tmpdir } from 'os'
 import { readdir } from 'fs/promises'
 import { migrateAccountsIfNeeded } from '../src/deltachat/migration'
 import { getLogger, setLogHandler } from '@deltachat-desktop/shared/logger'
-import { startDeltaChat } from '@privitty/deltachat-rpc-server'
+import { startDeltaChat } from '@privitty/stdio-rpc-server'
 import { RC_Config } from '@deltachat-desktop/shared/shared-types'
 
 const __dirname = dirname(fileURLToPath(import.meta.url))

@@ -129,8 +129,14 @@ class ElectronRuntime implements Runtime {
     return Promise.resolve()
   }
 
-  async PrivittySendMessage(method: string, params: any): Promise<string> {
-    return ipcBackend.invoke('privitty_Send_Message', method, params)
+  async PrivittySendMessage(method: string, _params: any): Promise<string> {
+    // The legacy privitty-server process has been removed. Operations must be
+    // migrated to use BackendRemote.rpc.privitty* JSONRPC methods directly.
+    console.warn(
+      `[Privitty] PrivittySendMessage('${method}') is deprecated — ` +
+        'migrate to JSONRPC via BackendRemote.rpc'
+    )
+    return JSON.stringify({ error: 'legacy-server-removed', method })
   }
 
   onPrivittyMessageDetected(callback: (chatId: number) => void): () => void {
@@ -144,6 +150,31 @@ class ElectronRuntime implements Runtime {
     const handler = () => callback()
     ipcBackend.on('privittyServerReady', handler)
     return () => ipcBackend.removeListener('privittyServerReady', handler)
+  }
+
+  onPrivittyLicenseStatus(
+    callback: (accountId: number, statusCode: number) => void
+  ): () => void {
+    const handler = (
+      _ev: any,
+      data: { accountId: number; statusCode: number }
+    ) => callback(data.accountId, data.statusCode)
+    ipcBackend.on('privittyLicenseStatus', handler)
+    return () => ipcBackend.removeListener('privittyLicenseStatus', handler)
+  }
+
+  hasLicenseFile(): Promise<boolean> {
+    return ipcBackend.invoke('privitty-has-license-file')
+  }
+
+  importLicenseFromUrl(
+    url: string
+  ): Promise<{ customerName: string; licensePath: string }> {
+    return ipcBackend.invoke('privitty-import-license-url', url)
+  }
+
+  importLicenseFromFile(filePath: string): Promise<{ licensePath: string }> {
+    return ipcBackend.invoke('privitty-import-license-file', filePath)
   }
 
   onDrop: DropListener | null = null

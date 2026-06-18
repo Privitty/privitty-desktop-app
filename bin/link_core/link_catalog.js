@@ -21,7 +21,7 @@ function linkCatalog() {
       if (pkg === 'packages/target-tauri') {
         // For tauri, we need to add the dependencies
         execSync(
-          'pnpm add --save @privitty/jsonrpc-client@catalog: @privitty/deltachat-rpc-server@catalog:',
+          'pnpm add --save @privitty/jsonrpc-client@catalog: @privitty/stdio-rpc-server@catalog:',
           {
             cwd: pkg,
             stdio: 'inherit',
@@ -36,7 +36,7 @@ function linkCatalog() {
       } else {
         // For target-electron and target-browser, add both dependencies
         execSync(
-          'pnpm add --save @privitty/jsonrpc-client@catalog: @privitty/deltachat-rpc-server@catalog:',
+          'pnpm add --save @privitty/jsonrpc-client@catalog: @privitty/stdio-rpc-server@catalog:',
           {
             cwd: pkg,
             stdio: 'inherit',

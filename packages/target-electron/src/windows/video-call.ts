@@ -8,7 +8,7 @@ import {
   // This is actually used in a JSDoc.
   // eslint-disable-next-line @typescript-eslint/no-unused-vars
   type protocol,
-} from 'electron/main'
+} from 'electron'
 import { join } from 'path'
 import { appIcon, htmlDistDir } from '../application-constants'
 import { getLogger } from '@deltachat-desktop/shared/logger'

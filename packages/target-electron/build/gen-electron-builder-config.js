@@ -87,8 +87,8 @@ const isUniversalBuild = env.UNIVERSAL_BUILD === 'true'
 const macExtraResources = isUniversalBuild
   ? [
       {
-        from: 'node_modules/@privitty/deltachat-rpc-server-darwin-universal',
-        to: 'app.asar.unpacked/node_modules/@privitty/deltachat-rpc-server-darwin-universal',
+        from: 'node_modules/@privitty/stdio-rpc-server-darwin-universal',
+        to: 'app.asar.unpacked/node_modules/@privitty/stdio-rpc-server-darwin-universal',
       },
       {
         from: 'node_modules/@privitty/privitty-core-darwin-universal',
@@ -97,12 +97,12 @@ const macExtraResources = isUniversalBuild
     ]
   : [
       {
-        from: 'node_modules/@privitty/deltachat-rpc-server-darwin-arm64',
-        to: 'app.asar.unpacked/node_modules/@privitty/deltachat-rpc-server-darwin-arm64',
+        from: 'node_modules/@privitty/stdio-rpc-server-darwin-arm64',
+        to: 'app.asar.unpacked/node_modules/@privitty/stdio-rpc-server-darwin-arm64',
       },
       {
-        from: 'node_modules/@privitty/deltachat-rpc-server-darwin-x64',
-        to: 'app.asar.unpacked/node_modules/@privitty/deltachat-rpc-server-darwin-x64',
+        from: 'node_modules/@privitty/stdio-rpc-server-darwin-x64',
+        to: 'app.asar.unpacked/node_modules/@privitty/stdio-rpc-server-darwin-x64',
       },
       {
         from: 'node_modules/@privitty/privitty-core-darwin-arm64',
@@ -116,8 +116,8 @@ const macExtraResources = isUniversalBuild
 
 build['extraResources'] = [
   {
-    from: 'node_modules/@privitty/deltachat-rpc-server',
-    to: 'app.asar.unpacked/node_modules/@privitty/deltachat-rpc-server',
+    from: 'node_modules/@privitty/stdio-rpc-server',
+    to: 'app.asar.unpacked/node_modules/@privitty/stdio-rpc-server',
   },
   {
     from: 'node_modules/@privitty/privitty-core',
@@ -129,9 +129,9 @@ build['asarUnpack'] = [
   // Privitty packages
   './node_modules/@privitty/privitty-core/**',
   './node_modules/@privitty/privitty-core-*/**',
-  // Privitty DeltaChat RPC server packages (meta-package AND platform-specific)
-  './node_modules/@privitty/deltachat-rpc-server/**',
-  './node_modules/@privitty/deltachat-rpc-server-*/**',
+  // stdio-rpc-server packages (meta-package AND platform-specific)
+  './node_modules/@privitty/stdio-rpc-server/**',
+  './node_modules/@privitty/stdio-rpc-server-*/**',
 ]
 // 'html-dist/xdcs/' should be in 'asarUnpack', but that had "file already exists" errors in the ci
 // see https://github.com/deltachat/deltachat-desktop/pull/3876, so we now do it "manually" in the afterPackHook
@@ -154,9 +154,9 @@ if (typeof env.NO_ASAR !== 'undefined' && env.NO_ASAR != 'false') {
 // platform specific
 
 const PREBUILD_FILTERS = {
-  NOT_LINUX: '!node_modules/@privitty/deltachat-rpc-server-linux-*${/*}',
-  NOT_MAC: '!node_modules/@privitty/deltachat-rpc-server-darwin-*${/*}',
-  NOT_WINDOWS: '!node_modules/@privitty/deltachat-rpc-server-win32-*${/*}',
+  NOT_LINUX: '!node_modules/@privitty/stdio-rpc-server-linux-*${/*}',
+  NOT_MAC: '!node_modules/@privitty/stdio-rpc-server-darwin-*${/*}',
+  NOT_WINDOWS: '!node_modules/@privitty/stdio-rpc-server-win32-*${/*}',
 }
 
 build['mac'] = {

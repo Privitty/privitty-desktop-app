@@ -1,6 +1,6 @@
 import { getLogger } from '@deltachat-desktop/shared/logger'
 import { ChildProcessWithoutNullStreams, spawn } from 'child_process'
-import { app, dialog } from 'electron/main'
+import { app, dialog } from 'electron'
 import { BuildInfo } from '../get-build-info'
 import { arch, platform } from 'os'
 import { getLogsPath } from '../application-constants'

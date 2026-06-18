@@ -514,7 +514,25 @@ const Composer = forwardRef<
       </section>
     )
   } else if (!selectedChat.canSend) {
-    return null
+    // For broadcast channels / mailing lists the user genuinely cannot send —
+    // show nothing (original behaviour).
+    if (
+      selectedChat.chatType === C.DC_CHAT_TYPE_IN_BROADCAST ||
+      selectedChat.chatType === C.DC_CHAT_TYPE_MAILINGLIST
+    ) {
+      return null
+    }
+    // For all other chat types (Single, Group, etc.) canSend being false is a
+    // transient state — typically while a secure-join / Privitty handshake is
+    // still in progress.  Show a subtle notice so the user knows why the input
+    // is not yet available, instead of leaving the composer area blank.
+    return (
+      <section ref={ref} className='composer composer--pending'>
+        <div className='composer-pending-notice'>
+          Setting up secure connection…
+        </div>
+      </section>
+    )
   } else {
     return (
       <section
@@ -615,7 +633,7 @@ const Composer = forwardRef<
               selectedChat={selectedChat}
             />
           )}
-          {settingsStore && !recording && (
+          {!recording && (
             <>
               <ComposerMessageInput
                 // We use `hidden` instead of simply conditionally rendering
@@ -901,27 +919,6 @@ export function useDraft(
         draft.viewType
       )
     } else {
-      // Only delete encrypted files when clearing draft
-      if (draft.file && draft.file !== '') {
-        // Check if this is an encrypted file that should be deleted
-        if (sharedData?.FileDirectory) {
-          try {
-            await runtime.PrivittySendMessage('deleteFile', {
-              filePath: dirname(sharedData.FileDirectory),
-              fileName: basename(sharedData.FileDirectory),
-            })
-            console.log(
-              'Encrypted file deleted when clearing draft:',
-              sharedData.FileDirectory
-            )
-          } catch (error) {
-            console.error(
-              'Failed to delete encrypted file when clearing draft:',
-              error
-            )
-          }
-        }
-      }
       await BackendRemote.rpc.removeDraft(accountId, chatId)
     }
 
@@ -979,23 +976,7 @@ export function useDraft(
   const removeFile = useCallback(async () => {
     // If there's an encrypted file in the draft, delete it when removing
 
-    if (draftRef.current.file && sharedData?.FileDirectory) {
-      try {
-        await runtime.PrivittySendMessage('deleteFile', {
-          filePath: dirname(sharedData.FileDirectory),
-          fileName: basename(sharedData.FileDirectory),
-        })
-        console.log(
-          'Encrypted file deleted when removing from draft:',
-          sharedData.FileDirectory
-        )
-      } catch (error) {
-        console.error(
-          'Failed to delete encrypted file when removing from draft:',
-          error
-        )
-      }
-    }
+    // Encrypted temp files are cleaned up by the OS; no explicit delete needed.
 
     draftRef.current.file = ''
     draftRef.current.viewType = 'Text'

@@ -11,7 +11,7 @@
 #   3. Electron Helper .app bundles
 #   4. Unpacked native binaries in app.asar.unpacked/:
 #        privitty-server          (universal fat binary)
-#        deltachat-rpc-server     (universal fat binary)
+#        stdio-rpc-server         (universal fat binary)
 #   5. Main PrivittyChat.app bundle
 #   6. The DMG container itself
 #   Then: notarize + staple
@@ -145,7 +145,7 @@ if [[ -d "$UNPACKED_NM" ]]; then
 
   # Explicit check: confirm the two critical Privitty binaries were signed.
   for expected_bin in \
-    "@privitty/deltachat-rpc-server-darwin-universal/deltachat-rpc-server" \
+    "@privitty/stdio-rpc-server-darwin-universal/deltachat-rpc-server" \
     "@privitty/privitty-core-darwin-universal/privitty-server"
   do
     bin_path="$UNPACKED_NM/$expected_bin"

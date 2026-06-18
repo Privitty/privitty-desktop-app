@@ -201,36 +201,18 @@ const getMediaActions = (
     ),
     downloadMedia: onDownload.bind(null, message),
     openInShell: async () => {
-      if (isSupportedMedia) {
-        try {
-          const result = await openAttachmentInShell(message)
-
-          const decryptRequest = await runtime.PrivittySendMessage(
-            'sendEvent',
-            {
-              event_type: 'fileDecryptRequest',
-              event_data: {
-                chat_id: String(message.chatId),
-                prv_file: result.filePath,
-              },
-            }
+      try {
+        const result = await openAttachmentInShell(message)
+        if (result?.useSecureViewer) {
+          openSecureViewer(
+            openDialog,
+            result.filePath!,
+            result.fileName!,
+            result.viewerType as 'pdf' | 'image' | 'video'
           )
-          const parsed = JSON.parse(decryptRequest)
-          if (result?.useSecureViewer) {
-            openSecureViewer(
-              openDialog,
-              parsed.result.data.file_path,
-              parsed.result.data.file_name,
-              result.viewerType as 'pdf' | 'image' | 'video'
-            )
-          }
-        } catch (error) {
-          console.error('Error opening media:', error)
-          // Fallback to regular opening if secure viewer fails
-          openAttachmentInShell(message)
         }
-      } else {
-        openAttachmentInShell(message)
+      } catch (error) {
+        console.error('Error opening media:', error)
       }
     },
   }

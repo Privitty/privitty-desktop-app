@@ -46,7 +46,7 @@ function linkLocal() {
       if (pkg === 'packages/target-tauri') {
         // For tauri, we need to add the dependencies
         execSync(
-          `pnpm add @privitty/jsonrpc-client@link:../../${coreRepoCheckout}/deltachat-jsonrpc/typescript @privitty/deltachat-rpc-server@link:../../${coreRepoCheckout}/deltachat-rpc-server/npm-package`,
+          `pnpm add @privitty/jsonrpc-client@link:../../${coreRepoCheckout}/deltachat-jsonrpc/typescript @privitty/stdio-rpc-server@link:../../${coreRepoCheckout}/deltachat-rpc-server/npm-package`,
           {
             cwd: pkg,
             stdio: 'inherit',
@@ -79,7 +79,7 @@ function linkLocal() {
       } else {
         // For target-electron and target-browser, add both dependencies
         execSync(
-          `pnpm add @privitty/jsonrpc-client@link:../../${coreRepoCheckout}/deltachat-jsonrpc/typescript @privitty/deltachat-rpc-server@link:../../${coreRepoCheckout}/deltachat-rpc-server/npm-package`,
+          `pnpm add @privitty/jsonrpc-client@link:../../${coreRepoCheckout}/deltachat-jsonrpc/typescript @privitty/stdio-rpc-server@link:../../${coreRepoCheckout}/deltachat-rpc-server/npm-package`,
           {
             cwd: pkg,
             stdio: 'inherit',

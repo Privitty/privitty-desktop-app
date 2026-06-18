@@ -2,6 +2,13 @@ import React, { createContext, useContext, useEffect } from 'react'
 import { runtime } from '@deltachat-desktop/runtime-interface'
 import { BackendRemote, onDCEvent } from '../backend-com'
 import { privittyStore } from '../privitty/privittyStore'
+import useDialog from '../hooks/dialog/useDialog'
+import PrivittyLicenseDialog from '../components/dialogs/PrivittyLicenseDialog'
+import {
+  PRIVITTY_STATUS_ACTIVE,
+  PRIVITTY_STATUS_BYPASS,
+  PRIVITTY_STATUS_NOT_INITIALIZED,
+} from '../utils/privittyLicense'
 
 /**
  * PrivittyChatContext — orchestrates detection and populates privittyStore.
@@ -34,6 +41,8 @@ export function PrivittyChatProvider({
     privittyStore.setActiveAccount(accountId)
   }
 
+  const { openDialog } = useDialog()
+
   const markChatAsPrivitty = (chatId: number) => {
     if (accountId != null) {
       privittyStore.markPrivitty(accountId, chatId)
@@ -41,36 +50,21 @@ export function PrivittyChatProvider({
   }
 
   /**
-   * Two-stage Privitty check for a single chat:
-   *   Stage 1 — isChatProtected  (established connections)
-   *   Stage 2 — isPrivittyMessage on the FULL last-message text
-   *             (handshake PDUs and outgoing messages; avoids truncation)
+   * Check whether a chat has an active Privitty secure connection using
+   * the JSONRPC `privittyIsChatEncrypted` method (unified stdio-rpc-server).
    */
   const checkChat = async (
     chatId: number,
-    lastMessageId: number | null | undefined
+    _lastMessageId: number | null | undefined
   ) => {
     if (accountId == null) return
     if (privittyStore.isPrivitty(accountId, chatId)) return
     try {
-      const protResp = await runtime.PrivittySendMessage('isChatProtected', {
-        chat_id: String(chatId),
-      })
-      const protParsed = JSON.parse(protResp)
-      if (protParsed?.result?.is_protected === true) {
-        privittyStore.markPrivitty(accountId, chatId)
-        return
-      }
-
-      if (!lastMessageId) return
-      const msg = await BackendRemote.rpc.getMessage(accountId, lastMessageId)
-      if (!msg?.text) return
-
-      const msgResp = await runtime.PrivittySendMessage('isPrivittyMessage', {
-        base64_data: msg.text,
-      })
-      const msgParsed = JSON.parse(msgResp)
-      if (msgParsed?.result?.is_valid === true) {
+      const isEncrypted = await (BackendRemote.rpc as any).privittyIsChatEncrypted(
+        accountId,
+        chatId
+      )
+      if (isEncrypted === true) {
         privittyStore.markPrivitty(accountId, chatId)
       }
     } catch {
@@ -104,9 +98,10 @@ export function PrivittyChatProvider({
     }
   }
 
-  // Primary trigger: privittyServerReady fires after switchProfile response,
-  // guaranteeing the server's user DB is fully set up before the scan runs.
-  // 30 s fallback prevents the scan from never running if the event is missed.
+  // Primary trigger: privittyServerReady fires from openPrivittyVault after
+  // ImapConnected, guaranteeing the server's user DB is fully set up before
+  // the scan runs.  30 s fallback prevents the scan from never running if the
+  // event is missed.
   useEffect(() => {
     let cancelled = false
     const fallbackTimer = window.setTimeout(() => {
@@ -161,6 +156,79 @@ export function PrivittyChatProvider({
         privittyStore.markPrivitty(accountId, chatId)
       }
     })
+  }, [accountId])
+
+  // Core event: peer handshake completed → mark the chat as Privitty-protected.
+  useEffect(() => {
+    if (accountId == null) return
+    return onDCEvent(accountId, 'PrivittyPeerHandshakeComplete', ({ chatId }) => {
+      privittyStore.markPrivitty(accountId, chatId)
+    })
+  }, [accountId])
+
+  // Core event: chat encryption state changed (e.g. after key rotation).
+  useEffect(() => {
+    if (accountId == null) return
+    return onDCEvent(
+      accountId,
+      'PrivittyChatEncryptionChanged',
+      ({ chatId, isEncrypted }) => {
+        if (isEncrypted) {
+          privittyStore.markPrivitty(accountId, chatId)
+        }
+      }
+    )
+  }, [accountId])
+
+  // Periodic sweep — mirrors Android's 30 s timer in ConversationFragment.
+  // Marks expired file keys in the Privitty DB so the UI can show correct
+  // "expired" badges without waiting for a server-push event.
+  useEffect(() => {
+    if (accountId == null) return
+    const sweep = () => {
+      ;(BackendRemote.rpc as any)
+        .privittyCheckAndMarkExpiredKeys(accountId)
+        .catch((e: unknown) =>
+          console.error('privittyCheckAndMarkExpiredKeys failed', e)
+        )
+    }
+    sweep() // run immediately on mount / account switch
+    const interval = window.setInterval(sweep, 30_000)
+    return () => window.clearInterval(interval)
+  }, [accountId])
+
+  // Forwardee forward-access requests: refresh the owner's message bell badge
+  // (red dot) — do not auto-open a grant dialog; owner grants via access control.
+  useEffect(() => {
+    if (accountId == null) return
+    return onDCEvent(
+      accountId,
+      'PrivittyForwardAccessRequested',
+      ({ chatId: eventChatId }) => {
+        privittyStore.notifyFileAccessChanged({ chatId: eventChatId })
+      }
+    )
+  }, [accountId])
+
+  // License status: show PrivittyLicenseDialog when the license needs
+  // attention (not activated, expired, clock tampered, etc.).
+  // The license manager is a global singleton — we show the dialog regardless
+  // of which account triggered the event.
+  useEffect(() => {
+    return runtime.onPrivittyLicenseStatus((_eventAccountId, statusCode) => {
+      // Ignore status codes that require no user action.
+      if (
+        statusCode === PRIVITTY_STATUS_ACTIVE ||
+        statusCode === PRIVITTY_STATUS_BYPASS ||
+        statusCode === PRIVITTY_STATUS_NOT_INITIALIZED
+      ) {
+        return
+      }
+      openDialog(PrivittyLicenseDialog, {
+        initialStatusCode: statusCode,
+      })
+    })
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [accountId])
 
   return (

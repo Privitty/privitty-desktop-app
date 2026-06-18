@@ -191,7 +191,7 @@ async function onReady([_appReady, _loadedState, _appx, _webxdc_cleanup]: [
       pathResolve(app.getAppPath(), '../../core/target/debug', binName)
     )
     // Packaged: relative to install dir (one up from resources)
-    // e.g. <InstallDir>\core\target\debug\deltachat-rpc-server.exe
+    // e.g. <InstallDir>\core\target\debug\stdio-rpc-server.exe
     // process.resourcesPath typically points to <InstallDir>\resources
     candidates.push(
       pathResolve(process.resourcesPath, '..', 'core/target/debug', binName)

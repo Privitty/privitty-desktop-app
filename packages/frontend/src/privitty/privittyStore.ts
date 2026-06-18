@@ -17,10 +17,17 @@
 
 type Listener = (chatId: number) => void
 type ReadyListener = () => void
+export type FileAccessChangePayload = {
+  chatId: number
+  msgId?: number
+  filePath?: string
+}
+type FileAccessListener = (payload: FileAccessChangePayload) => void
 
 class PrivittyStore {
   private chats = new Map<number, Set<number>>() // accountId → Set<chatId>
   private listeners = new Set<Listener>()
+  private fileAccessListeners = new Set<FileAccessListener>()
   private activeAccountId: number | null = null
 
   // Server readiness tracking — ensures file-status fetches wait until
@@ -78,6 +85,16 @@ class PrivittyStore {
   subscribe(listener: Listener): () => void {
     this.listeners.add(listener)
     return () => this.listeners.delete(listener)
+  }
+
+  /** Notify message bubbles to refresh Privitty file access status immediately. */
+  notifyFileAccessChanged(payload: FileAccessChangePayload) {
+    this.fileAccessListeners.forEach(l => l(payload))
+  }
+
+  subscribeFileAccessChanged(listener: FileAccessListener): () => void {
+    this.fileAccessListeners.add(listener)
+    return () => this.fileAccessListeners.delete(listener)
   }
 
   /**

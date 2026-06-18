@@ -5,7 +5,7 @@ import {
   ipcMain,
   session,
   screen,
-} from 'electron/main'
+} from 'electron'
 import Mime from 'mime-types'
 import {
   Menu,

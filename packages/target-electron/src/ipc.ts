@@ -9,6 +9,7 @@ import {
   NativeImage,
   systemPreferences,
 } from 'electron'
+import https from 'node:https'
 import path, {
   basename,
   extname,
@@ -54,6 +55,7 @@ import {
 const __dirname = dirname(fileURLToPath(import.meta.url))
 
 const log = getLogger('main/ipc')
+const PLM_SERVER_URL = 'https://plm.privittytech.com'
 
 const app = rawApp as ExtendedAppMainProcess
 
@@ -62,25 +64,62 @@ export function getDCJsonrpcRemote() {
   return dcController.jsonrpcRemote
 }
 
+/**
+ * Initialise the global Privitty license manager with the JWT at `licPath`
+ * and attempt automatic device activation against the PLM server.
+ *
+ * Called immediately after a JWT is written to disk so the license is active
+ * without requiring an app restart.  `licenseInit` errors are re-thrown;
+ * `licenseActivate` errors are logged and swallowed (the PrivittyLicenseDialog
+ * lets the user retry manually).
+ *
+ * Returns the final status code (0 = ACTIVE, 99 = BYPASS/debug, etc.).
+ */
+async function initAndActivateLicense(licPath: string): Promise<{ statusCode: number }> {
+  const licDir = dirname(licPath)
+  const rpc = dcController?.jsonrpcRemote?.rpc as any
+
+  if (!rpc) {
+    log.warn('initAndActivateLicense: JSONRPC not ready, will activate on next ImapConnected')
+    return { statusCode: 5 /* NOT_INITIALIZED */ }
+  }
+
+  // Initialise the global license manager with the JWT file and PLM server URL.
+  await rpc.privittyLicenseInit(licDir, licPath, PLM_SERVER_URL)
+  log.info('initAndActivateLicense: licenseInit completed', { licDir })
+
+  // Check current status.
+  let statusCode: number = await rpc.privittyLicenseGetStatus()
+  log.info('initAndActivateLicense: status before activation', { statusCode })
+
+  // Attempt activation for any status that is not already confirmed active:
+  //   0 = ACTIVE (skip — already registered)
+  //   1 = GRACE_PERIOD (skip — still valid)
+  // All other statuses (NOT_ACTIVATED=3, BYPASS=99, etc.) trigger activation
+  // so the device is always registered with PLM when a JWT is present.
+  if (statusCode !== 0 /* ACTIVE */ && statusCode !== 1 /* GRACE_PERIOD */) {
+    log.info('initAndActivateLicense: calling privittyLicenseActivate …')
+    try {
+      await rpc.privittyLicenseActivate()
+      log.info('initAndActivateLicense: privittyLicenseActivate succeeded')
+    } catch (activateErr) {
+      log.warn('initAndActivateLicense: privittyLicenseActivate failed:', activateErr)
+    }
+    statusCode = await rpc.privittyLicenseGetStatus()
+    log.info('initAndActivateLicense: status after activation', { statusCode })
+  }
+
+  // Push the new status to the renderer.
+  const accountId = await dcController.jsonrpcRemote.rpc.getSelectedAccountId()
+  mainWindow.send('privittyLicenseStatus', { accountId: accountId ?? 0, statusCode })
+
+  return { statusCode }
+}
+
 /** returns shutdown function */
 export async function init(cwd: string, logHandler: LogHandler) {
   const main = mainWindow
-  dcController = new DeltaChatController(cwd, onPrivittyMessage)
-
-  function onPrivittyMessage(response: string) {
-    log.info('Privitty message received in IPC')
-
-    // Forward all privitty messages to the frontend
-    try {
-      const parsed = JSON.parse(response)
-      log.debug('Sending privitty event to frontend')
-
-      // Send to all windows
-      main.window?.webContents.send('privitty-message', parsed)
-    } catch (error) {
-      log.error('Error forwarding privitty message to frontend:', error)
-    }
-  }
+  dcController = new DeltaChatController(cwd)
 
   try {
     await dcController.init()
@@ -294,36 +333,112 @@ export async function init(cwd: string, logHandler: LogHandler) {
     return false
   })
 
-  // Privitty IPC handlers
-  // Methods that query per-chat file-access data.  The privitty-server only
-  // knows about chats that have completed a Privitty peer-exchange; calling
-  // these for an unprotected chat would produce "Chat does not exist" errors.
-  // We guard with isChatProtected() first — mirroring Android's pattern of
-  // checking prvIsChatProtected() before invoking any file-access API.
-  const FILE_ACCESS_METHODS = new Set([
-    'getFileAccessStatus',
-    'getFileAccessStatusList',
-  ])
+  // ── Privitty license import (mirrors Android ImportLicenseActivity) ────────
 
-  ipcMain.handle(
-    'privitty_Send_Message',
-    async (_ev, method: string, params: any) => {
-      if (FILE_ACCESS_METHODS.has(method)) {
-        const chatId = String(params?.chat_id ?? params?.chatId ?? '')
-        if (chatId) {
-          const isProtected = await dcController.isChatProtected(chatId)
-          if (!isProtected) {
-            log.debug(
-              `privitty_Send_Message: chat ${chatId} is not Privitty-protected` +
-                ` — skipping ${method}`
-            )
-            return JSON.stringify({ success: true, data: null })
-          }
-        }
-      }
-      return dcController.sendPrivittyMessage(method, params)
+  ipcMain.handle('privitty-import-license-file', async (_ev, filePath: string) => {
+    const raw = await fs.readFile(filePath, 'utf-8')
+    const jwt = raw.trim()
+    // Basic sanity check: a JWT has exactly 3 base64url parts separated by dots.
+    if (jwt.split('.').length !== 3) {
+      throw new Error(
+        'File does not appear to be a valid license JWT.\n' +
+          'Expected a file containing a single JWT (three base64 parts separated by dots).'
+      )
     }
-  )
+    const licDir = join(getConfigPath(), 'license')
+    await fs.mkdir(licDir, { recursive: true })
+    const licPath = join(licDir, 'privitty.lic')
+    await fs.writeFile(licPath, jwt, 'utf-8')
+    log.info('License JWT imported from file to', licPath)
+
+    // Immediately init and activate — no restart required.
+    const { statusCode } = await initAndActivateLicense(licPath)
+    return { licensePath: licPath, statusCode }
+  })
+
+  // Check whether the Privitty license JWT file exists at the global path.
+  // Used by WelcomeScreen to decide whether to show the ImportLicenseScreen.
+  ipcMain.handle('privitty-has-license-file', async () => {
+    const licPath = join(getConfigPath(), 'license', 'privitty.lic')
+    try {
+      await fs.access(licPath)
+      return true
+    } catch {
+      return false
+    }
+  })
+
+  ipcMain.handle('privitty-import-license-url', async (_ev, url: string) => {
+    // Validate URL — must be a /v1/license/ delivery link
+    let parsed: URL
+    try {
+      parsed = new URL(url)
+    } catch {
+      throw new Error('Not a valid URL.')
+    }
+    // Accept any URL whose path starts with /v1/license/ — covers both the
+    // production server and any staging / on-prem deployment.
+    if (!parsed.pathname.startsWith('/v1/license/')) {
+      throw new Error(
+        'Not a valid Privitty license link.\n' +
+          'Expected path: /v1/license/{token}\n' +
+          'Got: ' +
+          parsed.pathname
+      )
+    }
+
+    // Fetch the JWT from the delivery server using Node.js https (OS DNS)
+    // so it works independently of Chromium's network sandbox.
+    const body = await new Promise<string>((resolve, reject) => {
+      const req = https.request(url, { method: 'GET' }, res => {
+        if (res.statusCode && (res.statusCode < 200 || res.statusCode >= 300)) {
+          reject(
+            new Error(`License server returned HTTP ${res.statusCode}`)
+          )
+          res.resume()
+          return
+        }
+        let raw = ''
+        res.setEncoding('utf8')
+        res.on('data', (chunk: string) => (raw += chunk))
+        res.on('end', () => resolve(raw))
+        res.on('error', reject)
+      })
+      req.on('error', reject)
+      req.setTimeout(15_000, () => {
+        req.destroy(new Error('License server request timed out (15 s)'))
+      })
+      req.end()
+    })
+
+    let data: { license_jwt?: string; customer_name?: string; error?: string }
+    try {
+      data = JSON.parse(body)
+    } catch {
+      throw new Error(
+        'License server returned non-JSON response. Is the URL correct?'
+      )
+    }
+    if (!data.license_jwt) {
+      throw new Error(data.error ?? 'Unexpected server response (no license_jwt).')
+    }
+
+    // Persist the JWT to <configPath>/license/privitty.lic
+    const licDir = join(getConfigPath(), 'license')
+    await fs.mkdir(licDir, { recursive: true })
+    const licPath = join(licDir, 'privitty.lic')
+    await fs.writeFile(licPath, data.license_jwt, 'utf-8')
+    log.info('License JWT saved to', licPath)
+
+    // Immediately init and activate — no restart required.
+    const { statusCode } = await initAndActivateLicense(licPath)
+
+    return {
+      customerName: data.customer_name ?? 'Unknown',
+      licensePath: licPath,
+      statusCode,
+    }
+  })
 
   ipcMain.handle('get-desktop-settings', async _ev => {
     return DesktopSettings.state
@@ -458,13 +573,6 @@ export async function init(cwd: string, logHandler: LogHandler) {
   return () => {
     stopHandlingIncomingVideoCalls()
     dcController.jsonrpcRemote.rpc.stopIoForAllAccounts()
-
-    // Stop privitty server process
-    try {
-      dcController._inner_privitty_account_manager?.stop()
-    } catch (error) {
-      log.error('Error stopping privitty server:', error)
-    }
   }
 }
 

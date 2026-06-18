@@ -2,6 +2,21 @@
   border-left: 1px solid rgba(16, 22, 26, 0.1);
   background-color: var(--composerBg);
 
+  &.composer--pending {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    min-height: 52px;
+    padding: 10px 16px;
+
+    .composer-pending-notice {
+      color: var(--composerPlaceholderText);
+      font-style: italic;
+      font-size: 0.9em;
+      user-select: none;
+    }
+  }
+
   &.contact-request {
     display: flex;
     justify-content: space-around;

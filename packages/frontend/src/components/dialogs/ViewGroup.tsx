@@ -111,6 +111,27 @@ export const useGroup = (accountId: number, chat: T.FullChat) => {
         return
       }
 
+      // Distribute group key shares to the newly added members.
+      await Promise.allSettled(
+        members.map(async id => {
+          if (id === C.DC_CONTACT_ID_SELF) return
+          try {
+            const contact = await BackendRemote.rpc.getContact(accountId, id)
+            await (BackendRemote.rpc as any).privittySendGroupKeyShare(
+              accountId,
+              chat.id,
+              contact.address,
+              contact.displayName
+            )
+          } catch (e) {
+            console.error(
+              `ViewGroup addMembers: privittySendGroupKeyShare failed for contact ${id}`,
+              e
+            )
+          }
+        })
+      )
+
       log.info(
         `Account ${accountId} added ${members.length} members to group ${chat.id} (${members.join(
           ', '

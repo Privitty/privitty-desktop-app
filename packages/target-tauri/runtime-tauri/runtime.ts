@@ -138,6 +138,28 @@ class TauriRuntime implements Runtime {
     return () => {}
   }
 
+  onPrivittyLicenseStatus(
+    _callback: (accountId: number, statusCode: number) => void
+  ): () => void {
+    return () => {}
+  }
+
+  hasLicenseFile(): Promise<boolean> {
+    return Promise.resolve(true)
+  }
+
+  importLicenseFromUrl(
+    _url: string
+  ): Promise<{ customerName: string; licensePath: string }> {
+    return Promise.reject(new Error('License import not supported in Tauri runtime'))
+  }
+
+  importLicenseFromFile(
+    _filePath: string
+  ): Promise<{ licensePath: string }> {
+    return Promise.reject(new Error('License file import not supported in Tauri runtime'))
+  }
+
   constructor() {
     this.getActiveTheme = this.getActiveTheme.bind(this)
   }

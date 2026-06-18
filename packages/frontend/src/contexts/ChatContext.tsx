@@ -235,14 +235,33 @@ export const ChatProvider = ({
       }
     }
 
+    // When a secure-join finishes (progress=1000) for a contact that belongs
+    // to the currently open chat, the core updates `canSend` on the chat but
+    // may not always emit a ChatModified event.  Force a refresh so the
+    // Composer becomes visible without the user having to navigate away and back.
+    const onSecurejoinJoinerProgress = (
+      eventAccountId: number,
+      { contactId, progress }: { contactId: number; progress: number }
+    ) => {
+      if (eventAccountId !== accountId) return
+      if (progress !== 1000) return
+      if (!chatWithLinger) return
+      if (!chatWithLinger.contactIds.includes(contactId)) return
+      if (refreshChat) {
+        refreshChat()
+      }
+    }
+
     BackendRemote.on('ChatModified', onChatModified)
     BackendRemote.on('ChatEphemeralTimerModified', onChatModified)
     BackendRemote.on('ContactsChanged', onContactsModified)
+    BackendRemote.on('SecurejoinJoinerProgress', onSecurejoinJoinerProgress)
 
     return () => {
       BackendRemote.off('ChatModified', onChatModified)
       BackendRemote.off('ChatEphemeralTimerModified', onChatModified)
       BackendRemote.off('ContactsChanged', onContactsModified)
+      BackendRemote.off('SecurejoinJoinerProgress', onSecurejoinJoinerProgress)
     }
   }, [accountId, chatWithLinger, chatId, refreshChat])
 

@@ -1,7 +1,7 @@
 // When you change this file, then run `pnpm migration-test` afterwards
 // to ensure that it still works with all old formats
 
-import { startDeltaChat } from '@privitty/deltachat-rpc-server'
+import { startDeltaChat } from '@privitty/stdio-rpc-server'
 import { existsSync, lstatSync } from 'fs'
 import { join } from 'path'
 import { Logger } from '../../../shared/logger.js'

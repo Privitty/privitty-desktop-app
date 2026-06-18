@@ -152,18 +152,17 @@ async function deleteNotNeededPrebuildsFromUnpackedASAR(
 ) {
   const prebuilds = await readdir(prebuild_dir)
 
-  // Only remove unneeded deltachat-rpc-server platform-specific packages.
-  // Other entries in @privitty (privitty-core, privitty-core-*, and the
-  // deltachat-rpc-server meta package without a platform suffix) must be
-  // left untouched — they have different naming structures and are all needed.
-  // Package names: deltachat-rpc-server-{os}-{arch} (e.g. win32-x64, darwin-arm64).
+  // Only remove unneeded stdio-rpc-server platform-specific packages.
+  // The stdio-rpc-server meta package without a platform suffix must be
+  // left untouched — it is always needed.
+  // Package names: stdio-rpc-server-{os}-{arch} (e.g. win32-x64, darwin-arm64).
   // Windows/Linux: only arch-specific packages exist; we keep the one matching
   // platform+arch. Mac: may have darwin-universal (lipo fat binary) for universal DMG.
   const currentPlatform = context.electronPlatformName
   const currentArch = convertArch(context.arch)
 
   const toDelete = prebuilds.filter(name => {
-    if (!name.startsWith('deltachat-rpc-server-')) return false
+    if (!name.startsWith('stdio-rpc-server-')) return false
     const parts = name.split('-')
     if (parts.length !== 5) return false
     const pkgOs = parts[3]
@@ -191,11 +190,11 @@ async function deleteNotNeededPrebuildsFromUnpackedASAR(
   const prebuilds_after_cleanup = await readdir(prebuild_dir)
   console.log({ prebuilds_after_cleanup })
 
-  // Count only the deltachat-rpc-server platform-specific packages that remain
-  // (5-part names: deltachat-rpc-server-{os}-{arch}).
+  // Count only the stdio-rpc-server platform-specific packages that remain
+  // (5-part names: stdio-rpc-server-{os}-{arch}).
   const rpcServerPlatformPkgs = prebuilds_after_cleanup.filter(
     name =>
-      name.startsWith('deltachat-rpc-server-') && name.split('-').length === 5
+      name.startsWith('stdio-rpc-server-') && name.split('-').length === 5
   )
   if (rpcServerPlatformPkgs.length !== 1 && !isMacBuild) {
     throw new Error(

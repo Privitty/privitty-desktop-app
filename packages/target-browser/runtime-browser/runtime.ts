@@ -122,6 +122,28 @@ class BrowserRuntime implements Runtime {
     return () => {}
   }
 
+  onPrivittyLicenseStatus(
+    _callback: (accountId: number, statusCode: number) => void
+  ): () => void {
+    return () => {}
+  }
+
+  hasLicenseFile(): Promise<boolean> {
+    return Promise.resolve(true)
+  }
+
+  importLicenseFromUrl(
+    _url: string
+  ): Promise<{ customerName: string; licensePath: string }> {
+    return Promise.reject(new Error('License import not supported in browser runtime'))
+  }
+
+  importLicenseFromFile(
+    _filePath: string
+  ): Promise<{ licensePath: string }> {
+    return Promise.reject(new Error('License file import not supported in browser runtime'))
+  }
+
   onDrop: DropListener | null = null
   setDropListener(onDrop: DropListener | null) {
     this.onDrop = onDrop

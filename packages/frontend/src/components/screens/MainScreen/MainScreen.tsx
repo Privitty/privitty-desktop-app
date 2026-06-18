@@ -373,7 +373,7 @@ function chatSubtitle(chat: Type.FullChat) {
       })
     } else if (
       chat.chatType === C.DC_CHAT_TYPE_SINGLE &&
-      chat.contacts[0]?.isBot
+      chat.contacts?.[0]?.isBot
     ) {
       return tx('bot')
     } else if (chat.chatType === C.DC_CHAT_TYPE_MAILINGLIST) {
@@ -397,7 +397,7 @@ function chatSubtitle(chat: Type.FullChat) {
       if (chat.isProtected) {
         return null
       } else {
-        return chat.contacts[0].address
+        return chat.contacts?.[0]?.address ?? null
       }
     }
   }

@@ -18,8 +18,6 @@ import { selectedAccountId } from '../ScreenController'
 import { unmuteChat } from '../backend/chat'
 
 import type { T } from '@privitty/jsonrpc-client'
-import { runtime } from '@deltachat-desktop/runtime-interface'
-
 export function useThreeDotMenu(selectedChat?: T.FullChat) {
   const { openDialog } = useDialog()
   const { openContextMenu } = useContext(ContextMenuContext)
@@ -57,17 +55,7 @@ export function useThreeDotMenu(selectedChat?: T.FullChat) {
       openDeleteChatsDialog(accountId, [selectedChat], chatId)
 
     const deleteChat = async () => {
-      try {
-        const _response = await runtime.PrivittySendMessage('sendEvent', {
-          event_type: 'deleteChatRoom',
-          event_data: {
-            chat_id: String(selectedChat.id),
-          },
-        })
-        onDeleteChat()
-      } catch (error) {
-        console.error('Error Deleting chat:', error)
-      }
+      onDeleteChat()
     }
 
     const onUnmuteChat = () => unmuteChat(accountId, chatId)

@@ -1,6 +1,6 @@
 import { ChildProcessWithoutNullStreams, spawn } from 'child_process'
 import { DC_ACCOUNTS_DIR } from './config'
-import { getRPCServerPath } from '@privitty/deltachat-rpc-server'
+import { getRPCServerPath } from '@privitty/stdio-rpc-server'
 import { BaseDeltaChat, yerpc } from '@privitty/jsonrpc-client'
 import { WebSocket, WebSocketServer } from 'ws'
 import { RCConfig } from './rc-config'
@@ -18,7 +18,7 @@ class StdioServer {
 
   async start() {
     const serverPath = await getRPCServerPath()
-    log.info('using deltachat-rpc-server at', { serverPath })
+    log.info('using stdio-rpc-server at', { serverPath })
     this.serverProcess = spawn(serverPath, {
       env: {
         DC_ACCOUNTS_PATH: DC_ACCOUNTS_DIR,

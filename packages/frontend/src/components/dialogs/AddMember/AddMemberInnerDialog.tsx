@@ -23,7 +23,6 @@ import { AddMemberChip } from './AddMemberDialog'
 import styles from './styles.module.scss'
 import classNames from 'classnames'
 import { RovingTabindexProvider } from '../../../contexts/RovingTabindex'
-import { runtime } from '@deltachat-desktop/runtime-interface'
 import { I18nContext } from '../../../contexts/I18nContext'
 
 export function AddMemberInnerDialog({
@@ -120,35 +119,19 @@ export function AddMemberInnerDialog({
     memberEmail: string,
     memberName: string
   ) => {
-    const response = await runtime.PrivittySendMessage('sendEvent', {
-      event_type: 'initAddMemberToGroup',
-      event_data: {
-        chat_id: String(groupChatId),
+    try {
+      await (BackendRemote.rpc as any).privittySendGroupKeyShare(
+        accountId,
+        groupChatId,
         memberEmail,
-        memberName,
-      },
-    })
-
-    const parsed = JSON.parse(response).result?.data?.pdu
-    if (!parsed) return
-
-    const MESSAGE_DEFAULT: T.MessageData = {
-      file: null,
-      filename: null,
-      viewtype: null,
-      html: null,
-      location: null,
-      overrideSenderName: null,
-      quotedMessageId: null,
-      quotedText: null,
-      text: null,
+        memberName
+      )
+    } catch (e) {
+      console.error(
+        'callInitAddMemberToGroup: privittySendGroupKeyShare failed',
+        e
+      )
     }
-
-    await BackendRemote.rpc.sendMsg(accountId, groupChatId, {
-      ...MESSAGE_DEFAULT,
-      text: parsed,
-      viewtype: 'Text',
-    })
   }
 
   const createNewContact = useCallback(async () => {

@@ -79,202 +79,79 @@ export async function openAttachmentInShell(
 
   if (extname(msg.fileName) === '.prv') {
     filePathName = tmpFile.replace(/\\/g, '/')
-    await runtime.PrivittySendMessage('sendEvent', {
-      event_type: 'fileDecryptRequest',
-      event_data: {
-        chat_id: String(msg.chatId),
-        prv_file: filePathName,
-      },
-    })
+    const accountId = selectedAccountId()
 
-    if (msg.fromId === C.DC_CONTACT_ID_SELF) {
-      // we will open the viewer if the file is not downloadable
-      log.debug('Opening viewer for non-downloadable file', filePathName)
-
-      const fileAccessResponse = await runtime.PrivittySendMessage(
-        'sendEvent',
-        {
-          event_type: 'getFileAccessStatus',
-          event_data: {
-            chat_id: String(msg.chatId),
-            file_path: filePathName,
-          },
-        }
+    // Decrypt the file using the JSONRPC API
+    try {
+      const basicChat = await BackendRemote.rpc.getBasicChatInfo(
+        accountId,
+        msg.chatId
       )
-      log.debug('fileAccessResponse', fileAccessResponse)
-
-      if (JSON.parse(fileAccessResponse).fileAccessState != 'revoked') {
-        // Check if the decrypted file is a supported media type that should be opened in secure viewer
-        const decryptedFileExtension = extname(
-          msg.fileName.replace('.prv', '')
-        ).toLowerCase()
-        const supportedImageExtensions = [
-          '.jpg',
-          '.jpeg',
-          '.png',
-          '.gif',
-          '.bmp',
-          '.webp',
-          '.svg',
-        ]
-        const supportedVideoExtensions = [
-          '.mp4',
-          '.avi',
-          '.mov',
-          '.wmv',
-          '.flv',
-          '.webm',
-          '.mkv',
-          '.m4v',
-        ]
-
-        if (
-          decryptedFileExtension === '.pdf' ||
-          supportedImageExtensions.includes(decryptedFileExtension) ||
-          supportedVideoExtensions.includes(decryptedFileExtension)
-        ) {
-          log.info(
-            'Decrypted file is supported media, should be opened in secure viewer',
-            {
-              filePath: filePathName,
-              fileName: msg.fileName,
-              extension: decryptedFileExtension,
-            }
-          )
-          // Return a result to indicate this should be opened in secure viewer
-          return {
-            useSecureViewer: true,
-            filePath: filePathName,
-            fileName: msg.fileName,
-            viewerType:
-              decryptedFileExtension === '.pdf'
-                ? 'pdf'
-                : supportedImageExtensions.includes(decryptedFileExtension)
-                  ? 'image'
-                  : 'video',
-          }
-        }
-        runtime.openPath(filePathName)
-        return
+      let decryptedPath: string
+      if (basicChat.chatType === C.DC_CHAT_TYPE_GROUP) {
+        decryptedPath = await (
+          BackendRemote.rpc as any
+        ).privittyDecryptGroupFile(accountId, msg.chatId, msg.id, filePathName)
+      } else {
+        decryptedPath = await (BackendRemote.rpc as any).privittyDecryptFile(
+          accountId,
+          msg.chatId,
+          msg.id,
+          filePathName
+        )
       }
-    } else {
-      log.debug('Message Functions 2 filePathName', filePathName)
-      const fileAccessResponse = await runtime.PrivittySendMessage(
-        'sendEvent',
-        {
-          event_type: 'getFileAccessStatus',
-          event_data: {
-            chat_id: String(msg.chatId),
-            file_path: filePathName,
-          },
-        }
-      )
-      log.debug('fileAccessResponse', fileAccessResponse)
-      const parsed = JSON.parse(fileAccessResponse)
-      if (parsed.result?.data?.success === 'false') {
-        //if (JSON.parse(fileAccessResponse).status === 'false') {
-        // Check if the decrypted file is a supported media type that should be opened in secure viewer
-        const decryptedFileExtension = extname(
-          msg.fileName.replace('.prv', '')
-        ).toLowerCase()
-        const supportedImageExtensions = [
-          '.jpg',
-          '.jpeg',
-          '.png',
-          '.gif',
-          '.bmp',
-          '.webp',
-          '.svg',
-        ]
-        const supportedVideoExtensions = [
-          '.mp4',
-          '.avi',
-          '.mov',
-          '.wmv',
-          '.flv',
-          '.webm',
-          '.mkv',
-          '.m4v',
-        ]
-        let viewerType: 'pdf' | 'image' | 'video' | 'media' = 'media'
-        if (
-          decryptedFileExtension === '.pdf' ||
-          supportedImageExtensions.includes(decryptedFileExtension) ||
-          supportedVideoExtensions.includes(decryptedFileExtension)
-        ) {
-          if (supportedImageExtensions.includes(decryptedFileExtension)) {
-            viewerType = 'image'
-          } else if (
-            supportedVideoExtensions.includes(decryptedFileExtension)
-          ) {
-            viewerType = 'video'
-          } else if (decryptedFileExtension === '.pdf') {
-            viewerType = 'pdf'
-          } else {
-            viewerType = 'media'
-          }
-          log.info(
-            'Decrypted file is supported media, should be opened in secure viewer',
-            {
-              filePath: filePathName,
-              fileName: msg.fileName,
-              extension: decryptedFileExtension,
-            }
-          )
-          // Return a result to indicate this should be opened in secure viewer
-          return {
-            useSecureViewer: true,
-            filePath: filePathName,
-            fileName: msg.fileName,
-            viewerType: viewerType,
-          }
-        }
-        //runtime.OpenSecureViewer(filePathName, filePathName)
-        //runtime.openPath(filePathName)
-        //return
-        // Check if the decrypted file is a supported media type and use secure viewer
-        const fileExtension = extname(filePathName).toLowerCase()
+      filePathName = decryptedPath.replace(/\\/g, '/')
+    } catch (e) {
+      log.error('openAttachmentInShell: failed to decrypt .prv file', e)
+      return
+    }
 
-        if (fileExtension === '.pdf') {
-          // For PDFs, we'll use the secure viewer dialog instead of opening in external app
-          // This ensures the PDF data stays within the application
-          log.info('Opening PDF in secure viewer', {
-            filePath: filePathName,
-            fileName: msg.fileName,
-          })
-          return {
-            useSecureViewer: true,
-            filePath: filePathName,
-            fileName: msg.fileName,
-            viewerType: 'pdf',
-          }
-        } else if (supportedImageExtensions.includes(fileExtension)) {
-          // For images, use the secure image viewer
-          log.info('Opening image in secure viewer', {
-            filePath: filePathName,
-            fileName: msg.fileName,
-          })
-          return {
-            useSecureViewer: true,
-            filePath: filePathName,
-            fileName: msg.fileName,
-            viewerType: 'image',
-          }
-        } else if (supportedVideoExtensions.includes(fileExtension)) {
-          // For videos, use the secure video viewer
-          log.info('Opening video in secure viewer', {
-            filePath: filePathName,
-            fileName: msg.fileName,
-          })
-          return {
-            useSecureViewer: true,
-            filePath: filePathName,
-            fileName: msg.fileName,
-            viewerType: 'video',
-          }
-        }
+    const supportedImageExtensions = [
+      '.jpg',
+      '.jpeg',
+      '.png',
+      '.gif',
+      '.bmp',
+      '.webp',
+      '.svg',
+    ]
+    const supportedVideoExtensions = [
+      '.mp4',
+      '.avi',
+      '.mov',
+      '.wmv',
+      '.flv',
+      '.webm',
+      '.mkv',
+      '.m4v',
+    ]
+    const decryptedFileExtension = extname(filePathName).toLowerCase()
+
+    if (
+      decryptedFileExtension === '.pdf' ||
+      supportedImageExtensions.includes(decryptedFileExtension) ||
+      supportedVideoExtensions.includes(decryptedFileExtension)
+    ) {
+      const viewerType: 'pdf' | 'image' | 'video' =
+        decryptedFileExtension === '.pdf'
+          ? 'pdf'
+          : supportedImageExtensions.includes(decryptedFileExtension)
+            ? 'image'
+            : 'video'
+      log.info('Opening decrypted .prv file in secure viewer', {
+        filePath: filePathName,
+        viewerType,
+      })
+      return {
+        useSecureViewer: true,
+        filePath: filePathName,
+        fileName: msg.fileName,
+        viewerType,
       }
     }
+
+    runtime.openPath(filePathName)
+    return
   }
 
   // For non-PDF files, use the original behavior
@@ -285,49 +162,114 @@ export async function openAttachmentInShell(
   }
 }
 
-const privittyForwardable = async (message: T.Message): Promise<boolean> => {
-  let isforwardable = true
-  if (message.file) {
-    isforwardable = false
-    if (message.fromId === C.DC_CONTACT_ID_SELF) {
-      // check if the file is forwardable
-      const response = await runtime.PrivittySendMessage('sendEvent', {
-        event_type: 'getFileAccessStatus',
-        event_data: {
-          chat_id: String(message.chatId),
-          file_path: message.file,
-        },
-      })
-      const result = JSON.parse(response)
-      log.debug('getFileAccessStatus result', result)
-
-      if (result) {
-        isforwardable = result.result?.data?.is_forward === 'true'
-      }
-    } else {
-      const response = await runtime.PrivittySendMessage('sendEvent', {
-        event_type: 'getFileAccessStatus',
-        event_data: {
-          chat_id: String(message.chatId),
-          file_path: message.file,
-        },
-      })
-      const result = JSON.parse(response)
-
-      //"result":"{"fileAccessState":"active"}
-      if (result) {
-        isforwardable = result.result?.data?.is_forward
+/**
+ * Mirrors Android PrivittyForwardHelper.resolvePrivittySourceChatId().
+ * For outgoing messages (relay copy), scans all chats for an incoming .prv
+ * message with the same file path — that chat is the true source for the
+ * privittyInitForwardPeerAdd() call.
+ * For incoming messages, the message's own chatId is already correct.
+ */
+async function resolvePrivittySourceChatId(
+  accountId: number,
+  message: T.Message
+): Promise<number> {
+  // Incoming: message.chatId is already the source chat.
+  if (message.fromId !== C.DC_CONTACT_ID_SELF) {
+    return message.chatId
+  }
+  // Outgoing relay copy: scan all chats for a matching incoming .prv.
+  const targetPath = (message.file ?? '').replace(/\\/g, '/')
+  if (!targetPath) return message.chatId
+  try {
+    const chatIds = await BackendRemote.rpc.getChatlistEntries(
+      accountId, null, null, null
+    )
+    for (const [chatIdNum] of chatIds) {
+      if (chatIdNum === message.chatId) continue
+      try {
+        const msgIds = await BackendRemote.rpc.getMessageIds(
+          accountId, chatIdNum, false, false
+        )
+        for (const msgId of msgIds) {
+          const msg = await BackendRemote.rpc.getMessage(accountId, msgId)
+          if (msg.fromId === C.DC_CONTACT_ID_SELF) continue
+          if (!msg.file) continue
+          const candidatePath = msg.file.replace(/\\/g, '/')
+          if (candidatePath === targetPath) {
+            log.debug('resolvePrivittySourceChatId: found source chat', chatIdNum)
+            return chatIdNum
+          }
+        }
+      } catch {
+        // skip this chat on error
       }
     }
+  } catch (e) {
+    log.error('resolvePrivittySourceChatId: scan failed', e)
   }
-  return isforwardable
+  return message.chatId
+}
+
+/**
+ * Mirrors Android PrivittyForwardHelper.shouldBlockPrvRelayForward().
+ * Returns true (block) when:
+ *  - incoming forwardee .prv (isIncomingForwardeePrv)
+ *  - allow_forward is false
+ *  - status is revoked / expired / denied
+ */
+const privittyForwardable = async (
+  message: T.Message,
+  isSelfTalk: boolean
+): Promise<boolean> => {
+  if (!message.file || !message.fileName?.toLowerCase().endsWith('.prv')) {
+    return true
+  }
+  // Gap 8: Block forwarding outgoing .prv files from Saved Messages.
+  if (isSelfTalk && message.fromId === C.DC_CONTACT_ID_SELF) {
+    return false
+  }
+  try {
+    const accountId = selectedAccountId()
+    const filePath = message.file.replace(/\\/g, '/')
+    const fileId = await (BackendRemote.rpc as any).privittyGetFileIdByPath(
+      accountId,
+      filePath
+    )
+    const displayStatus: T.PrivittyFileDisplayStatus | null = await (
+      BackendRemote.rpc as any
+    ).privittyGetFileDisplayStatus(accountId, fileId)
+    log.debug('privittyForwardable displayStatus', displayStatus)
+
+    if (!displayStatus) return false
+
+    // Block if forwarding is not permitted
+    if (!displayStatus.allow_forward) return false
+
+    // Block permanently-closed statuses
+    const status = (displayStatus.state_str ?? '').trim().toLowerCase()
+    if (status === 'revoked' || status === 'expired' || status === 'denied') {
+      return false
+    }
+
+    // Block incoming forwardee .prv (isIncomingForwardeePrv)
+    // A forwarded incoming .prv means this is a relay copy — forwardee cannot re-forward.
+    if (displayStatus.is_forwarded && message.fromId !== C.DC_CONTACT_ID_SELF) {
+      return false
+    }
+
+    return true
+  } catch (e) {
+    log.error('privittyForwardable: failed to get file display status', e)
+    return false
+  }
 }
 
 export async function openForwardDialog(
   openDialog: OpenDialog,
-  message: Type.Message
+  message: Type.Message,
+  isSelfTalk = false
 ) {
-  const forwardable = await privittyForwardable(message)
+  const forwardable = await privittyForwardable(message, isSelfTalk)
 
   try {
     if (!forwardable) {
@@ -383,193 +325,75 @@ export async function confirmForwardMessage(
     tx('forward')
   )
   if (yes) {
-    if (message.file && message.fileName) {
-      const result = await runtime.PrivittySendMessage('isChatProtected', {
-        chat_id: String(chat?.id),
-      })
-      const resp = JSON.parse(result)
-      try {
-        if (resp.result.is_protected == false) {
-          // Get contact email dynamically
-          let peerEmail = '' // fallback
-          try {
-            const fullChat = await BackendRemote.rpc.getFullChatById(
-              accountId,
-              chat?.id || 0
-            )
-            if (
-              fullChat &&
-              fullChat.contactIds &&
-              fullChat.contactIds.length > 0
-            ) {
-              const contact = await BackendRemote.rpc.getContact(
-                accountId,
-                fullChat.contactIds[0]
-              )
-              if (contact && contact.address) {
-                peerEmail = contact.address
-              }
-            }
-          } catch (error) {
-            log.error('Error getting contact email:', error)
-            // Use fallback email if there's an error
-          }
-          const addpeerResponse = await runtime.PrivittySendMessage(
-            'sendEvent',
-            {
-              event_type: 'initPeerAddRequest',
-              event_data: {
-                chat_id: String(chat.id),
-                peer_name: chat.name,
-                peer_email: peerEmail,
-                peer_id: String(chat.id),
-              },
-            }
+    try {
+      if (message.file && message.fileName) {
+        // For .prv files, check whether the destination chat is Privitty-protected.
+        // If not, the P2P handshake is automatic in the Rust core — we just wait.
+        const isPrvFile = message.fileName.toLowerCase().endsWith('.prv')
+
+        if (isPrvFile) {
+          // Gap 4+5: Resolve the true source chat (the chat the .prv was
+          // originally received in) and check *source* chat encryption —
+          // matching Android PrivittyForwardHelper.resolvePrivittySourceChatId()
+          // and SendRelayedMessageUtil.handleForwarding() semantics.
+          const sourceChatId = await resolvePrivittySourceChatId(
+            accountId,
+            message
           )
-          log.debug('addpeerResponse', addpeerResponse)
-          const parsedResponse = JSON.parse(addpeerResponse)
-          if (parsedResponse.result.success == true) {
-            const pdu = parsedResponse?.result?.data?.pdu
+          const isSourceEncrypted = await (
+            BackendRemote.rpc as any
+          ).privittyIsChatEncrypted(accountId, sourceChatId)
 
-            const MESSAGE_DEFAULT: T.MessageData = {
-              file: null,
-              filename: null,
-              viewtype: null,
-              html: null,
-              location: null,
-              overrideSenderName: null,
-              quotedMessageId: null,
-              quotedText: null,
-              text: null,
-            }
-            const message: Partial<T.MessageData> = {
-              text: pdu,
-              file: undefined,
-              filename: undefined,
-              quotedMessageId: null,
-              viewtype: 'Text',
-            }
-
-            await BackendRemote.rpc.sendMsg(accountId, chat?.id || 0, {
-              ...MESSAGE_DEFAULT,
-              ...message,
-            })
-          } else {
+          if (!isSourceEncrypted) {
             runtime.showNotification({
               title: 'Privitty',
-              body: 'Privitty ADD peer state =' + parsedResponse.message_type,
+              body: 'Establishing Privitty secure channel… Please try forwarding again once the secure connection is ready.',
               icon: null,
-              chatId: 0,
+              chatId: sourceChatId,
               messageId: 0,
               accountId,
               notificationType: 0,
             })
             return
           }
-          runtime.showNotification({
-            title: 'Privitty',
-            body: 'Enabling Privitty security',
-            icon: null,
-            chatId: 0,
-            messageId: 0,
+
+          // Gap 3: Call privittyInitForwardPeerAdd BEFORE forwardMessages —
+          // mirrors Android's SendRelayedMessageUtil order.
+          const prvFilePath = message.file.replace(/\\/g, '/')
+          try {
+            await (BackendRemote.rpc as any).privittyInitForwardPeerAdd(
+              accountId,
+              sourceChatId,
+              chat.id,
+              prvFilePath
+            )
+          } catch (e) {
+            log.error('privittyInitForwardPeerAdd failed', e)
+            // Proceed with DC forward even if Privitty peer-add fails;
+            // the forwardee will see "access not yet granted" and can request.
+          }
+
+          await BackendRemote.rpc.forwardMessages(
             accountId,
-            notificationType: 0,
-          })
-
-          // Wait until Privitty protection is actually enabled for this chat
-          await waitForPrivittyProtection(chat.id)
+            [message.id],
+            chat.id
+          )
+        } else {
+          await BackendRemote.rpc.forwardMessages(
+            accountId,
+            [message.id],
+            chat.id
+          )
         }
-
-        await BackendRemote.rpc.forwardMessages(
-          accountId,
-          [message.id],
-          chat.id
-        )
-        //work around for privitty file forwarding create the temp
-        const tmpFile = await runtime.copyFileToInternalTmpDir(
-          message.fileName,
-          message.file
-        )
-        let filePathName1 = tmpFile
-        filePathName1 = tmpFile.replace(/\\/g, '/')
-
-        //we need to send a split key to the peer
-        const _filePathName = message.file.replace(/\\/g, '/')
-
-        const responseFwdPeerAdd = await runtime.PrivittySendMessage(
-          'sendEvent',
-          {
-            event_type: 'initForwardPeerAddRequest',
-            event_data: {
-              chat_id: String(message.chatId),
-              forwardee_chat_id: String(chat.id),
-              prv_file: filePathName1,
-            },
-          }
-        )
-        const parsedResponse = JSON.parse(responseFwdPeerAdd)
-        log.debug('parsedResponse', parsedResponse)
-
-        if (parsedResponse.result?.data?.status === 'success') {
-          const pdu = parsedResponse.result?.data?.pdu
-          const MESSAGE_DEFAULT: T.MessageData = {
-            file: null,
-            filename: null,
-            viewtype: null,
-            html: null,
-            location: null,
-            overrideSenderName: null,
-            quotedMessageId: null,
-            quotedText: null,
-            text: null,
-          }
-          const message: Partial<T.MessageData> = {
-            text: pdu,
-            file: undefined,
-            filename: undefined,
-            quotedMessageId: null,
-            viewtype: 'Text',
-          }
-          await BackendRemote.rpc.sendMsg(accountId, chat?.id || 0, {
-            ...MESSAGE_DEFAULT,
-            ...message,
-          })
-        }
-      } catch (e) {
-        log.error('Error in Enabling Privitty Secure', e)
-        return
+      } else {
+        await BackendRemote.rpc.forwardMessages(accountId, [message.id], chat.id)
       }
-    } else {
-      await BackendRemote.rpc.forwardMessages(accountId, [message.id], chat.id)
+    } catch (e) {
+      log.error('confirmForwardMessage: error forwarding', e)
+      return
     }
     return yes
   }
-}
-
-// Waits until a chat becomes Privitty-protected.
-async function waitForPrivittyProtection(chatId: number): Promise<void> {
-  try {
-    const resp = await runtime.PrivittySendMessage('isChatProtected', {
-      chat_id: String(chatId),
-    })
-    const parsed = JSON.parse(resp)
-    if (parsed?.result?.is_protected === true) {
-      return
-    }
-  } catch {
-    // Ignore immediate check errors and fall back to event listener.
-  }
-
-  await new Promise<void>(resolve => {
-    const unsubscribe = runtime.onPrivittyMessageDetected(
-      (protectedChatId: number) => {
-        if (protectedChatId === chatId) {
-          unsubscribe()
-          resolve()
-        }
-      }
-    )
-  })
 }
 
 export function confirmDeleteMessage(

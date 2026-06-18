@@ -69,11 +69,7 @@
       "glob@>=10.0.0 <10.5.0": "10.5.0",
       "lodash": ">=4.17.23",
       "js-yaml": ">=4.1.1",
-      "minimatch@>=9.0.0 <10.2.1": "10.2.1",
-      "@privitty/privitty-core-darwin-arm64": "0.4.3",
-      "@privitty/privitty-core-darwin-x64": "0.4.3",
-      "@privitty/privitty-core-linux-x64": "0.4.3",
-      "@privitty/privitty-core-win32-x64": "0.4.3"
+      "minimatch@>=9.0.0 <10.2.1": "10.2.1"
     }
   },
   "devDependencies": {
