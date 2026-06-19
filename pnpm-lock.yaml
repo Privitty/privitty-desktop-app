@@ -7,11 +7,11 @@ settings:
 catalogs:
   default:
     '@privitty/jsonrpc-client':
-      specifier: 2.48.3
-      version: 2.48.3
+      specifier: 2.48.4
+      version: 2.48.4
     '@privitty/stdio-rpc-server':
-      specifier: 2.48.3
-      version: 2.48.3
+      specifier: 2.48.4
+      version: 2.48.4
     '@types/mime-types':
       specifier: ^2.1.4
       version: 2.1.4
@@ -138,7 +138,7 @@ importers:
         version: 1.7.0
       '@privitty/jsonrpc-client':
         specifier: 'catalog:'
-        version: 2.48.3(ws@7.5.10)
+        version: 2.48.4(ws@7.5.10)
       classnames:
         specifier: ^2.5.1
         version: 2.5.1
@@ -256,7 +256,7 @@ importers:
         version: link:../shared
       '@privitty/jsonrpc-client':
         specifier: 'catalog:'
-        version: 2.48.3(ws@8.18.3)
+        version: 2.48.4(ws@8.18.3)
       '@types/node':
         specifier: 'catalog:'
         version: 20.19.37
@@ -265,7 +265,7 @@ importers:
     dependencies:
       '@privitty/jsonrpc-client':
         specifier: 'catalog:'
-        version: 2.48.3(ws@8.18.3)
+        version: 2.48.4(ws@8.18.3)
       error-stack-parser:
         specifier: ^2.1.4
         version: 2.1.4
@@ -302,10 +302,10 @@ importers:
         version: link:../shared
       '@privitty/jsonrpc-client':
         specifier: 'catalog:'
-        version: 2.48.3(ws@8.18.3)
+        version: 2.48.4(ws@8.18.3)
       '@privitty/stdio-rpc-server':
         specifier: 'catalog:'
-        version: 2.48.3(@privitty/jsonrpc-client@2.48.3(ws@8.18.3))
+        version: 2.48.4(@privitty/jsonrpc-client@2.48.4(ws@8.18.3))
       '@types/express-session':
         specifier: ^1.18.0
         version: 1.18.2
@@ -351,10 +351,10 @@ importers:
     dependencies:
       '@privitty/jsonrpc-client':
         specifier: 'catalog:'
-        version: 2.48.3(ws@7.5.10)
+        version: 2.48.4(ws@7.5.10)
       '@privitty/stdio-rpc-server':
         specifier: 'catalog:'
-        version: 2.48.3(@privitty/jsonrpc-client@2.48.3(ws@7.5.10))
+        version: 2.48.4(@privitty/jsonrpc-client@2.48.4(ws@7.5.10))
       calls-webapp:
         specifier: 'catalog:'
         version: https://codeload.github.com/deltachat/calls-webapp/tar.gz/283103f4dfedf78c6d3479b5b47081f64436a68a
@@ -464,7 +464,7 @@ importers:
         version: link:../shared
       '@privitty/jsonrpc-client':
         specifier: 'catalog:'
-        version: 2.48.3(ws@8.18.3)
+        version: 2.48.4(ws@8.18.3)
       '@tauri-apps/cli':
         specifier: ^2.7.0
         version: 2.10.1
@@ -1141,41 +1141,41 @@ packages:
     engines: {node: '>=18'}
     hasBin: true
 
-  '@privitty/jsonrpc-client@2.48.3':
-    resolution: {integrity: sha512-zYJWEyhyoSZ/6HV9kk1/VGmrMSkmy+knj83R+pYZOB2PKd5g4ajkg1gtndRg7/oH9rcfLl+xpEsY+VmflcmRQw==}
+  '@privitty/jsonrpc-client@2.48.4':
+    resolution: {integrity: sha512-YEl3pDizkVmkBE1biI4jyxJvTQAicajl2BuFos4bu6TbGJmbxyoqdtaIb2M3mzmXsT+zA44qhUDK+Y3ueQOsWw==}
 
-  '@privitty/stdio-rpc-server-darwin-arm64@2.48.3':
-    resolution: {integrity: sha512-10xXZd/LBzP669CTCQl/u55Mx6Cao+BQ/cOkgy97riF0Z45SrQg7RFMS1xmdEpW0ssa3UTaF8BzCEju0aQr0Jg==}
+  '@privitty/stdio-rpc-server-darwin-arm64@2.48.4':
+    resolution: {integrity: sha512-Ky2fWJsEq29H1F25zEsjQcH4cEM0SUyEZ5lsdGHH42UGspyfW0amb3gkY6Y3a4+YY3FRSFT6DMpdjKg6onat/g==}
     cpu: [arm64]
     os: [darwin]
 
-  '@privitty/stdio-rpc-server-darwin-x64@2.48.3':
-    resolution: {integrity: sha512-I+VqQK67QkPFIKW9h5XqQalRQj10aa+UAs0A0mjMrBkXpp7cEr1nOxxwo9DSEvChkqP7hB9REesFHbaegxiHwg==}
+  '@privitty/stdio-rpc-server-darwin-x64@2.48.4':
+    resolution: {integrity: sha512-jLdUQGChIfDbAZCL2dn/V2RCK7Clr4KcWLtSyDvD6Yxg+Gc0doeizoozasIy/kHQr1g+fFJ/utCYbm7Kmk38mw==}
     cpu: [x64]
     os: [darwin]
 
-  '@privitty/stdio-rpc-server-linux-arm64@2.48.3':
-    resolution: {integrity: sha512-+TJDG8eiDxfhZYY0ZcCy4R8T/gLc1q+fHattQ2LGo8J6EN/i92FD2LhHbzwdbed2d3HfHCEu2Hy14D4cjsTdHg==}
+  '@privitty/stdio-rpc-server-linux-arm64@2.48.4':
+    resolution: {integrity: sha512-y8Nd/glQBWGIWRB5nAl5DjPZ0OAirlSrUuk8agRnobQ56z2KlZzN1/gdhXaY9lZ7HqUlqGDPvVkAx0YRzpuN0w==}
     cpu: [arm64]
     os: [linux]
 
-  '@privitty/stdio-rpc-server-linux-x64@2.48.3':
-    resolution: {integrity: sha512-VYkpAeReBEDCrTO8hSi3hLawotJnvfXSsF+yJqHHFtu20tm+8U79cT/L/dEgtLx+uMHiyta5B41w290i4rqxBA==}
+  '@privitty/stdio-rpc-server-linux-x64@2.48.4':
+    resolution: {integrity: sha512-Br1/qUKDQEefObFYipceyFgP8lo5Li7Kx8EUJJMgniwL3xrmAhMRwhuFIBoJUrAhXB4/WXZmbQXwFx4XdRCVUA==}
     cpu: [x64]
     os: [linux]
 
-  '@privitty/stdio-rpc-server-win32-ia32@2.48.3':
-    resolution: {integrity: sha512-Eye0UpkCaxfn3s5qSa/xvOJjOTbDgKOC8Cw6mpluU/9rGYX9okgZ7Mij+CZW3+YcSlaRVjOK1lgCOh9AuYTVfg==}
+  '@privitty/stdio-rpc-server-win32-ia32@2.48.4':
+    resolution: {integrity: sha512-nqqUArQLpFgAPCXY8myVlbpLFixs/TWqv6y3EHYqn4DO8EyX5YkGzH7DvF+hyCSMD4i2kN/uzatJ2sBjhpYyCA==}
     cpu: [ia32]
     os: [win32]
 
-  '@privitty/stdio-rpc-server-win32-x64@2.48.3':
-    resolution: {integrity: sha512-u8oY4ovqeLv9S2VnT73ULhN9fOheoR6obxnOH5koB2k7zNUdBkykkP428ER1cTpf3qmGXy5slITsk1duft7KYg==}
+  '@privitty/stdio-rpc-server-win32-x64@2.48.4':
+    resolution: {integrity: sha512-N8Jm9nrpSGUE+8nYnEwsENsU6lBqx/EZf1expVZm9HtD8cf2oAN7c0Pus4Na4TLmwJqPUb7DW52eFuBUbB1+qg==}
     cpu: [x64]
     os: [win32]
 
-  '@privitty/stdio-rpc-server@2.48.3':
-    resolution: {integrity: sha512-5Wf0odekSxaaKd8eX3ftYsGOK9ERkgpn0OPfy74ZuMPrC7PFXe6j3Y4lNLou5wQrSRqL/NuOUoL3URRi+N0BVQ==}
+  '@privitty/stdio-rpc-server@2.48.4':
+    resolution: {integrity: sha512-rQ2mq/GySaOJjQd3QA0sb7GGHKCjkV3DXNGDIkNmV51a4+jhz8zkeQ9KUOsq/0FIU5sQegJtXHh3tGY+MEqxYg==}
     peerDependencies:
       '@privitty/jsonrpc-client': '*'
 
@@ -4492,7 +4492,7 @@ snapshots:
     dependencies:
       playwright: 1.58.2
 
-  '@privitty/jsonrpc-client@2.48.3(ws@7.5.10)':
+  '@privitty/jsonrpc-client@2.48.4(ws@7.5.10)':
     dependencies:
       '@deltachat/tiny-emitter': 3.0.0
       isomorphic-ws: 5.0.0(ws@7.5.10)
@@ -4502,7 +4502,7 @@ snapshots:
       - utf-8-validate
       - ws
 
-  '@privitty/jsonrpc-client@2.48.3(ws@8.18.3)':
+  '@privitty/jsonrpc-client@2.48.4(ws@8.18.3)':
     dependencies:
       '@deltachat/tiny-emitter': 3.0.0
       isomorphic-ws: 5.0.0(ws@8.18.3)
@@ -4512,45 +4512,45 @@ snapshots:
       - utf-8-validate
       - ws
 
-  '@privitty/stdio-rpc-server-darwin-arm64@2.48.3':
+  '@privitty/stdio-rpc-server-darwin-arm64@2.48.4':
     optional: true
 
-  '@privitty/stdio-rpc-server-darwin-x64@2.48.3':
+  '@privitty/stdio-rpc-server-darwin-x64@2.48.4':
     optional: true
 
-  '@privitty/stdio-rpc-server-linux-arm64@2.48.3':
+  '@privitty/stdio-rpc-server-linux-arm64@2.48.4':
     optional: true
 
-  '@privitty/stdio-rpc-server-linux-x64@2.48.3':
+  '@privitty/stdio-rpc-server-linux-x64@2.48.4':
     optional: true
 
-  '@privitty/stdio-rpc-server-win32-ia32@2.48.3':
+  '@privitty/stdio-rpc-server-win32-ia32@2.48.4':
     optional: true
 
-  '@privitty/stdio-rpc-server-win32-x64@2.48.3':
+  '@privitty/stdio-rpc-server-win32-x64@2.48.4':
     optional: true
 
-  '@privitty/stdio-rpc-server@2.48.3(@privitty/jsonrpc-client@2.48.3(ws@7.5.10))':
+  '@privitty/stdio-rpc-server@2.48.4(@privitty/jsonrpc-client@2.48.4(ws@7.5.10))':
     dependencies:
-      '@privitty/jsonrpc-client': 2.48.3(ws@7.5.10)
+      '@privitty/jsonrpc-client': 2.48.4(ws@7.5.10)
     optionalDependencies:
-      '@privitty/stdio-rpc-server-darwin-arm64': 2.48.3
-      '@privitty/stdio-rpc-server-darwin-x64': 2.48.3
-      '@privitty/stdio-rpc-server-linux-arm64': 2.48.3
-      '@privitty/stdio-rpc-server-linux-x64': 2.48.3
-      '@privitty/stdio-rpc-server-win32-ia32': 2.48.3
-      '@privitty/stdio-rpc-server-win32-x64': 2.48.3
+      '@privitty/stdio-rpc-server-darwin-arm64': 2.48.4
+      '@privitty/stdio-rpc-server-darwin-x64': 2.48.4
+      '@privitty/stdio-rpc-server-linux-arm64': 2.48.4
+      '@privitty/stdio-rpc-server-linux-x64': 2.48.4
+      '@privitty/stdio-rpc-server-win32-ia32': 2.48.4
+      '@privitty/stdio-rpc-server-win32-x64': 2.48.4
 
-  '@privitty/stdio-rpc-server@2.48.3(@privitty/jsonrpc-client@2.48.3(ws@8.18.3))':
+  '@privitty/stdio-rpc-server@2.48.4(@privitty/jsonrpc-client@2.48.4(ws@8.18.3))':
     dependencies:
-      '@privitty/jsonrpc-client': 2.48.3(ws@8.18.3)
+      '@privitty/jsonrpc-client': 2.48.4(ws@8.18.3)
     optionalDependencies:
-      '@privitty/stdio-rpc-server-darwin-arm64': 2.48.3
-      '@privitty/stdio-rpc-server-darwin-x64': 2.48.3
-      '@privitty/stdio-rpc-server-linux-arm64': 2.48.3
-      '@privitty/stdio-rpc-server-linux-x64': 2.48.3
-      '@privitty/stdio-rpc-server-win32-ia32': 2.48.3
-      '@privitty/stdio-rpc-server-win32-x64': 2.48.3
+      '@privitty/stdio-rpc-server-darwin-arm64': 2.48.4
+      '@privitty/stdio-rpc-server-darwin-x64': 2.48.4
+      '@privitty/stdio-rpc-server-linux-arm64': 2.48.4
+      '@privitty/stdio-rpc-server-linux-x64': 2.48.4
+      '@privitty/stdio-rpc-server-win32-ia32': 2.48.4
+      '@privitty/stdio-rpc-server-win32-x64': 2.48.4
 
   '@sindresorhus/is@4.6.0': {}
 

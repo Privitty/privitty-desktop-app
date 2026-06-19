@@ -8,7 +8,7 @@
  * Mirrors the Android FFI surface in `deltachat-ffi/src/license_ffi.rs` and
  * the JSONRPC methods added to `deltachat-jsonrpc/src/api.rs`.
  *
- * Actual method signatures (from @privitty/jsonrpc-client 2.48.3):
+ * Actual method signatures (from @privitty/jsonrpc-client 2.48.4):
  *   privittyLicenseInit(dataDir, licensePath, serverUrl)
  *   privittyLicenseActivate()
  *   privittyLicenseDeactivate()

@@ -116,10 +116,26 @@ function findDeltaChatBinaryInPackagedApp(): string | null {
       try {
         const entries = readdirSync(pnpmStore)
 
-        // Find the platform-specific package directory
-        const targetDir = entries.find((entry: string) =>
-          entry.startsWith(packageName.replace('@privitty/', '@privitty+'))
+        // Collect all matching platform package directories and pick the latest version
+        const prefix = packageName.replace('@privitty/', '@privitty+')
+        const matchingDirs = entries.filter((entry: string) =>
+          entry.startsWith(prefix)
         )
+
+        // Sort by semver descending so we always prefer the newest installed version
+        matchingDirs.sort((a: string, b: string) => {
+          const verA = a.slice(prefix.length + 1).split('_')[0] // strip leading '@'
+          const verB = b.slice(prefix.length + 1).split('_')[0]
+          const partsA = verA.split('.').map(Number)
+          const partsB = verB.split('.').map(Number)
+          for (let i = 0; i < Math.max(partsA.length, partsB.length); i++) {
+            const diff = (partsB[i] ?? 0) - (partsA[i] ?? 0)
+            if (diff !== 0) return diff
+          }
+          return 0
+        })
+
+        const targetDir = matchingDirs[0] as string | undefined
 
         if (targetDir) {
           const binaryPath = join(

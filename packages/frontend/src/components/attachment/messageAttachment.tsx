@@ -270,20 +270,38 @@ export default function Attachment({
                   const yes = await confirmDialog(
                     openDialog,
                     'This file is no longer accessible. You can request access from the owner to view it again.',
-                    'SEND REQUEST'
+                    'Send Request'
                   )
                   if (!yes) return
-                  // Request renewal — core sends the PDU automatically
+                  // Direct-share renewal — use the correct API (not the forward variant)
                   try {
                     await (
                       BackendRemote.rpc as any
-                    ).privittyInitForwardAccessRequest(
+                    ).privittyInitAccessGrantRequest(
                       accountIdForFile,
                       message.chatId,
                       fileId
                     )
+                    runtime.showNotification({
+                      title: 'Privitty',
+                      body: 'Access request sent. You will be notified when the owner responds.',
+                      icon: null,
+                      chatId: message.chatId,
+                      messageId: message.id,
+                      accountId: accountIdForFile,
+                      notificationType: 0,
+                    })
                   } catch (e) {
-                    console.error('privittyInitForwardAccessRequest failed', e)
+                    console.error('privittyInitAccessGrantRequest failed', e)
+                    runtime.showNotification({
+                      title: 'Privitty',
+                      body: 'Could not send access request. Please try again after the file has fully downloaded.',
+                      icon: null,
+                      chatId: message.chatId,
+                      messageId: message.id,
+                      accountId: accountIdForFile,
+                      notificationType: 0,
+                    })
                   }
                   return
                 }
@@ -362,7 +380,7 @@ export default function Attachment({
                 const yes = await confirmDialog(
                   openDialog,
                   'This file is no longer accessible. You can request access from the owner to view it again.',
-                  'SEND REQUEST'
+                  'Send Request'
                 )
                 if (!yes) return
                 await sendForwardAccessRequest()

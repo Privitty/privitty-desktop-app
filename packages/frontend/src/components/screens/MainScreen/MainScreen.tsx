@@ -45,6 +45,9 @@ import asyncThrottle from '@jcoreio/async-throttle'
 import { useFetch, useRpcFetch } from '../../../hooks/useFetch'
 import { getLogger } from '@deltachat-desktop/shared/logger'
 import useConfirmationDialog from '../../../hooks/dialog/useConfirmationDialog'
+import { useRemoteAccess } from '../../../hooks/useRemoteAccess'
+import RemoteAccessDialog from '../../dialogs/RemoteAccessDialog'
+import { privittyStore } from '../../../privitty/privittyStore'
 
 const log = getLogger('MainScreen')
 
@@ -521,6 +524,7 @@ function ChatNavButtons({ chat }: { chat: T.FullChat }) {
   const chatId = chat.id
   const settingsStore = useSettingsStore()[0]
   const { openDialog } = useDialog()
+  const accountId = selectedAccountId()
 
   const openMediaViewDialog = useCallback(() => {
     openDialog(MediaView, {
@@ -540,9 +544,54 @@ function ChatNavButtons({ chat }: { chat: T.FullChat }) {
     runtime.startOutgoingVideoCall(selectedAccountId(), chatId)
   }, [chat.name, chatId, openConfirmationDialog, tx])
 
+  // Remote access (edge peer detection): only available for 1:1 Privitty-encrypted chats
+  const isPrivittyChat =
+    chat.chatType === C.DC_CHAT_TYPE_SINGLE &&
+    privittyStore.isPrivitty(accountId, chatId)
+  const { remoteAccessAvailable, tunnelActive } = useRemoteAccess(
+    isPrivittyChat ? chatId : null
+  )
+
+  const onRemoteAccessClick = useCallback(() => {
+    openDialog(RemoteAccessDialog, {
+      chatId,
+      chatName: chat.name,
+    })
+  }, [openDialog, chatId, chat.name])
+
   return (
     <>
       <span className='views' data-no-drag-region>
+        {/* Remote-access button: visible when the peer is an edge gateway */}
+        {remoteAccessAvailable && (
+          <Button
+            aria-label={tunnelActive ? 'Remote Access (Active)' : 'Remote Access'}
+            title={tunnelActive ? 'Remote Access — tunnel active' : 'Remote Access'}
+            className='navbar-button'
+            styling='borderless'
+            onClick={onRemoteAccessClick}
+          >
+            {/* Use a network/computer icon; Icon component may not have 'network' so we use SVG */}
+            <svg
+              xmlns='http://www.w3.org/2000/svg'
+              width={18}
+              height={18}
+              viewBox='0 0 24 24'
+              fill='none'
+              stroke='currentColor'
+              strokeWidth={2}
+              strokeLinecap='round'
+              strokeLinejoin='round'
+              aria-hidden='true'
+              style={{ color: tunnelActive ? 'var(--colorSuccess, #2e7d32)' : undefined }}
+            >
+              {/* Monitor / display icon (matches Android ic_baseline_devices_24) */}
+              <rect x='2' y='3' width='20' height='14' rx='2' ry='2' />
+              <line x1='8' y1='21' x2='16' y2='21' />
+              <line x1='12' y1='17' x2='12' y2='21' />
+            </svg>
+          </Button>
+        )}
         {/* Note that the `enableAVCallsV2` setting itself is hidden
         on unsupported targets (Tauri, Browser). */}
         {settingsStore?.desktopSettings.enableAVCallsV2 &&
