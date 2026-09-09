@@ -75,9 +75,44 @@
 
     .attachment-button,
     .emoji-button,
-    .microphone-button {
+    .microphone-button,
+    .device-command-button {
       background: none;
       border: none;
+    }
+
+    // Device-commands "/" trigger button.
+    // Shares base reset with attachment/emoji buttons above; this block adds
+    // sizing, font treatment, and state colours.
+    .device-command-button {
+      width: 32px;
+      height: 40px;
+      padding: 0;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 18px;
+      font-weight: 700;
+      line-height: 1;
+      color: var(--contextMenuText);
+      cursor: pointer;
+      border-radius: 4px;
+      flex-shrink: 0;
+      transition: color 0.15s ease, background-color 0.15s ease;
+
+      &:hover {
+        color: var(--colorPrimary, #2196f3);
+        background: none;
+      }
+
+      &:focus:not(:focus-visible) {
+        outline: none;
+      }
+
+      // Active state: palette is open
+      &--active {
+        color: var(--colorPrimary, #2196f3);
+      }
     }
 
     .attachment-button {
@@ -185,6 +220,138 @@
       &:first-child {
         margin-inline-start: 1rem;
       }
+    }
+  }
+}
+
+// ---------------------------------------------------------------------------
+// Device Command Palette
+// ---------------------------------------------------------------------------
+.device-command-palette {
+  background: var(--composerBg, #fff);
+  border: 1px solid rgba(0, 0, 0, 0.12);
+  border-radius: 8px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.18);
+  padding: 4px 0;
+  margin-bottom: 6px;
+  max-height: 260px;
+  overflow-y: auto;
+
+  &__header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 6px 12px;
+    font-size: 11px;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.6px;
+    color: var(--textSecondary, #888);
+    border-bottom: 1px solid rgba(0, 0, 0, 0.08);
+  }
+
+  &__close {
+    background: none;
+    border: none;
+    cursor: pointer;
+    color: var(--textSecondary, #888);
+    font-size: 14px;
+    line-height: 1;
+    padding: 0 4px;
+  }
+
+  &__item {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+    width: 100%;
+    padding: 8px 12px;
+    background: none;
+    border: none;
+    cursor: pointer;
+    text-align: left;
+
+    &:hover {
+      background: rgba(0, 0, 0, 0.06);
+    }
+  }
+
+  &__name {
+    font-family: monospace;
+    font-size: 13px;
+    font-weight: 600;
+    color: var(--composerText, var(--textPrimary, #222));
+  }
+
+  &__desc {
+    font-size: 12px;
+    color: var(--textSecondary, #555);
+    margin-top: 2px;
+  }
+}
+
+// ---------------------------------------------------------------------------
+// Device Command Chips (arg choice row)
+// ---------------------------------------------------------------------------
+.device-command-chips {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 10px;
+  background: var(--composerBg, #fff);
+  border: 1px solid rgba(0, 0, 0, 0.12);
+  border-radius: 8px;
+  margin-bottom: 6px;
+
+  &__label {
+    font-family: monospace;
+    font-weight: 600;
+    color: var(--composerText, var(--textPrimary, #222));
+    font-size: 13px;
+    margin-inline-end: 6px;
+  }
+
+  &__row {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    flex-wrap: wrap;
+  }
+
+  &__arg-label {
+    font-size: 11px;
+    color: var(--textSecondary, #888);
+  }
+
+  &__chip {
+    padding: 4px 10px;
+    border-radius: 16px;
+    border: 1px solid var(--colorPrimary, #2196f3);
+    background: transparent;
+    color: var(--colorPrimary, #2196f3);
+    font-size: 12px;
+    cursor: pointer;
+    transition: background 0.15s, color 0.15s;
+
+    &:hover {
+      background: var(--colorPrimary, #2196f3);
+      color: #fff;
+    }
+  }
+
+  &__cancel {
+    padding: 4px 10px;
+    border-radius: 16px;
+    border: 1px solid rgba(0, 0, 0, 0.2);
+    background: transparent;
+    color: var(--textSecondary, #888);
+    font-size: 12px;
+    cursor: pointer;
+    margin-inline-start: auto;
+
+    &:hover {
+      background: rgba(0, 0, 0, 0.06);
     }
   }
 }

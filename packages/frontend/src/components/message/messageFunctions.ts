@@ -11,6 +11,9 @@ import MessageDetail from '../dialogs/MessageDetail/MessageDetail'
 import SecurePDFViewer from '../dialogs/SecurePDFViewer'
 import SecureImageViewer from '../dialogs/SecureImageViewer'
 import SecureVideoViewer from '../dialogs/SecureVideoViewer'
+import SecureTextViewer, {
+  isTextViewable,
+} from '../dialogs/SecureTextViewer'
 
 import type { OpenDialog } from '../../contexts/DialogContext'
 import { C, type T } from '@privitty/jsonrpc-client'
@@ -38,7 +41,7 @@ interface OpenAttachmentResult {
   useSecureViewer?: boolean
   filePath?: string
   fileName?: string
-  viewerType?: string
+  viewerType?: 'pdf' | 'image' | 'video' | 'text' | string
 }
 
 export async function openAttachmentInShell(
@@ -150,11 +153,40 @@ export async function openAttachmentInShell(
       }
     }
 
+    // Text files from cmd_response (e.g. .log, .txt) — open in secure viewer.
+    if (isTextViewable(filePathName)) {
+      const cleanName =
+        msg.fileName?.replace(/\.prv$/i, '') ||
+        filePathName.split(/[/\\]/).pop() ||
+        'file'
+      log.info('Opening decrypted .prv text file in SecureTextViewer', {
+        filePath: filePathName,
+        fileName: cleanName,
+      })
+      return {
+        useSecureViewer: true,
+        filePath: filePathName,
+        fileName: cleanName,
+        viewerType: 'text',
+      }
+    }
+
     runtime.openPath(filePathName)
     return
   }
 
-  // For non-PDF files, use the original behavior
+  // For known text formats, open in the secure in-app viewer.
+  if (msg.fileName && isTextViewable(msg.fileName)) {
+    log.info('Opening text file in SecureTextViewer', { filePathName })
+    return {
+      useSecureViewer: true,
+      filePath: filePathName,
+      fileName: msg.fileName,
+      viewerType: 'text',
+    }
+  }
+
+  // For all other files, use the original OS-default behavior.
   if (!runtime.openPath(filePathName)) {
     log.info(
       "file couldn't be opened, try saving it in a different place and try to open it from there"
@@ -457,7 +489,7 @@ export function openSecureViewer(
   openDialog: OpenDialog,
   filePath: string,
   fileName: string,
-  viewerType: 'pdf' | 'image' | 'video',
+  viewerType: 'pdf' | 'image' | 'video' | 'text',
   canDownload?: boolean
 ) {
   switch (viewerType) {
@@ -470,7 +502,19 @@ export function openSecureViewer(
     case 'video':
       openSecureVideoViewer(openDialog, filePath, fileName, canDownload)
       break
+    case 'text':
+      openSecureTextViewer(openDialog, filePath, fileName, canDownload)
+      break
   }
+}
+
+export function openSecureTextViewer(
+  openDialog: OpenDialog,
+  filePath: string,
+  fileName: string,
+  canDownload?: boolean
+) {
+  openDialog(SecureTextViewer, { filePath, fileName, canDownload })
 }
 
 export function setQuoteInDraft(messageId: number) {

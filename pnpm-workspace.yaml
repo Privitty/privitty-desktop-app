@@ -2,8 +2,8 @@ packages:
   - packages/*
 catalog:
   # deltachat specific
-  '@privitty/jsonrpc-client': 2.52.2
-  '@privitty/stdio-rpc-server': 2.52.2
+  '@privitty/jsonrpc-client': 2.53.0
+  '@privitty/stdio-rpc-server': 2.53.0
 
   # dependencies
   '@types/mime-types': ^2.1.4
@@ -14,7 +14,7 @@ catalog:
 
   # tools / dev dependencies
   sass: ^1.86.3
-  typescript: ^5.9.2
+  typescript: ^7.0.2
   typescript-plugin-css-modules: ^5.2.0
 
 onlyBuiltDependencies:

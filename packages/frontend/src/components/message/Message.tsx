@@ -59,6 +59,72 @@ import type { JumpToMessage } from '../../hooks/chat/useMessage'
 import { mouseEventToPosition } from '../../utils/mouseEventToPosition'
 import { useRovingTabindex } from '../../contexts/RovingTabindex'
 import { privittyStore } from '../../privitty/privittyStore'
+import {
+  useCmdRequestPending,
+  isCmdRequestText,
+} from '../../hooks/useCmdRequestPending'
+
+// ---------------------------------------------------------------------------
+// Device Command response rendering
+// ---------------------------------------------------------------------------
+
+interface CmdResponsePayload {
+  __pvt: 'cmd_response'
+  req_id?: string
+  cmd?: string
+  status?: string
+  output?: string
+  output_mode?: string
+  message?: string
+}
+
+/**
+ * Parse a message text as a `cmd_response` payload.
+ * Returns null when the text is not a cmd_response.
+ */
+function parseCmdResponse(text: string | null | undefined): CmdResponsePayload | null {
+  if (!text || !text.includes('cmd_response')) return null
+  const start = text.indexOf('{')
+  if (start === -1) return null
+  const end = text.lastIndexOf('}')
+  if (end === -1) return null
+  try {
+    const obj = JSON.parse(text.slice(start, end + 1))
+    if (obj?.__pvt === 'cmd_response') return obj as CmdResponsePayload
+  } catch {
+    /* not JSON */
+  }
+  return null
+}
+
+/**
+ * Renders a `cmd_response` message as a styled code block or error banner.
+ */
+function CmdResponseBubble({ payload }: { payload: CmdResponsePayload }) {
+  const status = payload.status ?? 'ok'
+  const label = payload.cmd ? `/${payload.cmd}` : '/command'
+  return (
+    <div className='device-cmd-response'>
+      <div className='device-cmd-response__header'>
+        <span className='device-cmd-response__cmd'>{label}</span>
+        {status !== 'ok' && (
+          <span className='device-cmd-response__error'>
+            {status === 'unauthorized'
+              ? 'Device commands not enabled'
+              : status === 'obsolete'
+                ? 'Command no longer available — capabilities updated'
+                : (payload.message ?? 'Command failed')}
+          </span>
+        )}
+      </div>
+      {status === 'ok' && payload.output && (
+        <pre className='device-cmd-response__output mm-code'>
+          {payload.output}
+        </pre>
+      )}
+    </div>
+  )
+}
 
 type PrivittyStatus =
   | 'active'
@@ -1041,6 +1107,17 @@ export default function Message(props: {
   const direction = getDirection(message)
   const status = mapCoreMsgStatus2String(message.state)
 
+  // ── Device command pending state ────────────────────────────────────────────
+  // Only active for outgoing cmd_request messages while waiting for a response.
+  const isCmdReq = direction === 'outgoing' && isCmdRequestText(text)
+  const { isPending: cmdIsPending, lastSeenHint: cmdLastSeenHint } =
+    useCmdRequestPending(
+      id,
+      chatId,
+      isCmdReq ? text : null, // skip the hook if this isn't a cmd_request
+      isCmdReq ? sender?.id ?? 0 : 0
+    )
+
   const tx = useTranslationFunction()
 
   const { showReactionsBar } = useReactionsBar()
@@ -1364,17 +1441,62 @@ export default function Message(props: {
       </div>
     )
   } else {
+    // Check for device command response — render as code block.
+    const cmdResponse = parseCmdResponse(text)
+    // Check for outbound cmd_request — render as pending bubble.
+    const cmdReqCmd = isCmdReq
+      ? (() => {
+          try {
+            const start = text!.indexOf('{')
+            const end = text!.lastIndexOf('}')
+            if (start !== -1 && end !== -1) {
+              const obj = JSON.parse(text!.slice(start, end + 1))
+              return obj?.cmd || obj?.command || 'command'
+            }
+          } catch {
+            /* ignore */
+          }
+          return 'command'
+        })()
+      : null
+
     content = (
       <div dir='auto' className='text'>
         {text !== null ? (
-          <MessageBody
-            text={
-              privittyReplacementText !== null
-                ? privittyReplacementText
-                : getPrivittyReplacementText(message) || text
-            }
-            tabindexForInteractiveContents={tabindexForInteractiveContents}
-          />
+          isCmdReq && cmdReqCmd ? (
+            <div className='device-cmd-request'>
+              <span className='device-cmd-request__label'>/{cmdReqCmd}</span>
+              {cmdIsPending ? (
+                <div className='device-cmd-request__pending'>
+                  <span className='device-cmd-request__spinner' aria-hidden='true' />
+                  Waiting for device…
+                  {cmdLastSeenHint && (
+                    <span className='device-cmd-request__offline'>
+                      {' '}Device last seen {cmdLastSeenHint}
+                    </span>
+                  )}
+                </div>
+              ) : (
+                <div className='device-cmd-request__done'>✓ Response received</div>
+              )}
+            </div>
+          ) : cmdResponse && cmdResponse.output_mode !== 'file' ? (
+            // Text-mode cmd_response: render the output as a code block.
+            <CmdResponseBubble payload={cmdResponse} />
+          ) : cmdResponse && cmdResponse.output_mode === 'file' ? (
+            // File-mode cmd_response: the .prv attachment IS the output.
+            // Don't render any text body — let the attachment area do the job.
+            null
+          ) : (
+            <MessageBody
+              text={
+                privittyReplacementText !== null
+                  ? privittyReplacementText
+                  : getPrivittyReplacementText(message) || text
+              }
+              tabindexForInteractiveContents={tabindexForInteractiveContents}
+            />
+          )
         ) : null}
       </div>
     )
