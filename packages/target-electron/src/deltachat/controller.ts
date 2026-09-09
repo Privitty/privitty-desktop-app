@@ -7,18 +7,25 @@ import { existsSync, readdirSync } from 'fs'
 import { arch, platform } from 'os'
 
 import { getLogger } from '../../../shared/logger.js'
-import { getConfigPath } from '../application-constants.js'
 import * as mainWindow from '../../../frontend/src/components/windows/main.js'
 import { ExtendedAppMainProcess } from '../types.js'
 import DCWebxdc from './webxdc.js'
 import { DesktopSettings } from '../desktop_settings.js'
 import { StdioServer } from './stdio_server.js'
 import { migrateAccountsIfNeeded } from './migration.js'
+import {
+  beginLicenseReload,
+  emitPrivittyLicenseStatus,
+  endLicenseReload,
+  initLicenseManagerFromPersistedStore,
+  licenseStoragePaths,
+  reloadLicenseManagerFromDb,
+  watchPrivittyLicenseDb,
+} from '../privittyLicenseEvents.js'
 
 const app = rawApp as ExtendedAppMainProcess
 const log = getLogger('main/deltachat')
 
-const PLM_SERVER_URL = 'https://plm.privittytech.com'
 const logCoreEvent = getLogger('core/event')
 
 class ElectronMainTransport extends yerpc.BaseTransport {
@@ -342,113 +349,119 @@ export default class DeltaChatController extends EventEmitter {
     // serverUrl   = production PLM endpoint for activation / sync
     // inviteLink  = OPENPGP4FPR contact invite URL forwarded to WatchTower
     {
-      const licDir = join(getConfigPath(), 'license')
-      const licFilePath = join(licDir, 'privitty.lic')
-      const licensePath: string | null = existsSync(licFilePath)
-        ? licFilePath
-        : null
+      const { licenseDbPath, licFilePath } = licenseStoragePaths()
+      const hasInstalledLicense =
+        existsSync(licenseDbPath) || existsSync(licFilePath)
 
-      if (licensePath) {
-        log.info('openPrivittyVault: found license file', { licFilePath })
-      } else {
-        log.info(
-          'openPrivittyVault: no license file on disk, using cached DB state'
-        )
-      }
-
+      beginLicenseReload()
       try {
-        await (this.jsonrpcRemote.rpc as any).privittyLicenseInit(
-          licDir, // dataDir — where privitty_license.db is stored
-          licensePath, // JWT file path, or null to use cached DB state
-          PLM_SERVER_URL,
-          inviteLink // contact-invite URL so WatchTower can link this device
-        )
-        log.info('openPrivittyVault: license manager initialised', { licDir })
-      } catch (error) {
-        log.warn('openPrivittyVault: license init failed (non-fatal):', error)
-      }
-
-      // Read back the license status.
-      // If the device is not yet activated and we have a JWT, attempt automatic
-      // activation (mirrors Android's auto-activate on first launch with JWT).
-      try {
-        let statusCode: number = await (
-          this.jsonrpcRemote.rpc as any
-        ).privittyLicenseGetStatus()
-        log.info('openPrivittyVault: license status before auto-activate', {
-          statusCode,
-        })
-
-        // Attempt activation for any status that is not already confirmed active.
-        // This covers NOT_ACTIVATED (3), BYPASS/debug (99), etc.
-        if (
-          statusCode !== 0 /* ACTIVE */ &&
-          statusCode !== 1 /* GRACE_PERIOD */ &&
-          licensePath !== null
-        ) {
-          try {
-            if (deviceName) {
-              await (
-                this.jsonrpcRemote.rpc as any
-              ).privittyLicenseSetDeviceName(deviceName)
-              log.info('openPrivittyVault: device name set', { deviceName })
-            }
-            await (this.jsonrpcRemote.rpc as any).privittyLicenseActivate()
-            log.info('openPrivittyVault: auto-activation succeeded')
-            statusCode = await (
-              this.jsonrpcRemote.rpc as any
-            ).privittyLicenseGetStatus()
-            log.info('openPrivittyVault: license status after auto-activate', {
-              statusCode,
-            })
-          } catch (activateErr) {
-            log.warn(
-              'openPrivittyVault: auto-activation failed (user can retry via dialog):',
-              activateErr
-            )
-          }
-        } else if (statusCode === 0 || statusCode === 1) {
-          // Device is already activated — re-activate unconditionally so PLM
-          // and WatchTower always have an up-to-date record (PLM upserts on
-          // device_id, so no extra seat is consumed).
-          //
-          // If an invite link is available, set it first so WatchTower can
-          // link this device and show "Ready" for the invite status.
-          // We do NOT gate on inviteLink !== null: the device must appear in
-          // WatchTower's Connected Apps regardless of whether the securejoin
-          // QR is available at this moment.
-          try {
-            if (inviteLink !== null) {
-              await (
-                this.jsonrpcRemote.rpc as any
-              ).privittyLicenseSetInviteLink(inviteLink)
-            }
-            if (deviceName) {
-              await (
-                this.jsonrpcRemote.rpc as any
-              ).privittyLicenseSetDeviceName(deviceName)
-              log.info('openPrivittyVault: device name set for re-activation', {
-                deviceName,
-              })
-            }
-            await (this.jsonrpcRemote.rpc as any).privittyLicenseActivate()
-            log.info('openPrivittyVault: re-activation pushed to PLM', {
-              inviteLinkPresent: inviteLink !== null,
-            })
-          } catch (syncErr) {
-            log.warn(
-              'openPrivittyVault: re-activation failed (non-fatal):',
-              syncErr
-            )
-          }
+        try {
+          await initLicenseManagerFromPersistedStore(
+            this.jsonrpcRemote.rpc,
+            inviteLink
+          )
+          log.info('openPrivittyVault: license manager initialised')
+        } catch (error) {
+          log.warn('openPrivittyVault: license init failed (non-fatal):', error)
         }
 
-        mainWindow.send('privittyLicenseStatus', { accountId, statusCode })
-      } catch (error) {
-        log.warn(
-          'openPrivittyVault: license status check failed (non-fatal):',
-          error
-        )
+        // Read back the license status.
+        // If the device is not yet activated and we have a JWT, attempt automatic
+        // activation (mirrors Android's auto-activate on first launch with JWT).
+        try {
+          let statusCode: number = await (
+            this.jsonrpcRemote.rpc as any
+          ).privittyLicenseGetStatus()
+          log.info('openPrivittyVault: license status before auto-activate', {
+            statusCode,
+          })
+
+          // Attempt activation for any status that is not already confirmed active.
+          // This covers NOT_ACTIVATED (3), BYPASS/debug (99), etc.
+          if (
+            statusCode !== 0 /* ACTIVE */ &&
+            statusCode !== 1 /* GRACE_PERIOD */ &&
+            hasInstalledLicense
+          ) {
+            try {
+              if (deviceName) {
+                await (
+                  this.jsonrpcRemote.rpc as any
+                ).privittyLicenseSetDeviceName(deviceName)
+                log.info('openPrivittyVault: device name set', { deviceName })
+              }
+              await (this.jsonrpcRemote.rpc as any).privittyLicenseActivate()
+              log.info('openPrivittyVault: auto-activation succeeded')
+              statusCode = await (
+                this.jsonrpcRemote.rpc as any
+              ).privittyLicenseGetStatus()
+              log.info(
+                'openPrivittyVault: license status after auto-activate',
+                {
+                  statusCode,
+                }
+              )
+            } catch (activateErr) {
+              log.warn(
+                'openPrivittyVault: auto-activation failed (user can retry via dialog):',
+                activateErr
+              )
+            }
+          } else if (statusCode === 0 || statusCode === 1) {
+            // Device is already activated — re-activate unconditionally so PLM
+            // and WatchTower always have an up-to-date record (PLM upserts on
+            // device_id, so no extra seat is consumed).
+            //
+            // If an invite link is available, set it first so WatchTower can
+            // link this device and show "Ready" for the invite status.
+            // We do NOT gate on inviteLink !== null: the device must appear in
+            // WatchTower's Connected Apps regardless of whether the securejoin
+            // QR is available at this moment.
+            try {
+              if (inviteLink !== null) {
+                await (
+                  this.jsonrpcRemote.rpc as any
+                ).privittyLicenseSetInviteLink(inviteLink)
+              }
+              if (deviceName) {
+                await (
+                  this.jsonrpcRemote.rpc as any
+                ).privittyLicenseSetDeviceName(deviceName)
+                log.info(
+                  'openPrivittyVault: device name set for re-activation',
+                  {
+                    deviceName,
+                  }
+                )
+              }
+              await (this.jsonrpcRemote.rpc as any).privittyLicenseActivate()
+              log.info('openPrivittyVault: re-activation pushed to PLM', {
+                inviteLinkPresent: inviteLink !== null,
+              })
+            } catch (syncErr) {
+              log.warn(
+                'openPrivittyVault: re-activation failed (non-fatal):',
+                syncErr
+              )
+            }
+          }
+
+          emitPrivittyLicenseStatus(accountId, statusCode)
+          watchPrivittyLicenseDb(() => {
+            void reloadLicenseManagerFromDb(
+              this.jsonrpcRemote.rpc,
+              accountId,
+              inviteLink
+            )
+          })
+        } catch (error) {
+          log.warn(
+            'openPrivittyVault: license status check failed (non-fatal):',
+            error
+          )
+        }
+      } finally {
+        endLicenseReload()
       }
     }
 
@@ -627,7 +640,35 @@ export default class DeltaChatController extends EventEmitter {
         '1'
       )
     }
+
+    // Load the persisted license before the renderer window is created
+    // (ipc.init awaits this method, then mainWindow.init runs). File-sharing
+    // must not wait for ImapConnected / openPrivittyVault.
+    await this.initPersistedPrivittyLicense()
   }
 
+  /**
+   * Create the global license manager from privitty_license.db as soon as
+   * JSON-RPC is up. Activation / invite-link sync still happens later in
+   * openPrivittyVault.
+   */
+  private async initPersistedPrivittyLicense(): Promise<void> {
+    const rpc = this.jsonrpcRemote.rpc as any
+
+    beginLicenseReload()
+
+    try {
+      await initLicenseManagerFromPersistedStore(rpc, null)
+
+      log.info('initPersistedPrivittyLicense: license manager initialized')
+    } catch (error) {
+      log.warn(
+        'initPersistedPrivittyLicense: license init failed (non-fatal):',
+        error
+      )
+    } finally {
+      endLicenseReload()
+    }
+  }
   readonly webxdc = new DCWebxdc(this)
 }

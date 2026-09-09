@@ -165,8 +165,15 @@ class ElectronRuntime implements Runtime {
   ): () => void {
     const handler = (
       _ev: any,
-      data: { accountId: number; statusCode: number }
-    ) => callback(data.accountId, data.statusCode)
+      data?: { accountId: number; statusCode: number }
+    ) => {
+      try {
+        callback(data?.accountId ?? 0, data?.statusCode ?? -1)
+      } catch (err) {
+        /* ignore-console-log */
+        console.error('[onPrivittyLicenseStatus] callback failed', err)
+      }
+    }
     ipcBackend.on('privittyLicenseStatus', handler)
     return () => ipcBackend.removeListener('privittyLicenseStatus', handler)
   }

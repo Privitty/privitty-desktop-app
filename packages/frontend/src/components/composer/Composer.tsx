@@ -55,6 +55,7 @@ import {
 import AlertDialog from '../dialogs/AlertDialog'
 import { unknownErrorToString } from '../helpers/unknownErrorToString'
 import { useSharedData } from '../../contexts/FileAttribContext'
+import useFileSharingEnabled from '../../hooks/useFileSharingEnabled'
 
 const log = getLogger('renderer/composer')
 
@@ -109,6 +110,7 @@ const Composer = forwardRef<
   const { openDialog } = useDialog()
   const { sendMessage } = useMessage()
   const { unselectChat } = useChat()
+  const fileSharing = useFileSharingEnabled()
 
   // The philosophy of the editing mode is as follows.
   // The edit mode can be thought of as a dialog,
@@ -413,6 +415,10 @@ const Composer = forwardRef<
         if (!e.clipboardData.files.length) {
           return
         }
+        if (!fileSharing.enabled) {
+          e.preventDefault()
+          return
+        }
         // when there is a file then don't paste text
         // https://github.com/deltachat/deltachat-desktop/issues/3261
         e.preventDefault()
@@ -636,6 +642,7 @@ const Composer = forwardRef<
               addFileToDraft={addFileToDraft}
               showAppPicker={setShowAppPicker}
               selectedChat={selectedChat}
+              fileSharing={fileSharing}
             />
           )}
           {!recording && (

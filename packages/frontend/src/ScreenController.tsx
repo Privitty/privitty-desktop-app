@@ -23,6 +23,10 @@ import { ChatProvider, UnselectChat } from './contexts/ChatContext'
 import { ContextMenuProvider } from './contexts/ContextMenuContext'
 import { InstantOnboardingProvider } from './contexts/InstantOnboardingContext'
 import { SmallScreenModeMacOSTitleBar } from './components/SmallScreenModeMacOSTitleBar'
+import {
+  ensureLicenseInitialized,
+  licenseGetInfo,
+} from './utils/privittyLicense'
 
 const log = getLogger('renderer/ScreenController')
 
@@ -84,6 +88,16 @@ export default class ScreenController extends Component {
   }
 
   private async startup() {
+    try {
+      await ensureLicenseInitialized()
+      await licenseGetInfo()
+    } catch (err) {
+      log.warn(
+        'startup: licenseInit / licenseGetInfo failed (will retry from UI)',
+        err
+      )
+    }
+
     const lastLoggedInAccountId = await this._getLastUsedAccount()
     if (lastLoggedInAccountId) {
       await this.selectAccount(lastLoggedInAccountId)
