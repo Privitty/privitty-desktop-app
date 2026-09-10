@@ -150,17 +150,17 @@ async function getDisplayNameFromAnyConfiguredAccount(
         if (!configured) continue
         const name: string | null = await rpc.getConfig(id, 'displayname')
         if (name && name.trim().length > 0) return name.trim()
-        const addr: string | null = await rpc.getConfig(
-          id,
-          'configured_addr'
-        )
+        const addr: string | null = await rpc.getConfig(id, 'configured_addr')
         if (addr && addr.trim().length > 0) return addr.trim()
       } catch (_inner) {
         /* skip account */
       }
     }
   } catch (e) {
-    log.warn('getDisplayNameFromAnyConfiguredAccount: failed to list accounts:', e)
+    log.warn(
+      'getDisplayNameFromAnyConfiguredAccount: failed to list accounts:',
+      e
+    )
   }
   return null
 }
@@ -613,6 +613,9 @@ export async function init(cwd: string, logHandler: LogHandler) {
   ipcMain.handle('app.copyFileToInternalTmpDir', (_ev, name, pathToFile) => {
     return copyFileToInternalTmpDir(name, pathToFile)
   })
+  ipcMain.handle('app.readLocalFileBuffer', (_ev, filePath: string) =>
+    readLocalFileBufferFromDisk(filePath)
+  )
   ipcMain.handle('app.removeTempFile', (_ev, path) => removeTempFile(path))
   ipcMain.handle('app.deleteEncryptedFile', (_ev, path) =>
     deleteEncryptedFile(path)
@@ -736,6 +739,33 @@ export async function writeTempFile(
   log.debug(`Writing tmp file ${pathToFile}`)
   await writeFile(pathToFile, Buffer.from(content, 'utf8'), 'binary')
   return pathToFile
+}
+
+function normalizeLocalFilePathForRead(filePath: string): string {
+  const stripped = filePath
+    .replace(/^file:\/\/\//, '')
+    .replace(/^file:\/\//, '')
+    .replace(/\\/g, '/')
+  return path.resolve(mapPackagePath(stripped))
+}
+
+export async function readLocalFileBufferFromDisk(
+  filePath: string
+): Promise<string> {
+  if (!filePath || typeof filePath !== 'string') {
+    throw new Error('Invalid file path provided')
+  }
+  if (filePath.includes('..')) {
+    throw new Error('Invalid path: traversal not allowed')
+  }
+
+  const normalizedPath = normalizeLocalFilePathForRead(filePath)
+  if (!existsSync(normalizedPath)) {
+    throw new Error(`File does not exist: ${normalizedPath}`)
+  }
+
+  const buffer = await fs.readFile(normalizedPath)
+  return buffer.toString('base64')
 }
 
 export async function copyFileToInternalTmpDir(

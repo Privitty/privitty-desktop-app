@@ -254,6 +254,7 @@ pub fn run() -> i32 {
             temp_file::write_temp_file,
             temp_file::remove_temp_file,
             temp_file::copy_blob_file_to_internal_tmp_dir,
+            temp_file::read_local_file_buffer,
             chat_background_image::copy_background_image_file,
             // not yet available on mobile
             #[cfg(desktop)]

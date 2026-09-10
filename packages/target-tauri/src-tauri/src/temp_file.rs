@@ -241,3 +241,25 @@ pub(crate) async fn copy_blob_file_to_internal_tmp_dir(
         .ok_or(Error::PathNotValidUtf8)?
         .to_owned())
 }
+
+#[tauri::command]
+pub(crate) async fn read_local_file_buffer(path: SafePathBuf) -> Result<String, Error> {
+    let path = path.as_ref();
+
+    if path
+        .components()
+        .any(|c| matches!(c, std::path::Component::ParentDir))
+    {
+        return Err(Error::InvalidFileName);
+    }
+
+    if !path.try_exists()? {
+        return Err(Error::Io(std::io::Error::new(
+            std::io::ErrorKind::NotFound,
+            format!("File does not exist: {path:?}"),
+        )));
+    }
+
+    let bytes = tokio::fs::read(path).await?;
+    Ok(BASE64_ENGINE.encode(&bytes))
+}

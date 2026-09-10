@@ -25,13 +25,15 @@
     "@breezystack/lamejs": "^1.2.7",
     "@deltachat-desktop/runtime-interface": "link:../runtime",
     "@deltachat-desktop/shared": "link:../shared",
-    "@privitty/jsonrpc-client": "catalog:",
     "@deltachat/message_parser_wasm": "^0.14.1",
     "@emoji-mart/data": "^1.2.1",
     "@emoji-mart/react": "^1.1.1",
     "@jcoreio/async-throttle": "^1.6.1",
+    "@privitty/jsonrpc-client": "catalog:",
+    "chart.js": "^4.5.1",
     "classnames": "^2.5.1",
     "debounce": "^1.2.1",
+    "docx-preview": "^0.4.0",
     "emoji-js-clean": "^4.0.0",
     "emoji-mart": "^5.6.0",
     "filesize": "^10.1.4",
@@ -42,6 +44,7 @@
     "moment": "^2.30.1",
     "path-browserify": "^1.0.1",
     "pdfjs-dist": "^5.4.54",
+    "pptxviewjs": "^1.1.9",
     "react": "^19.1.0",
     "react-dom": "^19.1.0",
     "react-string-replace": "^1.1.1",
@@ -50,12 +53,14 @@
     "react-window-infinite-loader": "^1.0.10",
     "react-zoom-pan-pinch": "^3.7.0",
     "use-debounce": "^3.3.0",
-    "ws": "7.5.11"
+    "ws": "7.5.10",
+    "xlsx": "^0.18.5"
   },
   "devDependencies": {
     "@types/debounce": "^1.2.4",
     "@types/emoji-mart": "^3.0.14",
     "@types/mime-types": "catalog:",
+    "@types/node": "catalog:",
     "@types/react": "^19.1.0",
     "@types/react-dom": "^19.1.0",
     "@types/react-window": "^1.8.8",
@@ -66,7 +71,6 @@
     "sass": "catalog:",
     "source-map-support": "^0.5.21",
     "typescript": "catalog:",
-    "typescript-plugin-css-modules": "catalog:",
-    "@types/node": "catalog:"
+    "typescript-plugin-css-modules": "catalog:"
   }
 }
