@@ -187,7 +187,7 @@ export default function MenuAttachment({
                     'webm',
                     'mkv',
                     'm4v',
-                    'pdf'
+                    'pdf',
                   ],
                 },
               ]

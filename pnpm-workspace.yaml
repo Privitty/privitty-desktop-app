@@ -14,7 +14,7 @@ catalog:
 
   # tools / dev dependencies
   sass: ^1.86.3
-  typescript: ^7.0.2
+  typescript: ^5.9.2
   typescript-plugin-css-modules: ^5.2.0
 
 onlyBuiltDependencies:

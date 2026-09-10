@@ -53,7 +53,8 @@
     "react-window-infinite-loader": "^1.0.10",
     "react-zoom-pan-pinch": "^3.7.0",
     "use-debounce": "^3.3.0",
-    "ws": "7.5.11"
+    "ws": "7.5.11",
+    "xlsx": "^0.18.5"
   },
   "devDependencies": {
     "@types/debounce": "^1.2.4",

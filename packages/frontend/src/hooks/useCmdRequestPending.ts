@@ -52,7 +52,7 @@ function formatLastSeen(lastSeenSecs: number): string | null {
 }
 
 export function useCmdRequestPending(
-  messageId: number,
+  _messageId: number,
   chatId: number,
   messageText: string | null | undefined,
   /** DC ContactId of the peer (edge). Pass 0 to skip last-seen check. */
@@ -76,7 +76,12 @@ export function useCmdRequestPending(
 
     try {
       // Fetch all message IDs in this chat
-      const listItems = await rpc.getMessageListItems(accountId, chatId, false, true)
+      const listItems = await rpc.getMessageListItems(
+        accountId,
+        chatId,
+        false,
+        true
+      )
       const msgIds = listItems
         .filter((item: any) => item.kind === 'message')
         .map((item: any) => item.msg_id as number)

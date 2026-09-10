@@ -3,7 +3,10 @@ import { DeviceCommand, DeviceCommandArg } from '../../hooks/useDeviceCommands'
 
 interface Props {
   command: DeviceCommand
-  onSend: (command: DeviceCommand, args: Record<string, number | string>) => void
+  onSend: (
+    command: DeviceCommand,
+    args: Record<string, number | string>
+  ) => void
   onCancel: () => void
 }
 

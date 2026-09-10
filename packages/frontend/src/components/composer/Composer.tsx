@@ -133,7 +133,9 @@ const Composer = forwardRef<
     isPrivittyChat ? chatId : null
   )
   const [showCommandPalette, setShowCommandPalette] = useState(false)
-  const [selectedCommand, setSelectedCommand] = useState<DeviceCommand | null>(null)
+  const [selectedCommand, setSelectedCommand] = useState<DeviceCommand | null>(
+    null
+  )
 
   const emojiAndStickerRef = useRef<HTMLDivElement>(null)
   const pickerButtonRef = useRef<HTMLButtonElement>(null)
@@ -163,7 +165,10 @@ const Composer = forwardRef<
         const msgIds = listItems
           .filter((item: any) => item.kind === 'message')
           .map((item: any) => item.msg_id as number)
-        const messagesMap = await BackendRemote.rpc.getMessages(accountId, msgIds)
+        const messagesMap = await BackendRemote.rpc.getMessages(
+          accountId,
+          msgIds
+        )
         const messages = Object.values(messagesMap) as any[]
 
         // Collect all resolved req_ids

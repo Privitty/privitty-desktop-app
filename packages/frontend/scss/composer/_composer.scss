@@ -98,7 +98,9 @@
       cursor: pointer;
       border-radius: 4px;
       flex-shrink: 0;
-      transition: color 0.15s ease, background-color 0.15s ease;
+      transition:
+        color 0.15s ease,
+        background-color 0.15s ease;
 
       &:hover {
         color: var(--colorPrimary, #2196f3);
@@ -337,7 +339,9 @@
     color: var(--colorPrimary, #2196f3);
     font-size: 12px;
     cursor: pointer;
-    transition: background 0.15s, color 0.15s;
+    transition:
+      background 0.15s,
+      color 0.15s;
 
     &:hover {
       background: var(--colorPrimary, #2196f3);

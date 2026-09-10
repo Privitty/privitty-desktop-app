@@ -40,7 +40,7 @@
   },
   "engineStrict": true,
   "engines": {
-    "node": "^20",
+    "node": ">=20.0.0",
     "pnpm": ">=10.0.0"
   },
   "devDependencies": {
@@ -64,7 +64,7 @@
     "yaml": "^2.9.0"
   },
   "dependencies": {
-    "chart.js": "^4.5.1"
+    "chart.js": "^4.5.1",
     "@privitty/jsonrpc-client": "catalog:",
     "@privitty/stdio-rpc-server": "catalog:"
   }

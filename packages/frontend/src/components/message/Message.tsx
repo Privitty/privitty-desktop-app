@@ -82,7 +82,9 @@ interface CmdResponsePayload {
  * Parse a message text as a `cmd_response` payload.
  * Returns null when the text is not a cmd_response.
  */
-function parseCmdResponse(text: string | null | undefined): CmdResponsePayload | null {
+function parseCmdResponse(
+  text: string | null | undefined
+): CmdResponsePayload | null {
   if (!text || !text.includes('cmd_response')) return null
   const start = text.indexOf('{')
   if (start === -1) return null
@@ -1115,7 +1117,7 @@ export default function Message(props: {
       id,
       chatId,
       isCmdReq ? text : null, // skip the hook if this isn't a cmd_request
-      isCmdReq ? sender?.id ?? 0 : 0
+      isCmdReq ? (sender?.id ?? 0) : 0
     )
 
   const tx = useTranslationFunction()
@@ -1468,26 +1470,28 @@ export default function Message(props: {
               <span className='device-cmd-request__label'>/{cmdReqCmd}</span>
               {cmdIsPending ? (
                 <div className='device-cmd-request__pending'>
-                  <span className='device-cmd-request__spinner' aria-hidden='true' />
+                  <span
+                    className='device-cmd-request__spinner'
+                    aria-hidden='true'
+                  />
                   Waiting for device…
                   {cmdLastSeenHint && (
                     <span className='device-cmd-request__offline'>
-                      {' '}Device last seen {cmdLastSeenHint}
+                      {' '}
+                      Device last seen {cmdLastSeenHint}
                     </span>
                   )}
                 </div>
               ) : (
-                <div className='device-cmd-request__done'>✓ Response received</div>
+                <div className='device-cmd-request__done'>
+                  ✓ Response received
+                </div>
               )}
             </div>
           ) : cmdResponse && cmdResponse.output_mode !== 'file' ? (
             // Text-mode cmd_response: render the output as a code block.
             <CmdResponseBubble payload={cmdResponse} />
-          ) : cmdResponse && cmdResponse.output_mode === 'file' ? (
-            // File-mode cmd_response: the .prv attachment IS the output.
-            // Don't render any text body — let the attachment area do the job.
-            null
-          ) : (
+          ) : cmdResponse && cmdResponse.output_mode === 'file' ? null : ( // Don't render any text body — let the attachment area do the job. // File-mode cmd_response: the .prv attachment IS the output.
             <MessageBody
               text={
                 privittyReplacementText !== null

@@ -9,7 +9,11 @@ interface Props {
 
 export function DeviceCommandPalette({ commands, onSelect, onClose }: Props) {
   return (
-    <div className='device-command-palette' role='listbox' aria-label='Device commands'>
+    <div
+      className='device-command-palette'
+      role='listbox'
+      aria-label='Device commands'
+    >
       {commands.map(cmd => (
         <div
           key={cmd.name}
@@ -20,7 +24,9 @@ export function DeviceCommandPalette({ commands, onSelect, onClose }: Props) {
           onKeyDown={e => e.key === 'Enter' && onSelect(cmd)}
         >
           <span className='device-command-palette__name'>/{cmd.name}</span>
-          <span className='device-command-palette__desc'>{cmd.description}</span>
+          <span className='device-command-palette__desc'>
+            {cmd.description}
+          </span>
         </div>
       ))}
       <div

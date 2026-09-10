@@ -510,6 +510,7 @@ export function openSecureViewer(
         viewerType,
         canDownload
       )
+      break
     case 'text':
       openSecureTextViewer(openDialog, filePath, fileName, canDownload)
       break
