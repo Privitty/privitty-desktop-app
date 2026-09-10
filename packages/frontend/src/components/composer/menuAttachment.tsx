@@ -1,4 +1,4 @@
-import React from 'react'
+import React, { useEffect, useState } from 'react'
 import { dirname, basename } from 'path'
 
 import { runtime } from '@deltachat-desktop/runtime-interface'
@@ -16,18 +16,48 @@ import useMessage from '../../hooks/chat/useMessage'
 import SmallSelectDialogPrivitty from '../SmallSelectDialogPrivitty'
 import { useSharedData } from '../../contexts/FileAttribContext'
 import { encryptFileForChat } from '../../utils/privittyEncryptFile'
+import type { FileSharingAccess } from '../../hooks/useFileSharingEnabled'
 
 type Props = {
   addFileToDraft: (file: string, fileName: string, viewType: T.Viewtype) => void
   showAppPicker: (show: boolean) => void
   selectedChat: Pick<T.BasicChat, 'name' | 'id'> | null
+  fileSharing: FileSharingAccess
 }
 
 // Opens the File Attributes flow directly when the attachment button is clicked.
 export default function MenuAttachment({
   addFileToDraft,
   selectedChat,
+  fileSharing,
 }: Props) {
+  const expiresAt = fileSharing.expiresAt
+  const currentEpochSeconds = Math.floor(Date.now() / 1000)
+  const isLicenseExpired =
+    typeof expiresAt !== 'number' ||
+    !Number.isFinite(expiresAt) ||
+    expiresAt <= currentEpochSeconds
+  const fileSharingEnabled = !isLicenseExpired
+
+  // Re-render when expiresAt is reached so `disabled` updates immediately.
+  const [, setExpiryTick] = useState(0)
+  useEffect(() => {
+    if (typeof expiresAt !== 'number' || !Number.isFinite(expiresAt)) {
+      return
+    }
+    const msUntilExpiry = expiresAt * 1000 - Date.now()
+    if (msUntilExpiry <= 0) {
+      return
+    }
+    const timer = window.setTimeout(
+      () => {
+        setExpiryTick(n => n + 1)
+      },
+      Math.min(msUntilExpiry, 2_147_483_647)
+    )
+    return () => window.clearTimeout(timer)
+  }, [expiresAt])
+
   const tx = useTranslationFunction()
   const { openDialog, closeDialog } = useDialog()
   const { sendMessage } = useMessage()
@@ -157,10 +187,7 @@ export default function MenuAttachment({
                     'webm',
                     'mkv',
                     'm4v',
-                    'pdf',
-                    'docx',
-                    'xlsx',
-                    'pptx'
+                    'pdf'
                   ],
                 },
               ]
@@ -226,7 +253,26 @@ export default function MenuAttachment({
     await openPrivittyProcess()
   }
 
-  const onClickAttachmentMenu = async () => {
+  const onClickAttachmentMenu = async (
+    ev?: React.MouseEvent<HTMLButtonElement>
+  ) => {
+    if (!fileSharingEnabled) {
+      ev?.preventDefault()
+      ev?.stopPropagation()
+      runtime.showNotification({
+        title: 'Privitty',
+        body: isLicenseExpired
+          ? 'File sharing is unavailable because the license has expired.'
+          : 'File sharing is not included in your license.',
+        icon: null,
+        chatId: selectedChat?.id ?? 0,
+        messageId: 0,
+        accountId,
+        notificationType: 0,
+      })
+      return
+    }
+
     if (!selectedChat?.id) return
 
     try {
@@ -258,6 +304,12 @@ export default function MenuAttachment({
     await addFilenameFile()
   }
 
+  const attachmentDisabledHint = isLicenseExpired
+    ? 'File sharing is unavailable because the license has expired.'
+    : fileSharing.reason === 'disabled'
+      ? 'File sharing is not included in your license.'
+      : 'File sharing is unavailable.'
+
   return (
     <button
       aria-label={tx('menu_add_attachment')}
@@ -265,6 +317,8 @@ export default function MenuAttachment({
       data-testid='open-attachment-menu'
       className='attachment-button'
       onClick={onClickAttachmentMenu}
+      disabled={!fileSharingEnabled}
+      title={!fileSharingEnabled ? attachmentDisabledHint : undefined}
     >
       <Icon coloring='contextMenu' icon='paperclip' />
     </button>

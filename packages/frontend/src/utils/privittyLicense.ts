@@ -18,6 +18,9 @@
  *   privittyLicenseSync()
  */
 
+import { join } from 'path'
+
+import { runtime } from '@deltachat-desktop/runtime-interface'
 import { BackendRemote } from '../backend-com'
 
 // ---------------------------------------------------------------------------
@@ -36,9 +39,19 @@ export const PRIVITTY_STATUS_CLOCK_TAMPERED = 4
 export const PRIVITTY_STATUS_NOT_INITIALIZED = 5
 export const PRIVITTY_STATUS_BYPASS = 99
 
+export const PLM_SERVER_URL = 'https://plm.privittytech.com'
+
+/** In-flight / completed `licenseInit()` — not a license snapshot cache. */
+let licenseInitPromise: Promise<void> | null = null
+
 // ---------------------------------------------------------------------------
 // TypeScript interfaces for license API return types.
 // ---------------------------------------------------------------------------
+
+/** JWT / `features_json` feature flags. */
+export type PrivittyLicenseFeatures = {
+  file_sharing?: boolean
+}
 
 /** Detailed license information returned by `licenseGetInfo`. */
 export interface PrivittyLicenseInfo {
@@ -50,6 +63,8 @@ export interface PrivittyLicenseInfo {
   activatedDevices: number
   expiresAt: number | null
   gracePeriodDays: number
+  /** Parsed from `features` or the `features_json` string stored in `pv_license`. */
+  features?: PrivittyLicenseFeatures | null
 }
 
 // ---------------------------------------------------------------------------
@@ -74,11 +89,16 @@ export async function licenseInit(
   licensePath: string | null,
   serverUrl: string | null
 ): Promise<void> {
+  /* ignore-console-log */
+  console.log('licenseInit started')
   await (BackendRemote.rpc as any).privittyLicenseInit(
     dataDir,
     licensePath,
-    serverUrl
+    serverUrl,
+    null
   )
+  /* ignore-console-log */
+  console.log('licenseInit completed')
 }
 
 /**
@@ -129,12 +149,85 @@ export async function licenseGetStatus(): Promise<number> {
  */
 export async function licenseGetInfo(): Promise<PrivittyLicenseInfo> {
   const raw = await (BackendRemote.rpc as any).privittyLicenseGetInfo()
-  // The Rust method returns a JSON string; parse it here so callers always
-  // receive a typed object.
-  if (typeof raw === 'string') {
-    return JSON.parse(raw) as PrivittyLicenseInfo
+
+  let data: any = raw
+
+  if (typeof data === 'string') {
+    data = JSON.parse(data)
+
+    if (typeof data === 'string') {
+      data = JSON.parse(data)
+    }
   }
-  return raw as PrivittyLicenseInfo
+
+  // Handle possible response wrappers.
+  const info =
+    data?.src ??
+    data?.info ??
+    data?.data ??
+    data?.license ??
+    data?.result ??
+    data
+
+  return {
+    status: String(info?.status ?? ''),
+    licenseId: String(info?.licenseId ?? info?.license_id ?? ''),
+    customerId: String(info?.customerId ?? info?.customer_id ?? ''),
+    licenseType: String(info?.licenseType ?? info?.license_type ?? ''),
+    maxDevices: Number(info?.maxDevices ?? info?.max_devices ?? 0),
+    activatedDevices: Number(
+      info?.activatedDevices ?? info?.activated_devices ?? 0
+    ),
+    expiresAt: Number.isFinite(
+      Number(info?.expiresAt ?? info?.expires_at ?? info?.exp)
+    )
+      ? Number(info?.expiresAt ?? info?.expires_at ?? info?.exp)
+      : null,
+    gracePeriodDays: Number(
+      info?.gracePeriodDays ?? info?.grace_period_days ?? 0
+    ),
+  }
+}
+
+/**
+ * True when `expires_at` is not available yet (manager still loading).
+ * Status (Bypass, Active, …) is ignored — a snapshot with expires_at is ready.
+ */
+export function isLicenseSnapshotPending(info: PrivittyLicenseInfo): boolean {
+  return typeof info.expiresAt !== 'number' || !Number.isFinite(info.expiresAt)
+}
+
+/**
+ * Initialise the global license manager from `privitty_license.db` (JWT file
+ * only if the DB does not exist). Deduplicates concurrent startup callers.
+ */
+export async function ensureLicenseInitialized(): Promise<void> {
+  if (!licenseInitPromise) {
+    licenseInitPromise = (async () => {
+      const dataDir = join(runtime.getConfigPath(), 'license')
+      const dbPath = join(dataDir, 'privitty_license.db')
+      const jwtPath = join(dataDir, 'privitty.lic')
+
+      let licensePath: string | null = null
+
+      try {
+        const hasDb = await runtime.checkFileExists(dbPath)
+
+        if (!hasDb && (await runtime.checkFileExists(jwtPath))) {
+          licensePath = jwtPath
+        }
+      } catch {
+        // Let licenseInit load the cached database if available.
+      }
+
+      await licenseInit(dataDir, licensePath, PLM_SERVER_URL)
+    })().catch(error => {
+      licenseInitPromise = null
+      throw error
+    })
+  }
+
+  await licenseInitPromise
 }
 
 /**

@@ -162,6 +162,17 @@ class TauriRuntime implements Runtime {
     )
   }
 
+  checkFileExists(_filePath: string): Promise<boolean> {
+    return Promise.resolve(false)
+  }
+
+  async readLocalFileBuffer(filePath: string): Promise<Uint8Array> {
+    const base64 = await invoke<string>('read_local_file_buffer', {
+      path: filePath,
+    })
+    return base64ToUint8Array(base64)
+  }
+
   constructor() {
     this.getActiveTheme = this.getActiveTheme.bind(this)
   }
@@ -769,6 +780,15 @@ class TauriRuntime implements Runtime {
 const mediaTypeToPermission: Record<MediaType, string> = {
   camera: 'video',
   microphone: 'audio',
+}
+
+function base64ToUint8Array(base64: string): Uint8Array {
+  const binary = atob(base64)
+  const bytes = new Uint8Array(binary.length)
+  for (let i = 0; i < binary.length; i++) {
+    bytes[i] = binary.charCodeAt(i)
+  }
+  return bytes
 }
 
 ;(window as any).r = new TauriRuntime()

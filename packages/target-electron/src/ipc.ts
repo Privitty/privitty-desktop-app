@@ -51,6 +51,13 @@ import {
   startHandlingIncomingVideoCalls,
   startOutgoingVideoCall,
 } from './windows/video-call.js'
+import {
+  beginLicenseReload,
+  emitPrivittyLicenseStatus,
+  endLicenseReload,
+  reloadLicenseManagerFromDb,
+  watchPrivittyLicenseDb,
+} from './privittyLicenseEvents.js'
 
 const __dirname = dirname(fileURLToPath(import.meta.url))
 
@@ -150,17 +157,17 @@ async function getDisplayNameFromAnyConfiguredAccount(
         if (!configured) continue
         const name: string | null = await rpc.getConfig(id, 'displayname')
         if (name && name.trim().length > 0) return name.trim()
-        const addr: string | null = await rpc.getConfig(
-          id,
-          'configured_addr'
-        )
+        const addr: string | null = await rpc.getConfig(id, 'configured_addr')
         if (addr && addr.trim().length > 0) return addr.trim()
       } catch (_inner) {
         /* skip account */
       }
     }
   } catch (e) {
-    log.warn('getDisplayNameFromAnyConfiguredAccount: failed to list accounts:', e)
+    log.warn(
+      'getDisplayNameFromAnyConfiguredAccount: failed to list accounts:',
+      e
+    )
   }
   return null
 }
@@ -178,70 +185,96 @@ async function initAndActivateLicense(
     return { statusCode: 5 /* NOT_INITIALIZED */ }
   }
 
-  // Mirror Android's ImportLicenseActivity flow:
-  //   1. Try to get the invite link from ANY configured account NOW (no IMAP needed)
-  //   2. Init the license manager with the link if we have it
-  //   3. Activate — device shows up in WatchTower with invite link "Ready" in one shot
-  //
-  // Android uses dcContext.isConfigured() == 1 → getSecurejoinQr(0).
-  // The securejoin QR only needs the key-pair on disk; active IMAP is NOT required.
-  // We iterate all accounts so this works regardless of which is "selected".
-  const inviteLinkForInit = await getInviteLinkFromAnyConfiguredAccount(rpc)
-  if (inviteLinkForInit) {
-    log.info('initAndActivateLicense: invite link obtained before init', {
-      inviteLinkForInit,
-    })
-  } else {
-    log.info(
-      'initAndActivateLicense: no configured account yet — invite link will be pushed on first ImapConnected'
-    )
-  }
-
-  await rpc.privittyLicenseInit(
-    licDir,
-    licPath,
-    PLM_SERVER_URL,
-    inviteLinkForInit ?? null
-  )
-  log.info('initAndActivateLicense: licenseInit completed', { licDir })
-
-  // Check current status.
-  let statusCode: number = await rpc.privittyLicenseGetStatus()
-  log.info('initAndActivateLicense: status before activation', { statusCode })
-
-  // Attempt activation for any status that is not already confirmed active:
-  //   0 = ACTIVE (skip — already registered)
-  //   1 = GRACE_PERIOD (skip — still valid)
-  // All other statuses (NOT_ACTIVATED=3, BYPASS=99, etc.) trigger activation
-  // so the device is always registered with PLM when a JWT is present.
-  if (statusCode !== 0 /* ACTIVE */ && statusCode !== 1 /* GRACE_PERIOD */) {
-    log.info('initAndActivateLicense: calling privittyLicenseActivate …')
-    try {
-      const deviceName = await getDisplayNameFromAnyConfiguredAccount(rpc)
-      if (deviceName) {
-        await rpc.privittyLicenseSetDeviceName(deviceName)
-        log.info('initAndActivateLicense: device name set', { deviceName })
-      }
-      await rpc.privittyLicenseActivate()
-      log.info('initAndActivateLicense: privittyLicenseActivate succeeded')
-    } catch (activateErr) {
-      log.warn(
-        'initAndActivateLicense: privittyLicenseActivate failed:',
-        activateErr
+  beginLicenseReload()
+  try {
+    // Mirror Android's ImportLicenseActivity flow:
+    //   1. Try to get the invite link from ANY configured account NOW (no IMAP needed)
+    //   2. Init the license manager with the link if we have it
+    //   3. Activate — device shows up in WatchTower with invite link "Ready" in one shot
+    //
+    // Android uses dcContext.isConfigured() == 1 → getSecurejoinQr(0).
+    // The securejoin QR only needs the key-pair on disk; active IMAP is NOT required.
+    // We iterate all accounts so this works regardless of which is "selected".
+    const inviteLinkForInit = await getInviteLinkFromAnyConfiguredAccount(rpc)
+    if (inviteLinkForInit) {
+      log.info('initAndActivateLicense: invite link obtained before init', {
+        inviteLinkForInit,
+      })
+    } else {
+      log.info(
+        'initAndActivateLicense: no configured account yet — invite link will be pushed on first ImapConnected'
       )
     }
-    statusCode = await rpc.privittyLicenseGetStatus()
-    log.info('initAndActivateLicense: status after activation', { statusCode })
+
+    await rpc.privittyLicenseInit(
+      licDir,
+      licPath,
+      PLM_SERVER_URL,
+      inviteLinkForInit ?? null
+    )
+    log.info('initAndActivateLicense: licenseInit completed', { licDir })
+
+    try {
+      const infoRaw = await rpc.privittyLicenseGetInfo()
+      const parsed = typeof infoRaw === 'string' ? JSON.parse(infoRaw) : infoRaw
+      log.info('initAndActivateLicense: GetInfo after init', {
+        expires_at: parsed?.expires_at ?? parsed?.expiresAt,
+        grace_period_days: parsed?.grace_period_days ?? parsed?.gracePeriodDays,
+        features: parsed?.features,
+        features_json: parsed?.features_json ?? parsed?.featuresJson,
+      })
+    } catch (e) {
+      log.warn('initAndActivateLicense: GetInfo after init failed', e)
+    }
+
+    // Check current status.
+    let statusCode: number = await rpc.privittyLicenseGetStatus()
+    log.info('initAndActivateLicense: status before activation', { statusCode })
+
+    // Attempt activation for any status that is not already confirmed active:
+    //   0 = ACTIVE (skip — already registered)
+    //   1 = GRACE_PERIOD (skip — still valid)
+    // All other statuses (NOT_ACTIVATED=3, BYPASS=99, etc.) trigger activation
+    // so the device is always registered with PLM when a JWT is present.
+    if (statusCode !== 0 /* ACTIVE */ && statusCode !== 1 /* GRACE_PERIOD */) {
+      log.info('initAndActivateLicense: calling privittyLicenseActivate …')
+      try {
+        const deviceName = await getDisplayNameFromAnyConfiguredAccount(rpc)
+        if (deviceName) {
+          await rpc.privittyLicenseSetDeviceName(deviceName)
+          log.info('initAndActivateLicense: device name set', { deviceName })
+        }
+        await rpc.privittyLicenseActivate()
+        log.info('initAndActivateLicense: privittyLicenseActivate succeeded')
+      } catch (activateErr) {
+        log.warn(
+          'initAndActivateLicense: privittyLicenseActivate failed:',
+          activateErr
+        )
+      }
+      statusCode = await rpc.privittyLicenseGetStatus()
+      log.info('initAndActivateLicense: status after activation', {
+        statusCode,
+      })
+    }
+
+    // Push the new status to the renderer after the manager has loaded
+    // the updated license (so licenseGetInfo sees the new expires_at).
+    const accountId =
+      await dcController.jsonrpcRemote.rpc.getSelectedAccountId()
+    emitPrivittyLicenseStatus(accountId ?? 0, statusCode)
+    watchPrivittyLicenseDb(() => {
+      void reloadLicenseManagerFromDb(
+        rpc,
+        accountId ?? 0,
+        inviteLinkForInit ?? null
+      )
+    })
+
+    return { statusCode }
+  } finally {
+    endLicenseReload()
   }
-
-  // Push the new status to the renderer.
-  const accountId = await dcController.jsonrpcRemote.rpc.getSelectedAccountId()
-  mainWindow.send('privittyLicenseStatus', {
-    accountId: accountId ?? 0,
-    statusCode,
-  })
-
-  return { statusCode }
 }
 
 /** returns shutdown function */
@@ -613,6 +646,9 @@ export async function init(cwd: string, logHandler: LogHandler) {
   ipcMain.handle('app.copyFileToInternalTmpDir', (_ev, name, pathToFile) => {
     return copyFileToInternalTmpDir(name, pathToFile)
   })
+  ipcMain.handle('app.readLocalFileBuffer', (_ev, filePath: string) =>
+    readLocalFileBufferFromDisk(filePath)
+  )
   ipcMain.handle('app.removeTempFile', (_ev, path) => removeTempFile(path))
   ipcMain.handle('app.deleteEncryptedFile', (_ev, path) =>
     deleteEncryptedFile(path)
@@ -736,6 +772,33 @@ export async function writeTempFile(
   log.debug(`Writing tmp file ${pathToFile}`)
   await writeFile(pathToFile, Buffer.from(content, 'utf8'), 'binary')
   return pathToFile
+}
+
+function normalizeLocalFilePathForRead(filePath: string): string {
+  const stripped = filePath
+    .replace(/^file:\/\/\//, '')
+    .replace(/^file:\/\//, '')
+    .replace(/\\/g, '/')
+  return path.resolve(mapPackagePath(stripped))
+}
+
+export async function readLocalFileBufferFromDisk(
+  filePath: string
+): Promise<string> {
+  if (!filePath || typeof filePath !== 'string') {
+    throw new Error('Invalid file path provided')
+  }
+  if (filePath.includes('..')) {
+    throw new Error('Invalid path: traversal not allowed')
+  }
+
+  const normalizedPath = normalizeLocalFilePathForRead(filePath)
+  if (!existsSync(normalizedPath)) {
+    throw new Error(`File does not exist: ${normalizedPath}`)
+  }
+
+  const buffer = await fs.readFile(normalizedPath)
+  return buffer.toString('base64')
 }
 
 export async function copyFileToInternalTmpDir(

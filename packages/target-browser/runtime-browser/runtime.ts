@@ -146,6 +146,16 @@ class BrowserRuntime implements Runtime {
     )
   }
 
+  checkFileExists(_filePath: string): Promise<boolean> {
+    return Promise.resolve(false)
+  }
+
+  readLocalFileBuffer(_filePath: string): Promise<Uint8Array> {
+    return Promise.reject(
+      new Error('readLocalFileBuffer is not supported in browser runtime')
+    )
+  }
+
   onDrop: DropListener | null = null
   setDropListener(onDrop: DropListener | null) {
     this.onDrop = onDrop

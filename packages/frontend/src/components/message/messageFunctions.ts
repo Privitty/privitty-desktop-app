@@ -11,9 +11,13 @@ import MessageDetail from '../dialogs/MessageDetail/MessageDetail'
 import SecurePDFViewer from '../dialogs/SecurePDFViewer'
 import SecureImageViewer from '../dialogs/SecureImageViewer'
 import SecureVideoViewer from '../dialogs/SecureVideoViewer'
-import SecureTextViewer, {
-  isTextViewable,
-} from '../dialogs/SecureTextViewer'
+import SecureOfficeViewer from '../dialogs/SecureOfficeViewer'
+import {
+  getSecureViewerTypeFromPath,
+  isRoutableSecureViewerType,
+  type OfficeViewerType,
+  type RoutableSecureViewerType,
+} from '../../utils/secureViewerExtensions'
 
 import type { OpenDialog } from '../../contexts/DialogContext'
 import { C, type T } from '@privitty/jsonrpc-client'
@@ -41,7 +45,7 @@ interface OpenAttachmentResult {
   useSecureViewer?: boolean
   filePath?: string
   fileName?: string
-  viewerType?: 'pdf' | 'image' | 'video' | 'text' | string
+  viewerType?: RoutableSecureViewerType
 }
 
 export async function openAttachmentInShell(
@@ -109,38 +113,9 @@ export async function openAttachmentInShell(
       return
     }
 
-    const supportedImageExtensions = [
-      '.jpg',
-      '.jpeg',
-      '.png',
-      '.gif',
-      '.bmp',
-      '.webp',
-      '.svg',
-    ]
-    const supportedVideoExtensions = [
-      '.mp4',
-      '.avi',
-      '.mov',
-      '.wmv',
-      '.flv',
-      '.webm',
-      '.mkv',
-      '.m4v',
-    ]
-    const decryptedFileExtension = extname(filePathName).toLowerCase()
+    const viewerType = getSecureViewerTypeFromPath(filePathName)
 
-    if (
-      decryptedFileExtension === '.pdf' ||
-      supportedImageExtensions.includes(decryptedFileExtension) ||
-      supportedVideoExtensions.includes(decryptedFileExtension)
-    ) {
-      const viewerType: 'pdf' | 'image' | 'video' =
-        decryptedFileExtension === '.pdf'
-          ? 'pdf'
-          : supportedImageExtensions.includes(decryptedFileExtension)
-            ? 'image'
-            : 'video'
+    if (isRoutableSecureViewerType(viewerType)) {
       log.info('Opening decrypted .prv file in secure viewer', {
         filePath: filePathName,
         viewerType,
@@ -175,18 +150,21 @@ export async function openAttachmentInShell(
     return
   }
 
-  // For known text formats, open in the secure in-app viewer.
-  if (msg.fileName && isTextViewable(msg.fileName)) {
-    log.info('Opening text file in SecureTextViewer', { filePathName })
+  const viewerType = getSecureViewerTypeFromPath(filePathName)
+
+  if (isRoutableSecureViewerType(viewerType)) {
+    log.info('Opening file in secure viewer', {
+      filePath: filePathName,
+      viewerType,
+    })
     return {
       useSecureViewer: true,
       filePath: filePathName,
       fileName: msg.fileName,
-      viewerType: 'text',
+      viewerType,
     }
   }
 
-  // For all other files, use the original OS-default behavior.
   if (!runtime.openPath(filePathName)) {
     log.info(
       "file couldn't be opened, try saving it in a different place and try to open it from there"
@@ -485,11 +463,30 @@ export function openSecureVideoViewer(
   openDialog(SecureVideoViewer, { filePath, fileName, canDownload })
 }
 
+export function openSecureOfficeViewer(
+  openDialog: OpenDialog,
+  filePath: string,
+  fileName: string,
+  viewerType: OfficeViewerType,
+  canDownload?: boolean
+) {
+  openDialog(SecureOfficeViewer, {
+    filePath,
+    fileName,
+    viewerType,
+    canDownload,
+  })
+}
+
+/**
+ * Unified secure file preview router. Detects viewer type and opens the
+ * appropriate dialog (PDF, image, video, or Office formats).
+ */
 export function openSecureViewer(
   openDialog: OpenDialog,
   filePath: string,
   fileName: string,
-  viewerType: 'pdf' | 'image' | 'video' | 'text',
+  viewerType: RoutableSecureViewerType,
   canDownload?: boolean
 ) {
   switch (viewerType) {
@@ -502,6 +499,17 @@ export function openSecureViewer(
     case 'video':
       openSecureVideoViewer(openDialog, filePath, fileName, canDownload)
       break
+    case 'docx':
+    case 'xlsx':
+    case 'xls':
+    case 'pptx':
+      openSecureOfficeViewer(
+        openDialog,
+        filePath,
+        fileName,
+        viewerType,
+        canDownload
+      )
     case 'text':
       openSecureTextViewer(openDialog, filePath, fileName, canDownload)
       break
