@@ -11,7 +11,7 @@ catalog:
   '@webxdc/types': ^2.1.2
   'calls-webapp': 'github:deltachat/calls-webapp#build-for-deltachat-desktop'
   mime-types: ^2.1.35
-  xlsx: npm:@e965/xlsx@0.20.3
+  '@stackline/xlsx': ^1.0.6
 
   # tools / dev dependencies
   sass: ^1.86.3
@@ -28,7 +28,6 @@ overrides:
   '@xmldom/xmldom@<0.8.13': '>=0.8.13'
   '@xmldom/xmldom@>=0.7.0 <=0.8.13': '>=0.8.14'
   '@xmldom/xmldom@>=0.7.0 <=0.8.14': '>=0.8.15'
-  adm-zip@<0.6.0: '>=0.6.0'
   app-builder-lib@<26.15.0: '>=26.15.0'
   body-parser@<1.20.6: '>=1.20.6'
   brace-expansion@>=2.0.0 <2.0.3: '>=2.0.3'
@@ -41,15 +40,8 @@ overrides:
   brace-expansion@>=4.0.0 <5.0.9: '>=5.0.9'
   brace-expansion@>=5.0.0 <5.0.6: '>=5.0.6'
   builder-util-runtime@<9.7.0: '>=9.7.0'
-  electron@<38.8.6: '>=38.8.6'
-  electron@<39.8.1: '>=39.8.1'
-  electron@<39.8.10: '>=39.8.10'
-  electron@<39.8.5: '>=39.8.5'
-  electron@<39.8.6: '>=39.8.6'
-  electron@<39.8.7: '>=39.8.7'
-  electron@<39.8.8: '>=39.8.8'
-  electron@<39.8.9: '>=39.8.9'
-  electron@>=33.0.0-alpha.1 <39.8.5: '>=39.8.5'
+  electron@<41.10.3: '>=41.10.3'
+  electron@>=33.0.0-alpha.1 <41.10.3: '>=41.10.3'
   form-data@>=4.0.0 <4.0.6: '>=4.0.6'
   'glob@>=10.0.0 <10.5.0': 10.5.0
   immutable@<4.3.9: '>=4.3.9'
@@ -91,7 +83,6 @@ overrides:
   tar@<=7.5.18: '>=7.5.19'
   tar@<=7.5.20: '>=7.5.21'
   tmp@<0.2.6: '>=0.2.6'
-  xlsx@<0.20.2: npm:@e965/xlsx@0.20.3
   ws@>=7.0.0 <7.5.11: '>=7.5.11'
   ws@>=8.0.0 <8.20.1: '>=8.20.1'
   ws@>=8.0.0 <8.21.0: '>=8.21.0'

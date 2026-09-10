@@ -4,8 +4,8 @@ import { expect } from 'chai'
 import { existsSync, mkdtempSync } from 'fs'
 import { join, dirname } from 'path'
 import { fileURLToPath } from 'url'
-import AdmZip from 'adm-zip'
 import { tmpdir } from 'os'
+import { extractZipToDirectory } from './extractZipToDirectory.js'
 import { readdir } from 'fs/promises'
 import { migrateAccountsIfNeeded } from '../src/deltachat/migration'
 import { getLogger, setLogHandler } from '@deltachat-desktop/shared/logger'
@@ -26,12 +26,13 @@ before(async () => {
   }
 })
 
-const zip = new AdmZip(join(__dirname, '../test_data/migration-test-data.zip'))
-
 // make test environment
 const testEnvironment = mkdtempSync(join(tmpdir(), 'deltachat-migration-test-'))
 
-zip.extractAllTo(testEnvironment)
+extractZipToDirectory(
+  join(__dirname, '../test_data/migration-test-data.zip'),
+  testEnvironment
+)
 
 log.debug({ testEnvironment })
 
