@@ -68,7 +68,7 @@
     "calls-webapp": "catalog:",
     "mime-types": "catalog:",
     "sass": "catalog:",
-    "ws": "7.5.10"
+    "ws": "7.5.11"
   },
   "devDependencies": {
     "@deltachat-desktop/runtime-interface": "link:../runtime",
@@ -83,14 +83,14 @@
     "@types/rc": "^1.2.4",
     "@webxdc/types": "catalog:",
     "@electron/fuses": "^2.0.0",
-    "adm-zip": "0.5.14",
+    "adm-zip": "0.6.0",
     "application-config": "^3.0.0",
     "chai": "^5.1.1",
     "chokidar": "^3.6.0",
     "debounce": "^1.2.0",
-    "electron": "^35.7.5",
-    "electron-builder": "^26.0.0",
-    "electron-builder-squirrel-windows": "^26.0.0",
+    "electron": "^39.8.10",
+    "electron-builder": "^26.15.0",
+    "electron-builder-squirrel-windows": "^26.15.0",
     "esbuild": "^0.25.0",
     "mocha": "^10.7.0",
     "rc": "^1.2.8",

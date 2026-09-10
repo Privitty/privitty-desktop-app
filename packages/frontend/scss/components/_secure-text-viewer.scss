@@ -1,0 +1,184 @@
+// Secure text viewer dialog — used for .log / .txt and other text files
+// from device command outputs.
+//
+// Uses the same CSS custom properties as SecureVideoViewer so it inherits
+// both light and dark theme automatically.
+
+.secure-text-viewer {
+  width: 780px;
+  max-width: 92vw;
+  height: 82vh;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+
+  // ── Header ────────────────────────────────────────────────────────────────
+  .stv-header {
+    display: flex;
+    align-items: center;
+    padding: 8px 12px;
+    gap: 6px;
+    flex-shrink: 0;
+    border-bottom: 1px solid var(--color-border);
+    background: var(--color-bg);
+  }
+
+  .stv-file-icon {
+    font-size: 18px;
+    margin-right: 2px;
+    flex-shrink: 0;
+  }
+
+  .stv-title {
+    flex: 1;
+    font-weight: 600;
+    font-size: 14px;
+    color: var(--color-text);
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+
+  // Generic action button (zoom +/-, prev/next match)
+  .stv-btn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    min-width: 24px;
+    height: 24px;
+    padding: 0 6px;
+    border: 1px solid var(--color-border);
+    border-radius: 4px;
+    background: transparent;
+    color: var(--color-text);
+    font-size: 14px;
+    cursor: pointer;
+    flex-shrink: 0;
+
+    &:hover {
+      background: var(--color-accent, rgba(0, 0, 0, 0.08));
+      color: var(--color-text);
+      border-color: var(--color-accent);
+    }
+
+    &:focus-visible {
+      outline: 2px solid var(--color-accent);
+    }
+  }
+
+  .stv-zoom-label {
+    min-width: 38px;
+    text-align: center;
+    font-size: 12px;
+    color: var(--color-text);
+    opacity: 0.6;
+  }
+
+  // ── Search bar ────────────────────────────────────────────────────────────
+  .stv-search-bar {
+    display: flex;
+    align-items: center;
+    padding: 5px 10px;
+    gap: 6px;
+    flex-shrink: 0;
+    border-bottom: 1px solid var(--color-border);
+    background: var(--color-bg);
+  }
+
+  .stv-search-input {
+    flex: 1;
+    padding: 4px 8px;
+    border: 1px solid var(--color-border);
+    border-radius: 4px;
+    font-size: 13px;
+    background: var(--color-bg);
+    color: var(--color-text);
+    outline: none;
+
+    &:focus {
+      border-color: var(--color-accent);
+    }
+
+    &::placeholder {
+      color: var(--color-text);
+      opacity: 0.45;
+    }
+  }
+
+  .stv-match-count {
+    font-size: 12px;
+    color: var(--color-text);
+    opacity: 0.55;
+    min-width: 56px;
+    text-align: right;
+    flex-shrink: 0;
+  }
+
+  .stv-no-match {
+    font-size: 12px;
+    color: var(--color-danger, #e74c3c);
+    min-width: 72px;
+    text-align: right;
+    flex-shrink: 0;
+  }
+
+  // ── Content area ──────────────────────────────────────────────────────────
+  .stv-content-area {
+    flex: 1;
+    overflow: auto;
+    background: var(--color-bg);
+    padding: 8px 0;
+
+    &:focus {
+      outline: none;
+    }
+  }
+
+  .stv-content {
+    margin: 0;
+    padding: 0 16px;
+    font-family: monospace;
+    line-height: 1.5;
+    white-space: pre-wrap;
+    word-break: break-all;
+    color: var(--color-text);
+    user-select: text;
+  }
+
+  .stv-status {
+    padding: 24px 16px;
+    color: var(--color-text);
+    opacity: 0.6;
+    margin: 0;
+  }
+
+  .stv-error {
+    color: var(--color-danger, #e74c3c);
+    opacity: 1;
+  }
+
+  // ── Footer ────────────────────────────────────────────────────────────────
+  .stv-footer {
+    display: flex;
+    align-items: center;
+    padding: 5px 16px;
+    border-top: 1px solid var(--color-border);
+    font-size: 12px;
+    color: var(--color-text);
+    opacity: 0.55;
+    flex-shrink: 0;
+    background: var(--color-bg);
+  }
+
+  // ── Search highlights ─────────────────────────────────────────────────────
+  .stv-match {
+    background: rgba(255, 220, 0, 0.40);
+    border-radius: 2px;
+  }
+
+  .stv-match-active {
+    background: rgba(255, 140, 0, 0.65);
+    outline: 1px solid darkorange;
+    border-radius: 2px;
+  }
+}

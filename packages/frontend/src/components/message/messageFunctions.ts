@@ -128,6 +128,24 @@ export async function openAttachmentInShell(
       }
     }
 
+    // Text files from cmd_response (e.g. .log, .txt) — open in secure viewer.
+    if (isTextViewable(filePathName)) {
+      const cleanName =
+        msg.fileName?.replace(/\.prv$/i, '') ||
+        filePathName.split(/[/\\]/).pop() ||
+        'file'
+      log.info('Opening decrypted .prv text file in SecureTextViewer', {
+        filePath: filePathName,
+        fileName: cleanName,
+      })
+      return {
+        useSecureViewer: true,
+        filePath: filePathName,
+        fileName: cleanName,
+        viewerType: 'text',
+      }
+    }
+
     runtime.openPath(filePathName)
     return
   }
@@ -494,6 +512,15 @@ export function openSecureViewer(
       )
       break
   }
+}
+
+export function openSecureTextViewer(
+  openDialog: OpenDialog,
+  filePath: string,
+  fileName: string,
+  canDownload?: boolean
+) {
+  openDialog(SecureTextViewer, { filePath, fileName, canDownload })
 }
 
 export function setQuoteInDraft(messageId: number) {

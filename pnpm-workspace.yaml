@@ -2,8 +2,8 @@ packages:
   - packages/*
 catalog:
   # deltachat specific
-  '@privitty/jsonrpc-client': 2.52.2
-  '@privitty/stdio-rpc-server': 2.52.2
+  '@privitty/jsonrpc-client': 2.53.0
+  '@privitty/stdio-rpc-server': 2.53.0
 
   # dependencies
   '@types/mime-types': ^2.1.4
@@ -14,7 +14,7 @@ catalog:
 
   # tools / dev dependencies
   sass: ^1.86.3
-  typescript: ^5.9.2
+  typescript: ^7.0.2
   typescript-plugin-css-modules: ^5.2.0
 
 onlyBuiltDependencies:
@@ -23,12 +23,76 @@ onlyBuiltDependencies:
   - esbuild
 
 overrides:
+  '@xmldom/xmldom@<0.8.12': '>=0.8.12'
+  '@xmldom/xmldom@<0.8.13': '>=0.8.13'
+  '@xmldom/xmldom@>=0.7.0 <=0.8.13': '>=0.8.14'
+  '@xmldom/xmldom@>=0.7.0 <=0.8.14': '>=0.8.15'
+  adm-zip@<0.6.0: '>=0.6.0'
+  app-builder-lib@<26.15.0: '>=26.15.0'
+  body-parser@<1.20.6: '>=1.20.6'
+  brace-expansion@>=2.0.0 <2.0.3: '>=2.0.3'
+  brace-expansion@>=2.0.0 <2.1.2: '>=2.1.2'
+  brace-expansion@>=2.0.0 <2.1.3: '>=2.1.3'
+  brace-expansion@>=2.0.0 <2.1.4: '>=2.1.4'
+  brace-expansion@>=3.0.0 <5.0.7: '>=5.0.7'
+  brace-expansion@>=4.0.0 <5.0.5: '>=5.0.5'
+  brace-expansion@>=4.0.0 <5.0.8: '>=5.0.8'
+  brace-expansion@>=4.0.0 <5.0.9: '>=5.0.9'
+  brace-expansion@>=5.0.0 <5.0.6: '>=5.0.6'
+  builder-util-runtime@<9.7.0: '>=9.7.0'
+  electron@<38.8.6: '>=38.8.6'
+  electron@<39.8.1: '>=39.8.1'
+  electron@<39.8.10: '>=39.8.10'
+  electron@<39.8.5: '>=39.8.5'
+  electron@<39.8.6: '>=39.8.6'
+  electron@<39.8.7: '>=39.8.7'
+  electron@<39.8.8: '>=39.8.8'
+  electron@<39.8.9: '>=39.8.9'
+  electron@>=33.0.0-alpha.1 <39.8.5: '>=39.8.5'
+  form-data@>=4.0.0 <4.0.6: '>=4.0.6'
   'glob@>=10.0.0 <10.5.0': 10.5.0
-  js-yaml: '>=4.1.1'
-  lodash: '>=4.17.23'
-  'minimatch@>=9.0.0 <10.2.1': 10.2.1
-  qs: '>=6.14.2'
-  tar: '>=7.5.8'
+  immutable@<4.3.9: '>=4.3.9'
+  immutable@>=4.0.0-beta.1 <4.3.9: '>=4.3.9'
+  immutable@>=5.0.0-beta.1 <5.1.8: '>=5.1.8'
+  ip-address@<=10.1.0: '>=10.1.1'
+  ip-address@<=10.3.0: '>=10.3.1'
+  js-yaml: '>=4.3.2'
+  js-yaml@>=4.0.0 <4.3.0: '>=4.3.0'
+  js-yaml@>=4.0.0 <4.3.1: '>=4.3.1'
+  js-yaml@>=4.0.0 <4.3.2: '>=4.3.2'
+  js-yaml@>=4.0.0 <=4.1.1: '>=4.2.0'
+  lodash: '>=4.18.1'
+  lodash@<=4.17.23: '>=4.18.0'
+  lodash@>=4.0.0 <=4.17.23: '>=4.18.0'
+  minimatch@>=10.0.0 <10.2.3: '>=10.2.3'
+  'minimatch@>=9.0.0 <10.2.3': 10.2.3
+  nanoid@<3.3.12: '>=3.3.12'
+  nanoid@<3.3.16: '>=3.3.16'
+  nanoid@<3.3.18: '>=3.3.18'
+  path-to-regexp@<0.1.13: '>=0.1.13'
+  picomatch@<2.3.2: '>=2.3.2'
+  picomatch@>=4.0.0 <4.0.4: '>=4.0.4'
+  postcss-selector-parser@>=7.1.0 <7.1.3: '>=7.1.3'
+  postcss@<8.5.10: '>=8.5.10'
+  postcss@<=8.5.11: '>=8.5.12'
+  postcss@<=8.5.17: '>=8.5.18'
+  postcss@<=8.5.22: '>=8.5.23'
+  qs: '>=6.16.0'
+  qs@>=2.2.5 <6.16.0: '>=6.16.0'
+  qs@>=6.11.1 <=6.15.1: '>=6.15.2'
+  qs@>=6.14.2 <=6.15.3: '>=6.16.0'
+  serialize-javascript@<=7.0.2: '>=7.0.3'
+  serialize-javascript@>=5.0.0 <7.0.5: '>=7.0.5'
+  tar: '>=7.5.21'
+  tar@<=7.5.15: '>=7.5.16'
+  tar@<=7.5.16: '>=7.5.17'
+  tar@<=7.5.17: '>=7.5.18'
+  tar@<=7.5.18: '>=7.5.19'
+  tar@<=7.5.20: '>=7.5.21'
+  tmp@<0.2.6: '>=0.2.6'
+  ws@>=7.0.0 <7.5.11: '>=7.5.11'
+  ws@>=8.0.0 <8.20.1: '>=8.20.1'
+  ws@>=8.0.0 <8.21.0: '>=8.21.0'
 
 peerDependencyRules:
   allowedVersions:
