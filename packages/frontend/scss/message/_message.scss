@@ -981,3 +981,92 @@ $info-text-max-width: 400px;
     }
   }
 }
+
+// ---------------------------------------------------------------------------
+// Device Command request (pending) bubble
+// ---------------------------------------------------------------------------
+.device-cmd-request {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+
+  &__label {
+    font-family: monospace;
+    font-size: 13px;
+    font-weight: 600;
+    color: var(--colorPrimary, #2196f3);
+  }
+
+  &__pending {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    font-size: 12px;
+    color: var(--textSecondary, #888);
+  }
+
+  &__spinner {
+    display: inline-block;
+    width: 10px;
+    height: 10px;
+    border: 2px solid rgba(33, 150, 243, 0.3);
+    border-top-color: #2196f3;
+    border-radius: 50%;
+    animation: cmd-spin 0.8s linear infinite;
+    flex-shrink: 0;
+  }
+
+  &__offline {
+    font-style: italic;
+    opacity: 0.75;
+  }
+
+  &__done {
+    font-size: 11px;
+    color: #27ae60;
+  }
+}
+
+@keyframes cmd-spin {
+  to { transform: rotate(360deg); }
+}
+
+// ---------------------------------------------------------------------------
+// Device Command response bubble
+// ---------------------------------------------------------------------------
+.device-cmd-response {
+  border-left: 3px solid var(--colorPrimary, #5c8db8);
+  padding: 6px 10px;
+  border-radius: 0 4px 4px 0;
+
+  &__header {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin-bottom: 4px;
+  }
+
+  &__cmd {
+    font-family: monospace;
+    font-weight: 600;
+    font-size: 0.9em;
+    color: var(--colorPrimary, #5c8db8);
+  }
+
+  &__error {
+    color: var(--colorDanger, #e74c3c);
+    font-size: 0.85em;
+  }
+
+  &__output {
+    margin: 0;
+    font-size: 0.8em;
+    white-space: pre-wrap;
+    word-break: break-all;
+    max-height: 300px;
+    overflow-y: auto;
+    background: transparent;
+    border: none;
+    padding: 0;
+  }
+}

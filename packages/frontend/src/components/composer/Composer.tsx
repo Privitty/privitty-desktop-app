@@ -48,6 +48,12 @@ import { basename } from 'path'
 import { cleanupLocalDraftAttachmentFile } from '../../utils/cleanupDraftAttachmentFile'
 import { useHasChanged2 } from '../../hooks/useHasChanged'
 import { ScreenContext } from '../../contexts/ScreenContext'
+import { DeviceCommandPalette } from './DeviceCommandPalette'
+import { DeviceCommandChips } from './DeviceCommandChips'
+import { useDeviceCommands } from '../../hooks/useDeviceCommands'
+import type { DeviceCommand } from '../../hooks/useDeviceCommands'
+import { isCmdRequestText } from '../../hooks/useCmdRequestPending'
+import { privittyStore } from '../../privitty/privittyStore'
 import {
   AudioErrorType,
   AudioRecorderError,
@@ -97,20 +103,149 @@ const Composer = forwardRef<
   } = props
 
   const chatId = selectedChat.id
+  const accountId = selectedAccountId()
   const [showEmojiPicker, setShowEmojiPicker] = useState(false)
   const [showAppPicker, setShowAppPicker] = useState(false)
   const [currentEditText, setCurrentEditText] = useState('')
   const [recording, setRecording] = useState(false)
 
+  // Device commands are only relevant in Privitty-protected 1:1 chats with an
+  // edge peer — same scope as remote access in MainScreen.
+  const [isPrivittyChat, setIsPrivittyChat] = useState(
+    () =>
+      selectedChat.chatType === C.DC_CHAT_TYPE_SINGLE &&
+      privittyStore.isPrivitty(accountId, chatId)
+  )
+  useEffect(() => {
+    setIsPrivittyChat(
+      selectedChat.chatType === C.DC_CHAT_TYPE_SINGLE &&
+        privittyStore.isPrivitty(accountId, chatId)
+    )
+    return privittyStore.subscribe(markedChatId => {
+      if (markedChatId === chatId) {
+        setIsPrivittyChat(selectedChat.chatType === C.DC_CHAT_TYPE_SINGLE)
+      }
+    })
+  }, [accountId, chatId, selectedChat.chatType])
+
+  // Device Commands state
+  const { isEnabled, capabilities } = useDeviceCommands(
+    isPrivittyChat ? chatId : null
+  )
+  const [showCommandPalette, setShowCommandPalette] = useState(false)
+  const [selectedCommand, setSelectedCommand] = useState<DeviceCommand | null>(null)
+
   const emojiAndStickerRef = useRef<HTMLDivElement>(null)
   const pickerButtonRef = useRef<HTMLButtonElement>(null)
 
   const tx = useTranslationFunction()
-  const accountId = selectedAccountId()
   const { openDialog } = useDialog()
   const { sendMessage } = useMessage()
   const { unselectChat } = useChat()
   const fileSharing = useFileSharingEnabled()
+
+  // ---------------------------------------------------------------------------
+  // Device Commands helpers
+  // ---------------------------------------------------------------------------
+
+  /** Send a cmd_request JSON message to the edge, respecting the 3-pending cap. */
+  const sendDeviceCommand = useCallback(
+    async (cmd: DeviceCommand, args: Record<string, number | string>) => {
+      // ── In-flight cap check (spec §8.4) ──────────────────────────────────
+      // Count outbound cmd_request messages that have no matching cmd_response.
+      try {
+        const listItems = await BackendRemote.rpc.getMessageListItems(
+          accountId,
+          chatId,
+          false,
+          true
+        )
+        const msgIds = listItems
+          .filter((item: any) => item.kind === 'message')
+          .map((item: any) => item.msg_id as number)
+        const messagesMap = await BackendRemote.rpc.getMessages(accountId, msgIds)
+        const messages = Object.values(messagesMap) as any[]
+
+        // Collect all resolved req_ids
+        const resolvedReqIds = new Set<string>()
+        for (const m of messages) {
+          if (
+            m.text &&
+            m.text.includes('"__pvt"') &&
+            m.text.includes('cmd_response')
+          ) {
+            const match = m.text.match(/"req_id"\s*:\s*"([^"]+)"/)
+            if (match) resolvedReqIds.add(match[1])
+          }
+        }
+
+        // Count unresolved outbound cmd_requests
+        let pendingCount = 0
+        for (const m of messages) {
+          if (isCmdRequestText(m.text) && m.isOutgoing) {
+            const match = m.text.match(/"req_id"\s*:\s*"([^"]+)"/)
+            const reqId = match ? match[1] : null
+            if (reqId && !resolvedReqIds.has(reqId)) pendingCount++
+          }
+        }
+
+        if (pendingCount >= 3) {
+          openDialog(AlertDialog, {
+            message:
+              'Wait for a pending command to complete before sending another (max 3 in-flight).',
+          })
+          return
+        }
+      } catch {
+        // If the check fails, proceed — don't block the user.
+      }
+      // ── Send ─────────────────────────────────────────────────────────────
+      const reqId =
+        typeof crypto !== 'undefined' && crypto.randomUUID
+          ? crypto.randomUUID()
+          : Math.random().toString(36).slice(2)
+      const payload = JSON.stringify({
+        __pvt: 'cmd_request',
+        schema_version: '1',
+        req_id: reqId,
+        cmd: cmd.name,
+        args,
+      })
+      await sendMessage(accountId, chatId, { text: payload, viewtype: 'Text' })
+    },
+    [accountId, chatId, sendMessage, openDialog]
+  )
+
+  /** Called when the user selects a command from the palette. */
+  const handleCommandSelect = useCallback(
+    (cmd: DeviceCommand) => {
+      setShowCommandPalette(false)
+      if (cmd.args?.length > 0 && cmd.args[0].type === 'choice') {
+        setSelectedCommand(cmd)
+      } else {
+        void sendDeviceCommand(cmd, {})
+        props.clearDraftStateAndUpdateTextareaValue()
+      }
+    },
+    [sendDeviceCommand, props]
+  )
+
+  /** Called when the user taps a chip value. */
+  const handleCommandSend = useCallback(
+    (cmd: DeviceCommand, args: Record<string, number | string>) => {
+      setSelectedCommand(null)
+      void sendDeviceCommand(cmd, args)
+      props.clearDraftStateAndUpdateTextareaValue()
+    },
+    [sendDeviceCommand, props]
+  )
+
+  /** Cancel the palette / chips. */
+  const handleCommandCancel = useCallback(() => {
+    setShowCommandPalette(false)
+    setSelectedCommand(null)
+    props.clearDraftStateAndUpdateTextareaValue()
+  }, [props])
 
   // The philosophy of the editing mode is as follows.
   // The edit mode can be thought of as a dialog,
@@ -591,6 +726,22 @@ const Composer = forwardRef<
                   <CloseButton onClick={removeFile} />
                 </div>
               )}
+              {/* Device command palette — shown when user types "/" */}
+              {isEnabled && showCommandPalette && capabilities && (
+                <DeviceCommandPalette
+                  commands={capabilities.commands}
+                  onSelect={handleCommandSelect}
+                  onClose={handleCommandCancel}
+                />
+              )}
+              {/* Device command chips — shown when a command needs args */}
+              {selectedCommand && (
+                <DeviceCommandChips
+                  command={selectedCommand}
+                  onSend={handleCommandSend}
+                  onCancel={handleCommandCancel}
+                />
+              )}
             </>
           ) : (
             <div className='attachment-quote-section is-quote'>
@@ -645,6 +796,23 @@ const Composer = forwardRef<
               fileSharing={fileSharing}
             />
           )}
+          {/* Device command trigger — visible when the peer is a Privitty edge
+              with commands enabled.  Matches the attachment icon colour so it
+              looks at home next to the other composer action buttons. */}
+          {isEnabled && !messageEditing.isEditingModeActive && !recording && (
+            <button
+              type='button'
+              className={`device-command-button${showCommandPalette ? ' device-command-button--active' : ''}`}
+              aria-label='Device commands'
+              title='Device commands (/)'
+              onClick={() => {
+                setShowCommandPalette(p => !p)
+                if (showCommandPalette) setSelectedCommand(null)
+              }}
+            >
+              /
+            </button>
+          )}
           {!recording && (
             <>
               <ComposerMessageInput
@@ -672,7 +840,18 @@ const Composer = forwardRef<
                 chatId={chatId}
                 updateDraftText={updateDraftText}
                 onPaste={handlePaste ?? undefined}
-                onChange={setCurrentEditText}
+                onChange={(text: string) => {
+                  setCurrentEditText(text)
+                  const trimmed = text.trim()
+                  if (
+                    isEnabled &&
+                    (trimmed === '/' || trimmed.startsWith('/ '))
+                  ) {
+                    setShowCommandPalette(true)
+                  } else if (!trimmed.startsWith('/') || !isEnabled) {
+                    setShowCommandPalette(false)
+                  }
+                }}
               />
               <ComposerMessageInput
                 isMessageEditingMode={true}
