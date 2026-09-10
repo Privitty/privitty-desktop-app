@@ -158,6 +158,9 @@ export default function MenuAttachment({
                     'mkv',
                     'm4v',
                     'pdf',
+                    'docx',
+                    'xlsx',
+                    'pptx'
                   ],
                 },
               ]
