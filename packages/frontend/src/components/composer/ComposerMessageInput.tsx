@@ -14,6 +14,7 @@ type ComposerMessageInputProps = {
    */
   hidden?: boolean
   isMessageEditingMode: boolean
+  placeholder?: string
   chatId: number
   sendMessageOrEditRequest: () => void
   enterKeySends: boolean
@@ -281,7 +282,8 @@ export default class ComposerMessageInput extends React.Component<
             placeholder={
               this.props.isMessageEditingMode
                 ? window.static_translate('edit_message')
-                : window.static_translate('write_message_desktop')
+                : (this.props.placeholder ??
+                  window.static_translate('write_message_desktop'))
             }
             disabled={this.state.loadingDraft}
             dir={

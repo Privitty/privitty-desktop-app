@@ -2,9 +2,14 @@ import React, { useRef, useEffect, useCallback } from 'react'
 import { basename, join, parse } from 'path'
 import { C, T } from '@privitty/jsonrpc-client'
 
+import classNames from 'classnames'
 import Composer, { useDraft } from '../composer/Composer'
 import { getLogger } from '../../../../shared/logger'
 import MessageList from './MessageList'
+import {
+  RemoteAccessChatProvider,
+  useIsRemoteAccessChat,
+} from '../../contexts/RemoteAccessChatContext'
 import type ComposerMessageInput from '../composer/ComposerMessageInput'
 import { DesktopSettingsType } from '../../../../shared/shared-types'
 import { runtime } from '@deltachat-desktop/runtime-interface'
@@ -95,6 +100,14 @@ export function getBackgroundImageStyle(
 }
 
 export default function MessageListAndComposer({ accountId, chat }: Props) {
+  return (
+    <RemoteAccessChatProvider chat={chat} accountId={accountId}>
+      <MessageListAndComposerInner accountId={accountId} chat={chat} />
+    </RemoteAccessChatProvider>
+  )
+}
+
+function MessageListAndComposerInner({ accountId, chat }: Props) {
   const conversationRef = useRef<HTMLDivElement>(null)
   const refComposer = useRef(null)
 
@@ -372,16 +385,21 @@ export default function MessageListAndComposer({ accountId, chat }: Props) {
     }
   }, [onMouseUp, onEscapeKeyUp])
 
+  const { isRemoteAccessChat } = useIsRemoteAccessChat()
   const settingsStore = useSettingsStore()[0]
   // If you want to update this, don't forget to update
   // the `.background-preview` element as well.
-  const style = settingsStore
-    ? getBackgroundImageStyle(settingsStore.desktopSettings)
-    : {}
+  const style = isRemoteAccessChat
+    ? { backgroundColor: 'var(--ra-chat-bg, #151925)', backgroundImage: 'none' }
+    : settingsStore
+      ? getBackgroundImageStyle(settingsStore.desktopSettings)
+      : {}
 
   return (
     <div
-      className='message-list-and-composer'
+      className={classNames('message-list-and-composer', {
+        'remote-access-chat-view': isRemoteAccessChat,
+      })}
       style={style}
       ref={conversationRef}
       onDragOver={onDragOver}

@@ -150,17 +150,17 @@ async function getDisplayNameFromAnyConfiguredAccount(
         if (!configured) continue
         const name: string | null = await rpc.getConfig(id, 'displayname')
         if (name && name.trim().length > 0) return name.trim()
-        const addr: string | null = await rpc.getConfig(
-          id,
-          'configured_addr'
-        )
+        const addr: string | null = await rpc.getConfig(id, 'configured_addr')
         if (addr && addr.trim().length > 0) return addr.trim()
       } catch (_inner) {
         /* skip account */
       }
     }
   } catch (e) {
-    log.warn('getDisplayNameFromAnyConfiguredAccount: failed to list accounts:', e)
+    log.warn(
+      'getDisplayNameFromAnyConfiguredAccount: failed to list accounts:',
+      e
+    )
   }
   return null
 }

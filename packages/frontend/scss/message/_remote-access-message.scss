@@ -1,0 +1,699 @@
+// ---------------------------------------------------------------------------
+// Remote Access Chat Message Styles
+// Theme-adaptive developer/terminal layout with full light/dark mode support
+// ---------------------------------------------------------------------------
+
+// Fallback CSS variable definitions on :root (dark mode default)
+:root {
+  --ra-is-dark: 1;
+  --ra-chat-bg: #151925;
+  --ra-cmd-bg: linear-gradient(145deg, #18132b 0%, #130f24 100%);
+  --ra-cmd-border: rgba(168, 85, 247, 0.35);
+  --ra-cmd-border-hover: rgba(168, 85, 247, 0.55);
+  --ra-cmd-shadow-hover: rgba(168, 85, 247, 0.12);
+  --ra-cmd-label: #d8b4fe;
+  --ra-status-done: #34d399;
+  --ra-status-pending: #94a3b8;
+  --ra-spinner-border: rgba(168, 85, 247, 0.25);
+  --ra-spinner-top: #c084fc;
+  --ra-card-bg: #0e131f;
+  --ra-card-border: rgba(255, 255, 255, 0.08);
+  --ra-card-border-hover: rgba(255, 255, 255, 0.14);
+  --ra-card-shadow: 0 6px 24px rgba(0, 0, 0, 0.45);
+  --ra-card-header-bg: rgba(255, 255, 255, 0.015);
+  --ra-card-header-border: rgba(255, 255, 255, 0.06);
+  --ra-card-accent-purple: linear-gradient(180deg, #8b5cf6 0%, #a855f7 100%);
+  --ra-card-accent-cyan: linear-gradient(180deg, #06b6d4 0%, #8b5cf6 100%);
+  --ra-dot-purple: #8b5cf6;
+  --ra-dot-cyan: #06b6d4;
+  --ra-header-cmd: #c084fc;
+  --ra-header-subtitle: #64748b;
+  --ra-node-badge-bg: #1e293b;
+  --ra-node-badge-border: #334155;
+  --ra-node-badge-text: #94a3b8;
+  --ra-stat-lbl: #64748b;
+  --ra-stat-cyan: #22d3ee;
+  --ra-stat-green: #34d399;
+  --ra-btn-icon: #64748b;
+  --ra-btn-icon-hover: #e2e8f0;
+  --ra-btn-icon-bg-hover: rgba(255, 255, 255, 0.07);
+  --ra-metrics-bg: rgba(0, 0, 0, 0.15);
+  --ra-metrics-border: rgba(255, 255, 255, 0.06);
+  --ra-metric-title: #94a3b8;
+  --ra-metric-purple: #c084fc;
+  --ra-metric-cyan: #22d3ee;
+  --ra-metric-green: #34d399;
+  --ra-progress-track: rgba(255, 255, 255, 0.08);
+  --ra-progress-purple: linear-gradient(90deg, #8b5cf6, #c084fc);
+  --ra-progress-cyan: linear-gradient(90deg, #06b6d4, #22d3ee);
+  --ra-progress-green: linear-gradient(90deg, #059669, #34d399);
+  --ra-output-text: #cbd5e1;
+  --ra-tok-cmd: #c084fc;
+  --ra-tok-num: #f8fafc;
+  --ra-tok-green: #34d399;
+  --ra-tok-cyan: #22d3ee;
+  --ra-tok-purple: #c084fc;
+  --ra-tok-dim: #64748b;
+  --ra-error-bg: rgba(239, 68, 68, 0.12);
+  --ra-error-border: #ef4444;
+  --ra-error-text: #fca5a5;
+  --ra-file-card-bg: rgba(255, 255, 255, 0.02);
+  --ra-file-card-border: rgba(255, 255, 255, 0.06);
+  --ra-file-name: #e2e8f0;
+  --ra-file-btn-bg: #1e293b;
+  --ra-file-btn-border: #334155;
+  --ra-file-btn-text: #c084fc;
+  --ra-file-btn-bg-hover: #334155;
+  --ra-file-btn-text-hover: #e9d5ff;
+  --ra-bubble-out-bg: #18132b;
+  --ra-bubble-out-border: rgba(168, 85, 247, 0.3);
+  --ra-bubble-out-text: #f1f5f9;
+  --ra-bubble-in-bg: #0e131f;
+  --ra-bubble-in-border: rgba(255, 255, 255, 0.08);
+  --ra-bubble-in-text: #cbd5e1;
+  --ra-meta-time: #64748b;
+}
+
+// Light theme system preference fallback (overridden by theme-vars if set)
+@media (prefers-color-scheme: light) {
+  :root {
+    --ra-chat-bg: #f5f6fa;
+    --ra-cmd-bg: linear-gradient(145deg, #f5f0ff 0%, #ede5fc 100%);
+    --ra-cmd-border: rgba(127, 102, 197, 0.35);
+    --ra-cmd-border-hover: rgba(127, 102, 197, 0.6);
+    --ra-cmd-shadow-hover: rgba(127, 102, 197, 0.15);
+    --ra-cmd-label: var(--colorPrimary, #6750a4);
+    --ra-status-done: #15803d;
+    --ra-status-pending: #64748b;
+    --ra-spinner-border: rgba(103, 80, 164, 0.25);
+    --ra-spinner-top: var(--colorPrimary, #6750a4);
+    --ra-card-bg: var(--bgPrimary, #ffffff);
+    --ra-card-border: rgba(0, 0, 0, 0.1);
+    --ra-card-border-hover: rgba(0, 0, 0, 0.18);
+    --ra-card-shadow: 0 4px 18px rgba(0, 0, 0, 0.08);
+    --ra-card-header-bg: rgba(0, 0, 0, 0.02);
+    --ra-card-header-border: rgba(0, 0, 0, 0.07);
+    --ra-card-accent-purple: linear-gradient(180deg, #6750a4 0%, #7f66c5 100%);
+    --ra-card-accent-cyan: linear-gradient(180deg, #0284c7 0%, #6750a4 100%);
+    --ra-dot-purple: #6750a4;
+    --ra-dot-cyan: #0284c7;
+    --ra-header-cmd: var(--colorPrimary, #6750a4);
+    --ra-header-subtitle: #64748b;
+    --ra-node-badge-bg: var(--bgSecondary, #f1f5f9);
+    --ra-node-badge-border: #cbd5e1;
+    --ra-node-badge-text: #475569;
+    --ra-stat-lbl: #64748b;
+    --ra-stat-cyan: #0284c7;
+    --ra-stat-green: #15803d;
+    --ra-btn-icon: #64748b;
+    --ra-btn-icon-hover: #1e293b;
+    --ra-btn-icon-bg-hover: rgba(0, 0, 0, 0.06);
+    --ra-metrics-bg: rgba(0, 0, 0, 0.02);
+    --ra-metrics-border: rgba(0, 0, 0, 0.06);
+    --ra-metric-title: #64748b;
+    --ra-metric-purple: #6750a4;
+    --ra-metric-cyan: #0284c7;
+    --ra-metric-green: #15803d;
+    --ra-progress-track: rgba(0, 0, 0, 0.08);
+    --ra-progress-purple: linear-gradient(90deg, #6750a4, #8b5cf6);
+    --ra-progress-cyan: linear-gradient(90deg, #0284c7, #38bdf8);
+    --ra-progress-green: linear-gradient(90deg, #15803d, #22c55e);
+    --ra-output-text: var(--textPrimary, #1e293b);
+    --ra-tok-cmd: #6750a4;
+    --ra-tok-num: #0f172a;
+    --ra-tok-green: #15803d;
+    --ra-tok-cyan: #0284c7;
+    --ra-tok-purple: #6750a4;
+    --ra-tok-dim: #64748b;
+    --ra-error-bg: rgba(239, 68, 68, 0.08);
+    --ra-error-border: #dc2626;
+    --ra-error-text: #b91c1c;
+    --ra-file-card-bg: rgba(0, 0, 0, 0.02);
+    --ra-file-card-border: rgba(0, 0, 0, 0.06);
+    --ra-file-name: var(--textPrimary, #1e293b);
+    --ra-file-btn-bg: #f8fafc;
+    --ra-file-btn-border: #cbd5e1;
+    --ra-file-btn-text: var(--colorPrimary, #6750a4);
+    --ra-file-btn-bg-hover: #ede9fe;
+    --ra-file-btn-text-hover: #581c87;
+    --ra-bubble-out-bg: #f5f0ff;
+    --ra-bubble-out-border: rgba(127, 102, 197, 0.35);
+    --ra-bubble-out-text: #1e1b4b;
+    --ra-bubble-in-bg: var(--bgPrimary, #ffffff);
+    --ra-bubble-in-border: rgba(0, 0, 0, 0.1);
+    --ra-bubble-in-text: var(--textPrimary, #1e293b);
+    --ra-meta-time: #64748b;
+  }
+}
+
+.remote-access-chat-view {
+  background-color: var(--ra-chat-bg, #151925) !important;
+  background-image: none !important;
+
+  #message-list {
+    background-color: var(--ra-chat-bg, #151925) !important;
+    background-image: none !important;
+  }
+
+  // Hide bell icon from outgoing file attachment bubbles in Remote Access chat
+  .message.outgoing .file-access-bell-wrapper,
+  .message.outgoing .file-access-bell-button {
+    display: none !important;
+  }
+}
+
+.ra-message-container {
+  display: flex;
+  flex-direction: column;
+  width: 100%;
+  padding: 4px 16px;
+  box-sizing: border-box;
+
+  &.ra-outgoing {
+    align-items: flex-end;
+  }
+
+  &.ra-incoming {
+    align-items: flex-start;
+  }
+}
+
+// ---------------------------------------------------------------------------
+// Outgoing User Command Card (Right Aligned)
+// ---------------------------------------------------------------------------
+
+.ra-command-card {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  max-width: min(420px, 85%);
+  padding: 12px 18px;
+  border-radius: 16px;
+  background: var(
+    --ra-cmd-bg,
+    linear-gradient(145deg, #18132b 0%, #130f24 100%)
+  );
+  border: 1px solid var(--ra-cmd-border, rgba(168, 85, 247, 0.35));
+  box-shadow: var(--ra-card-shadow, 0 4px 16px rgba(0, 0, 0, 0.4));
+  cursor: default;
+  transition:
+    border-color 0.15s ease,
+    box-shadow 0.15s ease,
+    background 0.15s ease;
+
+  &:hover {
+    border-color: var(--ra-cmd-border-hover, rgba(168, 85, 247, 0.55));
+    box-shadow: 0 6px 20px var(--ra-cmd-shadow-hover, rgba(168, 85, 247, 0.12));
+  }
+
+  .ra-command-label {
+    font-family:
+      ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, 'Liberation Mono',
+      monospace;
+    font-size: 15px;
+    font-weight: 700;
+    color: var(--ra-cmd-label, #d8b4fe);
+    letter-spacing: -0.01em;
+    word-break: break-all;
+  }
+
+  .ra-command-status {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    font-size: 12px;
+    font-weight: 500;
+
+    &.ra-status-done {
+      color: var(--ra-status-done, #34d399);
+
+      .ra-check-mark {
+        font-size: 13px;
+        font-weight: bold;
+      }
+    }
+
+    &.ra-status-pending {
+      color: var(--ra-status-pending, #94a3b8);
+    }
+  }
+
+  .ra-spinner {
+    display: inline-block;
+    width: 11px;
+    height: 11px;
+    border: 2px solid var(--ra-spinner-border, rgba(168, 85, 247, 0.25));
+    border-top-color: var(--ra-spinner-top, #c084fc);
+    border-radius: 50%;
+    animation: ra-spin 0.8s linear infinite;
+    flex-shrink: 0;
+  }
+
+  .ra-offline-hint {
+    font-style: italic;
+    font-size: 11px;
+    opacity: 0.75;
+    margin-left: 2px;
+  }
+}
+
+// ---------------------------------------------------------------------------
+// Incoming System/Edge Response Card (Left Aligned)
+// ---------------------------------------------------------------------------
+
+.ra-response-card {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  width: 100%;
+  max-width: min(780px, 90%);
+  background: var(--ra-card-bg, #0e131f);
+  border: 1px solid var(--ra-card-border, rgba(255, 255, 255, 0.08));
+  border-radius: 16px;
+  overflow: hidden;
+  box-shadow: var(--ra-card-shadow, 0 6px 24px rgba(0, 0, 0, 0.45));
+  cursor: default;
+  transition:
+    border-color 0.15s ease,
+    background 0.15s ease,
+    box-shadow 0.15s ease;
+
+  &:hover {
+    border-color: var(--ra-card-border-hover, rgba(255, 255, 255, 0.14));
+  }
+
+  // Vertical accent bar along the left edge
+  .ra-accent-stripe {
+    position: absolute;
+    top: 0;
+    bottom: 0;
+    left: 0;
+    width: 3.5px;
+    background: var(
+      --ra-card-accent-purple,
+      linear-gradient(180deg, #8b5cf6 0%, #a855f7 100%)
+    );
+
+    &.ra-accent-cyan {
+      background: var(
+        --ra-card-accent-cyan,
+        linear-gradient(180deg, #06b6d4 0%, #8b5cf6 100%)
+      );
+    }
+  }
+}
+
+// Header
+.ra-card-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 10px 16px 10px 20px;
+  border-bottom: 1px solid
+    var(--ra-card-header-border, rgba(255, 255, 255, 0.06));
+  background: var(--ra-card-header-bg, rgba(255, 255, 255, 0.015));
+  flex-wrap: wrap;
+  gap: 8px;
+
+  .ra-header-left {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    flex-wrap: wrap;
+  }
+
+  .ra-dot {
+    width: 7px;
+    height: 7px;
+    border-radius: 50%;
+    background-color: var(--ra-dot-purple, #8b5cf6);
+    flex-shrink: 0;
+
+    &.ra-dot-cyan {
+      background-color: var(--ra-dot-cyan, #06b6d4);
+    }
+  }
+
+  .ra-header-cmd {
+    font-family:
+      ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, 'Liberation Mono',
+      monospace;
+    font-size: 13.5px;
+    font-weight: 700;
+    color: var(--ra-header-cmd, #c084fc);
+    letter-spacing: -0.01em;
+  }
+
+  .ra-header-subtitle {
+    font-size: 12.5px;
+    color: var(--ra-header-subtitle, #64748b);
+    font-weight: 500;
+  }
+
+  .ra-node-badge {
+    display: inline-flex;
+    align-items: center;
+    padding: 1.5px 6px;
+    border-radius: 4px;
+    background: var(--ra-node-badge-bg, #1e293b);
+    border: 1px solid var(--ra-node-badge-border, #334155);
+    font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, monospace;
+    font-size: 11px;
+    font-weight: 600;
+    color: var(--ra-node-badge-text, #94a3b8);
+    letter-spacing: 0.02em;
+  }
+
+  .ra-header-right {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    margin-left: auto;
+  }
+
+  .ra-quick-stats {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, monospace;
+    font-size: 12px;
+
+    .ra-quick-stat {
+      display: inline-flex;
+      align-items: center;
+      gap: 4px;
+    }
+
+    .ra-stat-lbl {
+      color: var(--ra-stat-lbl, #64748b);
+    }
+
+    .ra-stat-val-cyan {
+      color: var(--ra-stat-cyan, #22d3ee);
+      font-weight: 600;
+    }
+
+    .ra-stat-val-green {
+      color: var(--ra-stat-green, #34d399);
+      font-weight: 600;
+    }
+  }
+
+  .ra-header-actions {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+  }
+
+  .ra-btn-icon {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 26px;
+    height: 26px;
+    padding: 0;
+    background: transparent;
+    border: none;
+    border-radius: 4px;
+    color: var(--ra-btn-icon, #64748b);
+    cursor: pointer;
+    transition:
+      color 0.15s ease,
+      background-color 0.15s ease;
+
+    &:hover {
+      color: var(--ra-btn-icon-hover, #e2e8f0);
+      background: var(--ra-btn-icon-bg-hover, rgba(255, 255, 255, 0.07));
+    }
+
+    &:focus-visible {
+      outline: 1px solid var(--ra-dot-purple, #8b5cf6);
+    }
+  }
+}
+
+// Metric Progress Bars
+.ra-metrics-section {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+  gap: 16px;
+  padding: 12px 20px;
+  border-bottom: 1px solid var(--ra-metrics-border, rgba(255, 255, 255, 0.06));
+  background: var(--ra-metrics-bg, rgba(0, 0, 0, 0.15));
+
+  .ra-metric-box {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+  }
+
+  .ra-metric-labels {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, monospace;
+    font-size: 11.5px;
+
+    .ra-metric-title {
+      color: var(--ra-metric-title, #94a3b8);
+    }
+
+    .ra-metric-num {
+      font-weight: 600;
+
+      &.purple {
+        color: var(--ra-metric-purple, #c084fc);
+      }
+
+      &.cyan {
+        color: var(--ra-metric-cyan, #22d3ee);
+      }
+
+      &.green {
+        color: var(--ra-metric-green, #34d399);
+      }
+    }
+  }
+
+  .ra-progress-track {
+    width: 100%;
+    height: 4px;
+    background: var(--ra-progress-track, rgba(255, 255, 255, 0.08));
+    border-radius: 2px;
+    overflow: hidden;
+  }
+
+  .ra-progress-bar {
+    height: 100%;
+    border-radius: 2px;
+    transition: width 0.4s ease;
+
+    &.purple {
+      background: var(
+        --ra-progress-purple,
+        linear-gradient(90deg, #8b5cf6, #c084fc)
+      );
+    }
+
+    &.cyan {
+      background: var(
+        --ra-progress-cyan,
+        linear-gradient(90deg, #06b6d4, #22d3ee)
+      );
+    }
+
+    &.green {
+      background: var(
+        --ra-progress-green,
+        linear-gradient(90deg, #059669, #34d399)
+      );
+    }
+  }
+}
+
+// Terminal Output
+.ra-terminal-output {
+  margin: 0;
+  padding: 16px 20px;
+  font-family:
+    ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, 'Liberation Mono',
+    monospace;
+  font-size: 12.5px;
+  line-height: 1.65;
+  color: var(--ra-output-text, #cbd5e1);
+  background: transparent;
+  border: none;
+  white-space: pre-wrap;
+  word-break: break-word;
+  user-select: text;
+  max-height: 600px;
+  overflow-y: auto;
+
+  // Syntax highlighting tokens
+  .ra-tok-cmd {
+    color: var(--ra-tok-cmd, #c084fc);
+    font-weight: 600;
+  }
+
+  .ra-tok-num {
+    color: var(--ra-tok-num, #f8fafc);
+    font-weight: 600;
+  }
+
+  .ra-tok-green {
+    color: var(--ra-tok-green, #34d399);
+    font-weight: 600;
+  }
+
+  .ra-tok-cyan {
+    color: var(--ra-tok-cyan, #22d3ee);
+    font-weight: 600;
+  }
+
+  .ra-tok-purple {
+    color: var(--ra-tok-purple, #c084fc);
+    font-weight: 600;
+  }
+
+  .ra-tok-dim {
+    color: var(--ra-tok-dim, #64748b);
+  }
+}
+
+// Error Banner
+.ra-error-banner {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  padding: 12px 18px;
+  background: var(--ra-error-bg, rgba(239, 68, 68, 0.12));
+  border-left: 3px solid var(--ra-error-border, #ef4444);
+  color: var(--ra-error-text, #fca5a5);
+  font-size: 13px;
+  line-height: 1.5;
+}
+
+// File Attachment Area
+.ra-file-card {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 12px 18px;
+  border-top: 1px solid var(--ra-file-card-border, rgba(255, 255, 255, 0.06));
+  background: var(--ra-file-card-bg, rgba(255, 255, 255, 0.02));
+
+  .ra-file-info {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    font-size: 13px;
+    color: var(--ra-output-text, #cbd5e1);
+  }
+
+  .ra-file-name {
+    font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, monospace;
+    font-weight: 500;
+    color: var(--ra-file-name, #e2e8f0);
+  }
+
+  .ra-file-open-btn {
+    padding: 6px 12px;
+    border-radius: 6px;
+    background: var(--ra-file-btn-bg, #1e293b);
+    border: 1px solid var(--ra-file-btn-border, #334155);
+    color: var(--ra-file-btn-text, #c084fc);
+    font-size: 12px;
+    font-weight: 500;
+    cursor: pointer;
+    transition:
+      background-color 0.15s ease,
+      color 0.15s ease;
+
+    &:hover {
+      background: var(--ra-file-btn-bg-hover, #334155);
+      color: var(--ra-file-btn-text-hover, #e9d5ff);
+    }
+  }
+}
+
+// ---------------------------------------------------------------------------
+// Attachment inside the RA response card
+// Mirrors the exact colours used by a normal incoming chat file attachment
+// (.message.incoming .msg-container .msg-body .message-attachment-generic)
+// without adding width:-webkit-fill-available so the button stays compact.
+// ---------------------------------------------------------------------------
+.ra-response-card {
+  // File-only mode: shrink card to fit the attachment instead of stretching
+  // to the full 780px max-width.
+  &.ra-file-mode {
+    width: fit-content;
+    min-width: 280px; // enough room for the /logs header + node badge
+  }
+
+  // Attachment button styling – matches normal incoming chat colours.
+  .message-attachment-generic {
+    background-color: #7f66c5;
+    border-radius: 12px;
+    cursor: pointer;
+    margin: 8px 12px 12px;
+
+    .text-part {
+      .name {
+        color: #ffffff;
+      }
+
+      .size {
+        color: #ffffff;
+      }
+    }
+  }
+}
+
+// General text messages in remote access chat
+.ra-text-bubble {
+  max-width: min(600px, 85%);
+  padding: 12px 16px;
+  border-radius: 14px;
+  font-size: 13.5px;
+  line-height: 1.5;
+  box-shadow: var(--ra-card-shadow, 0 4px 16px rgba(0, 0, 0, 0.35));
+
+  &.ra-outgoing {
+    background: var(--ra-bubble-out-bg, #18132b);
+    border: 1px solid var(--ra-bubble-out-border, rgba(168, 85, 247, 0.3));
+    color: var(--ra-bubble-out-text, #f1f5f9);
+  }
+
+  &.ra-incoming {
+    background: var(--ra-bubble-in-bg, #0e131f);
+    border: 1px solid var(--ra-bubble-in-border, rgba(255, 255, 255, 0.08));
+    color: var(--ra-bubble-in-text, #cbd5e1);
+  }
+}
+
+// Timestamp Rows (Outside Card)
+.ra-meta-row {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  margin-top: 5px;
+  margin-bottom: 10px;
+  font-size: 11px;
+  color: var(--ra-meta-time, #64748b);
+  user-select: none;
+
+  .ra-timestamp {
+    font-variant-numeric: tabular-nums;
+  }
+
+  .ra-receipt {
+    color: var(--ra-meta-time, #64748b);
+    font-size: 12px;
+  }
+}
+
+@keyframes ra-spin {
+  to {
+    transform: rotate(360deg);
+  }
+}

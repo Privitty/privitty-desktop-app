@@ -160,7 +160,7 @@ export default function MenuAttachment({
                     'pdf',
                     'docx',
                     'xlsx',
-                    'pptx'
+                    'pptx',
                   ],
                 },
               ]

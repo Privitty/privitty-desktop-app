@@ -36,6 +36,6 @@
     "@types/node": "catalog:",
     "@webxdc/types": "catalog:",
     "esbuild": "^0.25.0",
-    "typescript": "^5.2.2"
+    "typescript": "^6.0.3"
   }
 }

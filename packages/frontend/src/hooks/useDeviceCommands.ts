@@ -32,7 +32,9 @@ function parseDeviceCapabilities(json: string): DeviceCapabilities | null {
       : []
     return {
       commands_enabled:
-        obj.commands_enabled === undefined ? true : Boolean(obj.commands_enabled),
+        obj.commands_enabled === undefined
+          ? true
+          : Boolean(obj.commands_enabled),
       commands,
       platform: typeof obj.platform === 'string' ? obj.platform : undefined,
       edge_version:
@@ -136,11 +138,7 @@ export function useDeviceCommands(chatId: number | null): {
     }
 
     const unsubs = [
-      onDCEvent(
-        accountId,
-        'PrivittyDeviceCapabilitiesReceived',
-        onChatEvent
-      ),
+      onDCEvent(accountId, 'PrivittyDeviceCapabilitiesReceived', onChatEvent),
       onDCEvent(accountId, 'PrivittyPeerCapabilitiesReceived', onPeerCaps),
       onDCEvent(accountId, 'PrivittyPeerHandshakeComplete', onChatEvent),
       onDCEvent(accountId, 'PrivittyChatEncryptionChanged', onChatEvent),

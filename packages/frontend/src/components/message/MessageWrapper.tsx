@@ -2,6 +2,8 @@ import React, { useLayoutEffect, useRef } from 'react'
 import { C } from '@privitty/jsonrpc-client'
 
 import Message from './Message'
+import RemoteAccessMessage from './RemoteAccessMessage'
+import { useIsRemoteAccessChat } from '../../contexts/RemoteAccessChatContext'
 import { ConversationType } from './MessageList'
 import { getLogger } from '../../../../shared/logger'
 
@@ -60,9 +62,16 @@ export function MessageWrapper(props: RenderMessageProps) {
     shouldInViewObserve,
   ])
 
+  const { isRemoteAccessChat } = useIsRemoteAccessChat()
+  const renderRemote = isRemoteAccessChat
+
   return (
     <li id={props.key2} className='message-wrapper'>
-      <Message {...props} />
+      {renderRemote ? (
+        <RemoteAccessMessage {...props} />
+      ) : (
+        <Message {...props} />
+      )}
       {/* TODO perf: `shouldInViewObserve` does not become `false`
       when we do mark a message as read, because the messagelist.ts
       does not update its state on such events.

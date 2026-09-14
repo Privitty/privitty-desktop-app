@@ -1,10 +1,4 @@
-import React, {
-  useCallback,
-  useEffect,
-  useMemo,
-  useRef,
-  useState,
-} from 'react'
+import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 
 import Dialog from '../Dialog'
 import { IconButton } from '../Icon'
@@ -52,7 +46,10 @@ export default function SecureTextViewer(props: Props & DialogProps) {
   // Strip .prv wrapper if present (the viewer shows the real name)
   const fileName =
     rawFileName?.replace(/\.prv$/i, '') ||
-    filePath.split('/').pop()?.replace(/\.prv$/i, '') ||
+    filePath
+      .split('/')
+      .pop()
+      ?.replace(/\.prv$/i, '') ||
     'File'
 
   const [content, setContent] = useState<string | null>(null)
@@ -134,7 +131,9 @@ export default function SecureTextViewer(props: Props & DialogProps) {
         parts.push(
           <span
             key={`t-${cursor}`}
-            dangerouslySetInnerHTML={{ __html: escapeHtml(content.slice(cursor)) }}
+            dangerouslySetInnerHTML={{
+              __html: escapeHtml(content.slice(cursor)),
+            }}
           />
         )
         break
@@ -171,18 +170,15 @@ export default function SecureTextViewer(props: Props & DialogProps) {
     setMatchIndex(i => (i - 1 >= 0 ? i - 1 : matches.length - 1))
 
   // ── Keyboard shortcuts ───────────────────────────────────────────────────────
-  const handleDialogKeyDown = useCallback(
-    (e: React.KeyboardEvent) => {
-      if ((e.ctrlKey || e.metaKey) && e.key === 'f') {
-        e.preventDefault()
-        setShowSearch(s => {
-          if (!s) setTimeout(() => searchRef.current?.focus(), 50)
-          return true
-        })
-      }
-    },
-    []
-  )
+  const handleDialogKeyDown = useCallback((e: React.KeyboardEvent) => {
+    if ((e.ctrlKey || e.metaKey) && e.key === 'f') {
+      e.preventDefault()
+      setShowSearch(s => {
+        if (!s) setTimeout(() => searchRef.current?.focus(), 50)
+        return true
+      })
+    }
+  }, [])
 
   const handleSearchKey = (e: React.KeyboardEvent<HTMLInputElement>) => {
     if (e.key === 'Enter') {
@@ -258,10 +254,18 @@ export default function SecureTextViewer(props: Props & DialogProps) {
           {searchQuery && matches.length === 0 && (
             <span className='stv-no-match'>No matches</span>
           )}
-          <button className='stv-btn' onClick={prevMatch} aria-label='Previous match'>
+          <button
+            className='stv-btn'
+            onClick={prevMatch}
+            aria-label='Previous match'
+          >
             ▲
           </button>
-          <button className='stv-btn' onClick={nextMatch} aria-label='Next match'>
+          <button
+            className='stv-btn'
+            onClick={nextMatch}
+            aria-label='Next match'
+          >
             ▼
           </button>
         </div>
