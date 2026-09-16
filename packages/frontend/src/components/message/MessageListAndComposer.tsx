@@ -21,6 +21,7 @@ import useDialog from '../../hooks/dialog/useDialog'
 import useMessage from '../../hooks/chat/useMessage'
 import { useSharedData } from '../../contexts/FileAttribContext'
 import { encryptFileForChat } from '../../utils/privittyEncryptFile'
+import useFileSharingEnabled from '../../hooks/useFileSharingEnabled'
 import SmallSelectDialogPrivitty, {
   SelectedValue,
 } from '../SmallSelectDialogPrivitty'
@@ -114,6 +115,7 @@ function MessageListAndComposerInner({ accountId, chat }: Props) {
   const { openDialog, hasOpenDialogs } = useDialog()
   const { sendMessage } = useMessage()
   const { setSharedData } = useSharedData()
+  const fileSharing = useFileSharingEnabled()
 
   const regularMessageInputRef = useRef<ComposerMessageInput>(null)
   const editMessageInputRef = useRef<ComposerMessageInput>(null)
@@ -138,6 +140,21 @@ function MessageListAndComposerInner({ accountId, chat }: Props) {
   const handleDrop = useCallback(
     async (paths: string[]) => {
       log.info('drag: handling drop: ', paths)
+      if (!fileSharing.enabled) {
+        runtime.showNotification({
+          title: 'Privitty',
+          body:
+            fileSharing.reason === 'expired'
+              ? 'File sharing is unavailable because the license has expired.'
+              : 'File sharing is not included in your license.',
+          icon: null,
+          chatId: chat.id,
+          messageId: 0,
+          accountId,
+          notificationType: 0,
+        })
+        return
+      }
       if (chat === null) {
         log.warn('dropped something, but no chat is selected')
         return
@@ -286,6 +303,8 @@ function MessageListAndComposerInner({ accountId, chat }: Props) {
       accountId,
       addFileToDraft,
       chat,
+      fileSharing.enabled,
+      fileSharing.reason,
       hasOpenDialogs,
       openDialog,
       sendMessage,

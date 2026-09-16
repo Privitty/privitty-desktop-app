@@ -26,7 +26,12 @@ import useDialog from '../../hooks/dialog/useDialog'
 import AudioPlayer from '../AudioPlayer'
 import { T, C } from '@privitty/jsonrpc-client'
 import { selectedAccountId } from '../../ScreenController'
-import { extname } from 'path'
+import {
+  getSecureViewerTypeFromFileName,
+  getSecureViewerTypeFromPath,
+  isRoutableSecureViewerType,
+  isSupportedSecureViewerFileName,
+} from '../../utils/secureViewerExtensions'
 import { getPrivittyFileGradientIconClass } from '../../utils/privittyFileTypeLabel'
 
 function FileAttachmentIcon({
@@ -130,64 +135,16 @@ export default function Attachment({
         neighboringMedia: NeighboringMediaMode.Chat,
       })
     } else {
-      // Check if this is a supported media file (including .prv files that decrypt to supported formats)
-      const supportedExtensions = [
-        '.pdf',
-        '.jpg',
-        '.jpeg',
-        '.png',
-        '.gif',
-        '.bmp',
-        '.webp',
-        '.svg',
-        '.mp4',
-        '.avi',
-        '.mov',
-        '.wmv',
-        '.flv',
-        '.webm',
-        '.mkv',
-        '.m4v',
-      ]
-      const isSupportedMedia =
-        message.fileName?.toLowerCase().endsWith('.prv') ||
-        supportedExtensions.some(ext =>
-          message.fileName?.toLowerCase().endsWith(ext)
-        )
+      const isSupportedMedia = isSupportedSecureViewerFileName(
+        message.fileName || ''
+      )
 
       if (isSupportedMedia) {
-        // Check if this is a supported media file that should be opened in secure viewer
-        const fileName = message.fileName?.toLowerCase() || ''
-        const cleanedFileName = fileName.endsWith('.prv')
-          ? fileName.slice(0, -4)
-          : fileName
-        const fileExtension = cleanedFileName.split('.').pop() || ''
+        const viewerTypeFromName = getSecureViewerTypeFromFileName(
+          message.fileName || ''
+        )
 
-        const supportedImageExtensions = [
-          'jpg',
-          'jpeg',
-          'png',
-          'gif',
-          'bmp',
-          'webp',
-          'svg',
-        ]
-        const supportedVideoExtensions = [
-          'mp4',
-          'avi',
-          'mov',
-          'wmv',
-          'flv',
-          'webm',
-          'mkv',
-          'm4v',
-        ]
-
-        if (
-          fileExtension === 'pdf' ||
-          supportedImageExtensions.includes(fileExtension) ||
-          supportedVideoExtensions.includes(fileExtension)
-        ) {
+        if (isRoutableSecureViewerType(viewerTypeFromName)) {
           try {
             // For supported media files, we need to get the file path and open in secure viewer
             let tmpFile: string
@@ -441,39 +398,12 @@ export default function Attachment({
               return
             }
 
-            // Determine the correct viewer type based on file extension
-            let viewerType: 'pdf' | 'image' | 'video' = 'pdf'
-            const finalFileExtension = extname(filePathName).toLowerCase()
-
-            if (finalFileExtension === '.pdf') {
-              viewerType = 'pdf'
-            } else if (
-              [
-                '.jpg',
-                '.jpeg',
-                '.png',
-                '.gif',
-                '.bmp',
-                '.webp',
-                '.svg',
-              ].includes(finalFileExtension)
-            ) {
-              viewerType = 'image'
-            } else if (
-              [
-                '.mp4',
-                '.avi',
-                '.mov',
-                '.wmv',
-                '.flv',
-                '.webm',
-                '.mkv',
-                '.m4v',
-              ].includes(finalFileExtension)
-            ) {
-              viewerType = 'video'
+            const viewerType = getSecureViewerTypeFromPath(filePathName)
+            if (!isRoutableSecureViewerType(viewerType)) {
+              runtime.openPath(filePathName)
+              return
             }
-            // Open in appropriate secure viewer
+
             openSecureViewer(
               openDialog,
               filePathName,
@@ -494,7 +424,7 @@ export default function Attachment({
               openDialog,
               result.filePath!,
               result.fileName!,
-              result.viewerType as 'pdf' | 'image' | 'video'
+              result.viewerType!
             )
           }
         }
@@ -505,7 +435,7 @@ export default function Attachment({
             openDialog,
             result.filePath!,
             result.fileName!,
-            result.viewerType as 'pdf' | 'image' | 'video'
+            result.viewerType!
           )
         }
       }

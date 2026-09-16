@@ -130,34 +130,44 @@ export default function ImportLicenseScreen({ onBack, onDone }: Props) {
   )
 
   // ── State: scanning ─────────────────────────────────────────────────────────
+  // Match QrCodeScanQrInner / ScanInvitationCodeScreen: QrReader must sit in
+  // DialogBody (not the centered .card) so the camera/error area can use the
+  // full available width instead of shrinking to content.
   if (step === 'scanning') {
-    return card(
+    return (
       <>
-        <QrReader
-          key={readerKey}
-          ref={qrRef}
-          onScanSuccess={handleScanSuccess}
-          onError={err => {
-            setErrorMsg(
-              typeof err === 'string'
-                ? err
-                : ((err as any)?.message ?? String(err))
-            )
-            setStep('error')
-          }}
-        />
-        <p className={styles.subtitleSmall}>
-          Point your camera at the Privitty license QR code.
-        </p>
-      </>,
-      <FooterActions align='spaceBetween'>
-        <FooterActionButton onClick={() => setStep('idle')}>
-          Back
-        </FooterActionButton>
-        <FooterActionButton onClick={handlePasteUrl}>
-          Paste URL
-        </FooterActionButton>
-      </FooterActions>
+        <DialogHeader title='Import License' onClickBack={onBack} />
+        <DialogBody>
+          <QrReader
+            key={readerKey}
+            ref={qrRef}
+            onScanSuccess={handleScanSuccess}
+            onError={err => {
+              setErrorMsg(
+                typeof err === 'string'
+                  ? err
+                  : ((err as any)?.message ?? String(err))
+              )
+              setStep('error')
+            }}
+          />
+          <DialogContent>
+            <p className={styles.subtitleSmall}>
+              Point your camera at the Privitty license QR code.
+            </p>
+          </DialogContent>
+        </DialogBody>
+        <DialogFooter>
+          <FooterActions align='spaceBetween'>
+            <FooterActionButton onClick={() => setStep('idle')}>
+              Back
+            </FooterActionButton>
+            <FooterActionButton onClick={handlePasteUrl}>
+              Paste URL
+            </FooterActionButton>
+          </FooterActions>
+        </DialogFooter>
+      </>
     )
   }
 

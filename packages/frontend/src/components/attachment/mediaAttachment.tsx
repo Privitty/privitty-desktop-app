@@ -7,6 +7,7 @@ import {
   openWebxdc,
   openSecureViewer,
 } from '../message/messageFunctions'
+import { isSupportedSecureViewerFileName } from '../../utils/secureViewerExtensions'
 import {
   isImage,
   isVideo,
@@ -57,30 +58,9 @@ const contextMenuFactory = (
   const tx = window.static_translate
   const { id: msgId, viewType } = message
 
-  // Check if this is a supported media file (including .prv files that decrypt to supported formats)
-  const supportedExtensions = [
-    '.pdf',
-    '.jpg',
-    '.jpeg',
-    '.png',
-    '.gif',
-    '.bmp',
-    '.webp',
-    '.svg',
-    '.mp4',
-    '.avi',
-    '.mov',
-    '.wmv',
-    '.flv',
-    '.webm',
-    '.mkv',
-    '.m4v',
-  ]
-  const isSupportedMedia =
-    message.fileName?.toLowerCase().endsWith('.prv') ||
-    supportedExtensions.some(ext =>
-      message.fileName?.toLowerCase().endsWith(ext)
-    )
+  const isSupportedMedia = isSupportedSecureViewerFileName(
+    message.fileName || ''
+  )
 
   return [
     !hideOpenInShellTypes.includes(viewType) && {
@@ -94,7 +74,7 @@ const contextMenuFactory = (
                 openDialog,
                 result.filePath!,
                 result.fileName!,
-                result.viewerType as 'pdf' | 'image' | 'video'
+                result.viewerType!
               )
             }
           } catch (error) {
@@ -183,7 +163,7 @@ const getMediaActions = (
             openDialog,
             result.filePath!,
             result.fileName!,
-            result.viewerType as 'pdf' | 'image' | 'video'
+            result.viewerType!
           )
         }
       } catch (error) {

@@ -94,6 +94,12 @@ export interface Runtime {
    */
   importLicenseFromFile(filePath: string): Promise<{ licensePath: string }>
   checkFileExists(filePath: string): Promise<boolean>
+  /**
+   * Read a local file into memory as raw bytes.
+   * Used by secure document preview (Office formats, etc.).
+   * Path normalization and filesystem access happen in the native runtime layer.
+   */
+  readLocalFileBuffer(filePath: string): Promise<Uint8Array>
   getDesktopSettings(): Promise<DesktopSettingsType>
   setDesktopSetting(
     key: keyof DesktopSettingsType,

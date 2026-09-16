@@ -125,6 +125,14 @@ class ElectronRuntime implements Runtime {
     return Promise.resolve(ipcBackend.invoke('getFileExist', filePath))
   }
 
+  async readLocalFileBuffer(filePath: string): Promise<Uint8Array> {
+    const base64: string = await ipcBackend.invoke(
+      'app.readLocalFileBuffer',
+      filePath
+    )
+    return base64ToUint8Array(base64)
+  }
+
   PrivittyHandleMessage(_response: string): Promise<void> {
     return Promise.resolve()
   }
@@ -157,8 +165,15 @@ class ElectronRuntime implements Runtime {
   ): () => void {
     const handler = (
       _ev: any,
-      data: { accountId: number; statusCode: number }
-    ) => callback(data.accountId, data.statusCode)
+      data?: { accountId: number; statusCode: number }
+    ) => {
+      try {
+        callback(data?.accountId ?? 0, data?.statusCode ?? -1)
+      } catch (err) {
+        /* ignore-console-log */
+        console.error('[onPrivittyLicenseStatus] callback failed', err)
+      }
+    }
     ipcBackend.on('privittyLicenseStatus', handler)
     return () => ipcBackend.removeListener('privittyLicenseStatus', handler)
   }
@@ -623,6 +638,15 @@ class ElectronRuntime implements Runtime {
   askForMediaAccess(mediaType: MediaType): Promise<boolean | undefined> {
     return ipcBackend.invoke('askForMediaAccess', mediaType)
   }
+}
+
+function base64ToUint8Array(base64: string): Uint8Array {
+  const binary = atob(base64)
+  const bytes = new Uint8Array(binary.length)
+  for (let i = 0; i < binary.length; i++) {
+    bytes[i] = binary.charCodeAt(i)
+  }
+  return bytes
 }
 
 ;(window as any).r = new ElectronRuntime()
