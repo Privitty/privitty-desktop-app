@@ -52,6 +52,7 @@
 @use 'message/_status-icon';
 @use 'message/_message-calls';
 @use 'message/_message-markdown';
+@use 'message/_remote-access-message';
 
 // misc
 @use 'misc/_avatar.scss';

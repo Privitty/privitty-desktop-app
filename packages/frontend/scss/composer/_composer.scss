@@ -278,7 +278,8 @@
     cursor: pointer;
     text-align: left;
 
-    &:hover {
+    &:hover,
+    &--highlighted {
       background: rgba(0, 0, 0, 0.06);
     }
   }

@@ -801,23 +801,6 @@ const Composer = forwardRef<
               fileSharing={fileSharing}
             />
           )}
-          {/* Device command trigger — visible when the peer is a Privitty edge
-              with commands enabled.  Matches the attachment icon colour so it
-              looks at home next to the other composer action buttons. */}
-          {isEnabled && !messageEditing.isEditingModeActive && !recording && (
-            <button
-              type='button'
-              className={`device-command-button${showCommandPalette ? ' device-command-button--active' : ''}`}
-              aria-label='Device commands'
-              title='Device commands (/)'
-              onClick={() => {
-                setShowCommandPalette(p => !p)
-                if (showCommandPalette) setSelectedCommand(null)
-              }}
-            >
-              /
-            </button>
-          )}
           {!recording && (
             <>
               <ComposerMessageInput
@@ -857,6 +840,7 @@ const Composer = forwardRef<
                     setShowCommandPalette(false)
                   }
                 }}
+                placeholder={isEnabled ? "Type '/' for commands" : undefined}
               />
               <ComposerMessageInput
                 isMessageEditingMode={true}

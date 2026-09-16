@@ -104,7 +104,7 @@ For details on building installers (DMG, Windows, Linux) and signing, see [PRIVI
 ### Troubleshooting <a id="troubleshooting"></a>
 
 - The app is built on top of a messaging core and the Privitty security layer. Dependencies and setup are described in [PRIVITTY_BUILD.md](./PRIVITTY_BUILD.md) and [docs/UPDATE_CORE.md](docs/UPDATE_CORE.md).
-- Use Node.js **20.0.0** or newer.
+- Use Node.js **22.0.0** or newer.
 - If you hit build or runtime errors, check the docs above or open an issue in this repository.
 
 ## Configuration and Databases <a id="config-and-db"></a>

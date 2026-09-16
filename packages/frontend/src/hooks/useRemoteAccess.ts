@@ -31,6 +31,8 @@ export interface UseRemoteAccessResult {
   remoteAccessAvailable: boolean
   /** True when a tunnel session is currently active. */
   tunnelActive: boolean
+  /** Peer type: 'edge' for edge devices, 'app' for client apps, or null if unknown */
+  remotePeerType: string | null
   /** Refresh remote-access state from core. */
   refresh: () => Promise<void>
 }
@@ -47,6 +49,7 @@ export interface UseRemoteAccessResult {
 export function useRemoteAccess(chatId: number | null): UseRemoteAccessResult {
   const [remoteAccessAvailable, setRemoteAccessAvailable] = useState(false)
   const [tunnelActive, setTunnelActive] = useState(false)
+  const [remotePeerType, setRemotePeerType] = useState<string | null>(null)
   const mountedRef = useRef(true)
 
   const rpc = BackendRemote.rpc as any
@@ -54,6 +57,7 @@ export function useRemoteAccess(chatId: number | null): UseRemoteAccessResult {
   const refresh = useCallback(async () => {
     if (!chatId) {
       setRemoteAccessAvailable(false)
+      setRemotePeerType(null)
       setTunnelActive(false)
       return
     }
@@ -65,7 +69,10 @@ export function useRemoteAccess(chatId: number | null): UseRemoteAccessResult {
       if (!mountedRef.current) return
 
       const available = caps?.remoteAccessAvailable ?? false
+      const peerType =
+        caps?.remotePeerType ?? caps?.capabilities?.peerType ?? null
       setRemoteAccessAvailable(available)
+      setRemotePeerType(peerType)
 
       // Check live tunnel status
       if (available) {
@@ -86,6 +93,7 @@ export function useRemoteAccess(chatId: number | null): UseRemoteAccessResult {
     } catch {
       if (mountedRef.current) {
         setRemoteAccessAvailable(false)
+        setRemotePeerType(null)
         setTunnelActive(false)
       }
     }
@@ -134,5 +142,5 @@ export function useRemoteAccess(chatId: number | null): UseRemoteAccessResult {
     return () => unsubs.forEach(fn => fn())
   }, [chatId, refresh])
 
-  return { remoteAccessAvailable, tunnelActive, refresh }
+  return { remoteAccessAvailable, tunnelActive, remotePeerType, refresh }
 }

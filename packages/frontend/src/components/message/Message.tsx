@@ -63,12 +63,13 @@ import {
   useCmdRequestPending,
   isCmdRequestText,
 } from '../../hooks/useCmdRequestPending'
+import { useIsRemoteAccessChat } from '../../contexts/RemoteAccessChatContext'
 
 // ---------------------------------------------------------------------------
 // Device Command response rendering
 // ---------------------------------------------------------------------------
 
-interface CmdResponsePayload {
+export interface CmdResponsePayload {
   __pvt: 'cmd_response'
   req_id?: string
   cmd?: string
@@ -82,7 +83,7 @@ interface CmdResponsePayload {
  * Parse a message text as a `cmd_response` payload.
  * Returns null when the text is not a cmd_response.
  */
-function parseCmdResponse(
+export function parseCmdResponse(
   text: string | null | undefined
 ): CmdResponsePayload | null {
   if (!text || !text.includes('cmd_response')) return null
@@ -386,16 +387,19 @@ function isIncomingForwardeePrv(message: T.Message): boolean {
 function shouldShowPrivittyBell(
   message: T.Message,
   direction: 'incoming' | 'outgoing',
-  isPrivittyForwarded: boolean
+  isPrivittyForwarded: boolean,
+  isRemoteAccessChat?: boolean
 ): boolean {
   if (!isPrvFile(message)) return false
+  // In Remote Access chat, hide the bell icon from outgoing file attachment bubbles
+  if (direction === 'outgoing' && isRemoteAccessChat) return false
   // Outgoing relay copy: the forwarder (B) sent someone else's file — they
   // cannot manage access control, so hide the bell (Android hideBellForForwarder).
   if (direction === 'outgoing' && isPrivittyForwarded) return false
   return true
 }
 
-async function buildContextMenu(
+export async function buildContextMenu(
   {
     accountId,
     message,
@@ -936,6 +940,7 @@ export default function Message(props: {
   conversationType: ConversationType
 }) {
   const { message, conversationType, chat } = props
+  const { isRemoteAccessChat } = useIsRemoteAccessChat()
   const {
     id,
     text,
@@ -1114,7 +1119,6 @@ export default function Message(props: {
   const isCmdReq = direction === 'outgoing' && isCmdRequestText(text)
   const { isPending: cmdIsPending, lastSeenHint: cmdLastSeenHint } =
     useCmdRequestPending(
-      id,
       chatId,
       isCmdReq ? text : null, // skip the hook if this isn't a cmd_request
       isCmdReq ? (sender?.id ?? 0) : 0
@@ -1567,11 +1571,15 @@ export default function Message(props: {
   const showPrivittyBellIcon = shouldShowPrivittyBell(
     message,
     direction,
-    isPrivittyForwarded
+    isPrivittyForwarded,
+    isRemoteAccessChat
   )
 
   const privittyBellButton = (
-    <div style={{ position: 'relative', display: 'inline-block' }}>
+    <div
+      className='file-access-bell-wrapper'
+      style={{ position: 'relative', display: 'inline-block' }}
+    >
       {direction === 'outgoing' && waitingCount > 0 && (
         <div
           style={{

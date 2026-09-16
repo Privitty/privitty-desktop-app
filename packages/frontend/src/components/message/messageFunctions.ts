@@ -11,7 +11,7 @@ import MessageDetail from '../dialogs/MessageDetail/MessageDetail'
 import SecurePDFViewer from '../dialogs/SecurePDFViewer'
 import SecureImageViewer from '../dialogs/SecureImageViewer'
 import SecureVideoViewer from '../dialogs/SecureVideoViewer'
-import SecureOfficeViewer from '../dialogs/SecureOfficeViewer'
+import SecureTextViewer, { isTextViewable } from '../dialogs/SecureTextViewer'
 import {
   getSecureViewerTypeFromPath,
   isRoutableSecureViewerType,

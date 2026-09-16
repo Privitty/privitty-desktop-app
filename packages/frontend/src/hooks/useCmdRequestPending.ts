@@ -52,7 +52,6 @@ function formatLastSeen(lastSeenSecs: number): string | null {
 }
 
 export function useCmdRequestPending(
-  _messageId: number,
   chatId: number,
   messageText: string | null | undefined,
   /** DC ContactId of the peer (edge). Pass 0 to skip last-seen check. */
