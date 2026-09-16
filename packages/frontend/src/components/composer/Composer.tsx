@@ -840,7 +840,7 @@ const Composer = forwardRef<
                     setShowCommandPalette(false)
                   }
                 }}
-                placeholder={isEnabled ? "Type '/' for command" : undefined}
+                placeholder={isEnabled ? "Type '/' for commands" : undefined}
               />
               <ComposerMessageInput
                 isMessageEditingMode={true}
