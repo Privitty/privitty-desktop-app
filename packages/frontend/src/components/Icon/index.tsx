@@ -65,6 +65,7 @@ export type IconName =
   | 'swap_hor'
   | 'schedule'
   | 'upload-file'
+  | 'shield-check'
 
 type PropsBase = {
   className?: string

@@ -24,11 +24,7 @@ export default function NoChatSelected() {
             <br />
             In Your Control
           </h1>
-          <p>
-            Welcome to Privitty, A secure, decentralized messaging app with
-            advanced privacy features like message revocation and time-limited
-            access.
-          </p>
+          <p>Cryptographic identity. Verified access. No VPN or firewall.</p>
         </div>
 
         {/* Feature Cards */}
@@ -39,8 +35,8 @@ export default function NoChatSelected() {
             </div>
             <h3>Machine Identity</h3>
             <p>
-              Every Privitty Edge creates a permanent OpenPGP-verified identity
-              on first activation. No IP addresses or shared credentials.
+              OpenPGP-verified identity for every Privitty Edge. No IPs or
+              shared credentials.
             </p>
           </div>
 
@@ -50,8 +46,8 @@ export default function NoChatSelected() {
             </div>
             <h3>Controlled File Transfer</h3>
             <p>
-              Securely share PLC, HMI, and recipe files with view, download,
-              forward, expiry, and revoke controls.
+              Secure file sharing with view, download, forward, expiry, and
+              revoke controls.
             </p>
           </div>
 
@@ -61,8 +57,7 @@ export default function NoChatSelected() {
             </div>
             <h3>E2EE Remote Sessions</h3>
             <p>
-              Identity-verified SSH, RDP, and VNC over end-to-end encryption. No
-              inbound firewall ports required.
+              Secure SSH, RDP, and VNC sessions without inbound firewall ports.
             </p>
           </div>
 
@@ -72,30 +67,7 @@ export default function NoChatSelected() {
             </div>
             <h3>True Revoke & Panic</h3>
             <p>
-              Instantly revoke file access, terminate remote sessions, and log
-              events with a single click.
-            </p>
-          </div>
-
-          <div className={styles.welcomeCard}>
-            <div className={styles.cardIcon}>
-              <Icon icon='device' size={40} />
-            </div>
-            <h3>Software Only (~20 MB)</h3>
-            <p>
-              Lightweight Windows service for MELIPC and Windows IoT Enterprise.
-              No additional hardware needed.
-            </p>
-          </div>
-
-          <div className={styles.welcomeCard}>
-            <div className={styles.cardIcon}>
-              <Icon icon='network' size={40} />
-            </div>
-            <h3>MES/SCADA Integration</h3>
-            <p>
-              Local JSON-RPC API and SSE stream enable automated, secure file
-              ingestion into MES and SCADA workflows.
+              Revoke file access, terminate sessions, and log events instantly.
             </p>
           </div>
         </div>

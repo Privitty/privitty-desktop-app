@@ -145,6 +145,7 @@ export default function RemoteAccessDialog({
         accountId,
         chatId
       )
+      console.log('privittyGetTunnelStatus =====', status)
       if (abortRef.current) return
 
       if (
@@ -165,6 +166,10 @@ export default function RemoteAccessDialog({
       // Load available protocols from capabilities
       const caps: PeerCapabilitiesResponse =
         await rpc.privittyGetPeerCapabilities(accountId, chatId)
+      console.log(
+        'Load available protocols from capabilities privittyGetPeerCapabilities',
+        caps
+      )
       if (abortRef.current) return
       const protocols = filterProtocols(caps?.capabilities?.protocols ?? [])
       const portfwdTargets = caps?.capabilities?.portfwdTargets ?? []
@@ -201,6 +206,8 @@ export default function RemoteAccessDialog({
           chatId,
           protocol
         )
+
+        console.log('Offer privittySendTunnelOffer', offer)
 
         setPhase({
           kind: 'connecting',
@@ -281,6 +288,8 @@ export default function RemoteAccessDialog({
           localPort
         )
 
+        console.log('offer privittySendLanReachOffer', offer)
+
         setPhase({
           kind: 'connecting',
           protocol: 'portfwd',
@@ -342,7 +351,8 @@ export default function RemoteAccessDialog({
   const closeTunnel = useCallback(async () => {
     setPhase({ kind: 'closing' })
     try {
-      await rpc.privittyCloseTunnel(accountId, chatId)
+      const tunnelClose = await rpc.privittyCloseTunnel(accountId, chatId)
+      console.log('tunnelClose PRINTn======== privittyCloseTunnel', tunnelClose)
     } catch {
       // ignore — UI will refresh
     }

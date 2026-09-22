@@ -24,7 +24,7 @@
   }
 
   div.content {
-    background-color: #505050;
+    // background-color: #505050;
     color: var(--avatarLabelColor);
     font-size: var(--local-avatar-font-size);
     line-height: var(--local-avatar-size);
@@ -38,25 +38,36 @@
 }
 
 .accountListSidebar {
-  --accountSidebarBg: #6750a4;
+  --accountSidebarBg: #0d1117;
 
-  background-color: var(--accountSidebarBg);
+  background-color: var(--sidebar-rail-bg, var(--accountSidebarBg));
+  border-right: 1px solid var(--sidebar-rail-border, rgba(255, 255, 255, 0.08));
   display: flex;
   flex-direction: column;
   min-width: 68px;
+  width: 68px;
+  box-sizing: border-box;
   overflow: hidden;
+  user-select: none;
+
+  .topSection {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    width: 100%;
+  }
 
   .accountListNav {
-    flex-grow: 1;
-    overflow-y: scroll;
+    width: 100%;
+    overflow-y: auto;
     scrollbar-width: none;
     &::-webkit-scrollbar {
       width: 0;
     }
 
     .accountList {
-      --als-avatar-size: 42px;
-      --als-avatar-margin: 5px;
+      --als-avatar-size: 46px;
+      --als-avatar-margin: 8px;
       --als-active-indicator-color: white;
 
       margin: 0;
@@ -66,7 +77,7 @@
       align-items: center;
       display: flex;
       flex-direction: column;
-      padding-top: 2px;
+      padding-top: 6px;
     }
   }
 
@@ -78,7 +89,6 @@
       position: sticky;
       bottom: var(--als-avatar-margin);
       top: var(--als-avatar-margin);
-      // Only needed when this account is scrolled _above_ the visible region.
       z-index: map.get(
         variables.$z-index,
         account-list-sidebar-scope-sticky-account
@@ -100,28 +110,10 @@
     border: none;
     background: none;
     padding: 0;
-    text-align: start; // To align the "active" indicator
+    text-align: start;
+    cursor: pointer;
 
     height: var(--als-avatar-size);
-
-    // Adding extra `var(--als-avatar-size) + 2 * var(--als-avatar-margin)`
-    // to the margins so that
-    // if there is another `.isSticky` account, then that account does not
-    // cover the account that we want to scroll into view.
-    // And another extra `2 * var(--als-avatar-margin)` so that it's obvious that
-    // the other sticky account really is sticky, to make it obviously overlay
-    // on top of another account, and be positioned perfectly on top of it.
-    //
-    // TODO improvement: perhaps it makes sense to keep these at just
-    // `var(--als-avatar-margin)` in case there is no sticky account above.
-    // This should be achievable with CSS.
-    scroll-margin-bottom: calc(
-      5 * var(--als-avatar-margin) + var(--als-avatar-size)
-    );
-    scroll-margin-top: calc(
-      5 * var(--als-avatar-margin) + var(--als-avatar-size)
-    );
-
     position: relative;
     z-index: variables.$z-index-new-local-scope;
 
@@ -129,106 +121,170 @@
       --local-avatar-size: var(--als-avatar-size);
       --local-avatar-vertical-margin: 0;
 
-      opacity: 0.7;
-      transition: opacity ease-in 200ms;
+      opacity: 1;
+      position: relative;
+      transition: transform 0.2s ease;
 
       div.content,
       img.content {
-        border-radius: 10%;
+        border-radius: 14px;
+        font-weight: 700;
+        box-shadow: 0 2px 8px rgba(0, 0, 0, 0.25);
       }
     }
 
-    &.active,
-    &:hover,
-    &.context-menu-active {
-      .avatar::before {
-        --als-active-indicator-height: 32px;
+    .onlineStatusDot {
+      position: absolute;
+      bottom: -1px;
+      right: -1px;
+      width: 12px;
+      height: 12px;
+      border-radius: 50%;
+      background-color: #22c55e;
+      border: 2.5px solid var(--sidebar-rail-bg, #0d1117);
+      box-shadow: 0 0 6px rgba(34, 197, 94, 0.4);
+      z-index: 2;
+    }
 
-        background: var(--als-active-indicator-color);
-        border-radius: 20px;
-        content: ' ';
-        height: var(--als-active-indicator-height);
-        margin-inline-start: -16.5px;
-        overflow: hidden;
-        pointer-events: none;
-        position: absolute;
-        top: calc(
-          calc(var(--als-avatar-size) / 2) - calc(
-              var(--als-active-indicator-height) / 2
-            )
-        );
-        width: 8px;
-      }
+    &:hover .avatar {
+      transform: scale(1.04);
+    }
+  }
 
-      .avatar {
-        opacity: 1;
+  .railNav {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 12px;
+    margin-top: 14px;
+    width: 100%;
+  }
+
+  .railNavItemWrapper {
+    position: relative;
+    display: flex;
+    justify-content: center;
+    width: 100%;
+  }
+
+  .activeBar {
+    position: absolute;
+    left: 0;
+    top: 50%;
+    transform: translateY(-50%);
+    width: 3px;
+    height: 22px;
+    border-radius: 0 4px 4px 0;
+    background: var(--sidebar-rail-active-bar, #ffffff);
+    box-shadow: 0 0 8px var(--sidebar-rail-active-pill, #8b5cf6);
+    z-index: 3;
+  }
+
+  .railNavButton {
+    background: transparent;
+    border: none;
+    border-radius: 12px;
+    width: 44px;
+    height: 44px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+    position: relative;
+
+    .railNavIcon {
+      background-color: var(--sidebar-rail-icon, #94a3b8);
+      transition: all 0.2s ease;
+    }
+
+    &:hover:not(.active) {
+      background-color: rgba(255, 255, 255, 0.08);
+
+      .railNavIcon {
+        background-color: var(--sidebar-rail-icon-hover, #f1f5f9);
       }
     }
 
-    &:hover {
-      .avatar::before {
-        --als-active-indicator-height: 15px;
-      }
-    }
+    &.active {
+      background: var(--sidebar-rail-active-pill, #8b5cf6);
+      box-shadow: var(
+        --sidebar-rail-active-pill-shadow,
+        0 0 20px rgba(139, 92, 246, 0.5)
+      );
 
-    &.contextMenuActive {
-      .avatar::before {
-        --als-active-indicator-height: 10px;
-        opacity: 0.7;
+      .railNavIcon {
+        background-color: var(--sidebar-rail-icon-active, #ffffff);
       }
     }
   }
 
   .addButton {
-    --add-button-color: lightgray;
+    --add-button-color: var(--sidebar-rail-icon, #94a3b8);
 
     background: none;
-    border-radius: 10%;
-    border: 1.3pt solid var(--add-button-color);
+    border-radius: 12px;
+    border: 1.5px dashed var(--add-button-color);
     color: var(--add-button-color);
-    font-size: 22px;
+    font-size: 20px;
     margin-bottom: var(--als-avatar-margin);
     margin-top: var(--als-avatar-margin);
-    min-height: var(--als-avatar-size);
-    min-width: var(--als-avatar-size);
+    min-height: 40px;
+    min-width: 40px;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: all 0.2s ease;
 
     &:hover {
-      color: var(--accountSidebarBg);
-      background: var(--add-button-color);
+      color: #ffffff;
+      border-color: var(--sidebar-rail-active-pill, #8b5cf6);
+      background: rgba(139, 92, 246, 0.15);
     }
   }
 }
 
 .macOSTrafficLightBackground {
-  height: 20px;
+  height: 24px;
   flex-shrink: 0;
 }
 
 .buttonsContainer {
   align-items: center;
-  border-top: 1px #404040 solid;
   display: flex;
   flex-direction: column;
-  padding: 8px 0;
+  padding: 12px 0;
+  margin-top: auto;
+  border-top: none;
 }
 
 .settingsButton {
   background-color: transparent;
   border: 0;
-  height: 42px;
+  height: 44px;
+  width: 44px;
+  border-radius: 12px;
   margin: 0;
   padding: 0;
-  width: 42px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: all 0.2s ease;
 
   &:hover {
+    background-color: rgba(255, 255, 255, 0.08);
     .settingsButtonIcon {
-      background-color: white;
+      background-color: var(--sidebar-rail-icon-hover, #f1f5f9);
+      transform: rotate(30deg);
     }
   }
 }
 
 .settingsButtonIcon {
-  background-color: lightgray;
+  background-color: var(--sidebar-rail-icon, #94a3b8);
+  transition: all 0.25s ease;
 }
 
 .accountBadge {

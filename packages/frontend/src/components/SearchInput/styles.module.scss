@@ -1,55 +1,82 @@
-$borderRadius: 10px;
-$closeButtonSize: 30px;
-
-.inputAndClearButton {
+.searchContainer {
   flex: 1;
   display: flex;
   align-items: center;
+  background-color: var(--sidebar-search-bg, #111622);
+  border: 1px solid var(--sidebar-search-border, rgba(255, 255, 255, 0.12));
+  border-radius: 10px;
+  padding: 0 8px 0 12px;
+  height: 38px;
+  box-sizing: border-box;
+  transition:
+    border-color 0.2s ease,
+    box-shadow 0.2s ease,
+    background-color 0.2s ease;
+
+  &:focus-within {
+    border-color: var(--sidebar-search-border-focus, rgba(139, 92, 246, 0.6));
+    box-shadow: 0 0 0 2px rgba(139, 92, 246, 0.15);
+  }
+}
+
+.searchLeadingIcon {
+  display: flex;
+  align-items: center;
+  margin-inline-end: 8px;
+  flex-shrink: 0;
+  pointer-events: none;
+
+  span {
+    background-color: var(--sidebar-search-icon, #64748b);
+    transition: background-color 0.2s ease;
+  }
+}
+
+.searchContainer:focus-within .searchLeadingIcon span {
+  background-color: var(--sidebar-rail-active-pill, #8b5cf6);
 }
 
 .searchInput {
-  background-color: var(--searchInputBackgroundColor);
-  border-radius: $borderRadius;
+  background: transparent;
   border: 0;
-  caret-color: var(--navBarText);
-  color: var(--navBarText);
+  caret-color: var(--sidebar-rail-active-pill, #8b5cf6);
+  color: var(--sidebar-search-text, #f1f5f9);
   flex: 1;
-  font-size: 16px;
-  height: $closeButtonSize;
-  margin-inline-end: 5px;
-  padding-bottom: 0;
-  padding-inline-start: 5px;
-  padding-inline-end: 5px;
-  padding-top: 0;
-  width: 100%;
-  // A blinking cursor is enough in terms of visibility. Or is it??
+  font-size: 13.5px;
+  font-weight: 400;
+  height: 100%;
+  padding: 0;
+  margin: 0;
   outline: none;
 
   &::placeholder {
-    color: var(--navBarSearchPlaceholder);
+    color: var(--sidebar-search-placeholder, #64748b);
+    font-size: 13.5px;
   }
 }
 
 .searchInputButton {
   align-items: center;
   background-color: transparent;
-  color: var(--navBarText);
-  border-radius: $borderRadius;
+  color: var(--sidebar-search-icon, #64748b);
+  border-radius: 6px;
   border: 0;
   display: flex;
-  height: $closeButtonSize;
+  height: 28px;
+  width: 28px;
+  min-width: 28px;
   justify-content: center;
-  padding-bottom: 0;
-  padding-inline-start: 1px;
-  padding-inline-end: 0;
-  padding-top: 0;
-  min-width: $closeButtonSize;
+  padding: 0;
+  cursor: pointer;
+  transition: all 0.2s ease;
 
   &:hover {
-    background-color: var(--navBarButtonHover);
+    background-color: rgba(255, 255, 255, 0.08);
+    color: var(--sidebar-search-text, #f1f5f9);
   }
 }
 
 .searchInputButtonIcon {
   background-color: currentcolor;
+  transition: background-color 0.2s ease;
 }
