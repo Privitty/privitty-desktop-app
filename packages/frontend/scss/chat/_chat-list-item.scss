@@ -7,16 +7,24 @@
 .chat-list-item,
 .pseudo-chat-list-item {
   height: 64px;
-  width: 100%;
+  width: calc(100% - 16px);
+  margin: 2px 8px;
+  box-sizing: border-box;
   text-align: unset;
   color: var(--globalText);
   background-color: transparent;
-  border: none;
+  border: 1px solid transparent;
+  border-radius: 12px;
   display: flex;
   flex-direction: row;
   padding: 0px 10px;
   align-items: center;
   outline-offset: -1px;
+  cursor: pointer;
+  transition:
+    background-color 0.15s ease,
+    border-color 0.15s ease,
+    box-shadow 0.15s ease;
 
   .status-icon {
     flex-shrink: 0;
@@ -69,8 +77,8 @@
         white-space: nowrap;
         text-overflow: ellipsis;
 
-        font-weight: 200;
-        font-size: medium;
+        font-weight: 600;
+        color: var(--sidebar-card-title, #f8fafc);
         & > span {
           user-select: none;
           display: inline-flex;
@@ -86,16 +94,28 @@
         }
       }
 
+      & > .header-trailing,
       & > div > .timestamp {
         flex-shrink: 0;
         margin-inline-start: 6px;
-        font-size: 11px;
+        font-size: 11.5px;
         line-height: 16px;
-        letter-spacing: 0.3px;
+        letter-spacing: 0.2px;
         overflow-x: hidden;
         white-space: nowrap;
         text-overflow: ellipsis;
         user-select: none;
+        color: var(--sidebar-card-time, #64748b);
+
+        .scada-synced-badge {
+          color: #34d399;
+          font-weight: 600;
+          font-size: 11.5px;
+        }
+
+        .timestamp {
+          color: var(--sidebar-card-time, #64748b);
+        }
       }
     }
 
@@ -159,7 +179,62 @@
 
   &:hover,
   &.context-menu-active {
-    background-color: var(--chatListItemBgHover);
+    background-color: var(--sidebar-card-hover-bg, var(--chatListItemBgHover));
+  }
+}
+
+.chat-avatar-special {
+  --local-avatar-size: 44px;
+  width: 44px;
+  height: 44px;
+  border-radius: 12px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  position: relative;
+  flex-shrink: 0;
+  margin: 0;
+
+  .special-avatar-content {
+    width: 44px;
+    height: 44px;
+    border-radius: 12px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+
+  &.device-messages-avatar {
+    background: #2e1065;
+    .special-avatar-icon {
+      background-color: #d8b4fe;
+    }
+    .avatar-badge-dot {
+      position: absolute;
+      top: -1px;
+      right: -1px;
+      width: 10px;
+      height: 10px;
+      border-radius: 50%;
+      background-color: #c084fc;
+      border: 2px solid var(--sidebar-panel-bg, #090d16);
+      box-shadow: 0 0 6px rgba(192, 132, 252, 0.6);
+      z-index: 2;
+    }
+  }
+
+  &.saved-messages-avatar {
+    background: #0f2b48;
+    .special-avatar-icon {
+      background-color: #38bdf8;
+    }
+  }
+
+  &.scada-avatar {
+    background: #063b2c;
+    .special-avatar-icon {
+      background-color: #34d399;
+    }
   }
 }
 
@@ -282,22 +357,36 @@
 }
 
 .chat-list-item.selected {
-  background-color: var(--chatListItemSelectedBg);
-  color: var(--chatListItemSelectedText);
+  background-color: var(
+    --sidebar-card-active-bg,
+    var(--chatListItemSelectedBg)
+  );
+  border-color: var(--sidebar-card-active-border, rgba(139, 92, 246, 0.45));
+  box-shadow: 0 0 16px rgba(139, 92, 246, 0.16);
+  color: var(--sidebar-card-title, #f8fafc);
 
   & > .content > .chat-list-item-message > .label,
   & > .content > .chat-list-item-message > .text {
-    color: var(--chatListItemSelectedText);
-    border-color: var(--chatListItemSelectedText);
+    color: var(--sidebar-card-subtitle, rgba(255, 255, 255, 0.85));
+  }
+
+  & > .content > .header > .header-trailing > div > .timestamp,
+  & > .content > .header > .header-trailing > .timestamp,
+  & > .content > .header > div > .timestamp {
+    color: var(--sidebar-card-active-time, #c084fc);
   }
 
   &:hover {
-    background-color: var(--chatListItemSelectedBgHover);
+    background-color: var(
+      --sidebar-card-active-bg,
+      var(--chatListItemSelectedBgHover)
+    );
+    border-color: var(--sidebar-card-active-border, rgba(139, 92, 246, 0.55));
   }
 
   .pin_icon,
   .mute_icon {
-    background-color: var(--chatListItemSelectedText);
+    background-color: var(--sidebar-card-title, #f8fafc);
   }
 
   .status-icon.sending {

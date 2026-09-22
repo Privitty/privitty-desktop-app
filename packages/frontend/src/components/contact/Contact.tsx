@@ -76,7 +76,7 @@ export function PseudoContact(
       ) : (
         <Avatar
           avatarPath={undefined}
-          color={'#505050'}
+          // color={'#505050'}
           displayName={cutoff || ''}
           // Avatar is purely decorative here,
           // and is redundant accessibility-wise,

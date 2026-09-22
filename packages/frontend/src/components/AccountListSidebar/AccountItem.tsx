@@ -301,7 +301,7 @@ export default function AccountItem({
             ) : (
               <div
                 className={styles.content}
-                style={{ backgroundColor: account.color }}
+                style={{ backgroundColor: account.color || '#f59e0b' }}
               >
                 {avatarInitial(
                   account.displayName || '',

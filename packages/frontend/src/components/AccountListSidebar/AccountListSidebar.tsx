@@ -132,6 +132,16 @@ export default function AccountListSidebar({
 
   const openSettings = () => openDialog(Settings)
 
+  const [activeNav, setActiveNav] = useState<
+    'chats' | 'security' | 'endpoints'
+  >('chats')
+
+  const handleChatNavClick = () => {
+    setActiveNav('chats')
+    window.__chatlistClearSearch?.()
+    ActionEmitter.emitAction(KeybindAction.ChatList_ExitSearch)
+  }
+
   if (shouldBeHidden) {
     return <div></div>
   }
@@ -144,78 +154,97 @@ export default function AccountListSidebar({
           data-tauri-drag-region
         />
       )}
-      <nav
-        // Perhaps just "Profiles" would be more appropriate,
-        // because you can do other things with profiles in this list,
-        // but we have the same on Android.
-        aria-label={tx('switch_account')}
-        className={styles.accountListNav}
-      >
-        <ul
-          ref={accountsListRef}
-          className={styles.accountList}
-          onScroll={updateHoverInfoPosition}
-          role='tablist'
-          aria-orientation='vertical'
+      <div className={styles.topSection}>
+        <nav
+          aria-label={tx('switch_account')}
+          className={styles.accountListNav}
         >
-          <RovingTabindexProvider wrapperElementRef={accountsListRef}>
-            {accountsFetch.lingeringResult?.ok === false ? (
-              <button
-                onClick={() => {
-                  if (
-                    !accountsFetch.lingeringResult ||
-                    accountsFetch.lingeringResult.ok
-                  ) {
-                    // This should not happen, TypeScript.
-                    throw new Error('expected non-ok value')
-                  }
-                  openDialog(AlertDialog, {
-                    message: tx(
-                      'error_x',
-                      'Failed to load account IDs:\n' +
-                        unknownErrorToString(accountsFetch.lingeringResult.err)
-                    ),
-                  })
-                }}
-                aria-label={tx('error')}
-                title={tx('error')}
-              >
-                ⚠️
-              </button>
-            ) : (
-              accountsFetch.lingeringResult?.value.map(id => (
-                <AccountItem
-                  key={id}
-                  accountId={id}
-                  isSelected={selectedAccountId === id}
-                  onSelectAccount={selectAccount}
-                  openAccountDeletionScreen={openAccountDeletionScreen}
-                  updateAccountForHoverInfo={updateAccountForHoverInfo}
-                  syncAllAccounts={syncAllAccounts}
-                  muted={noficationSettings[id]?.muted || false}
-                />
-              ))
-            )}
-            <li>
-              <AddAccountButton onClick={onAddAccount} />
-            </li>
-          </RovingTabindexProvider>
-        </ul>
-      </nav>
-      {/* The condition is the same as in https://github.com/deltachat/deltachat-desktop/blob/63af023437ff1828a27de2da37bf94ab180ec528/src/renderer/contexts/KeybindingsContext.tsx#L26 */}
+          <ul
+            ref={accountsListRef}
+            className={styles.accountList}
+            onScroll={updateHoverInfoPosition}
+            role='tablist'
+            aria-orientation='vertical'
+          >
+            <RovingTabindexProvider wrapperElementRef={accountsListRef}>
+              {accountsFetch.lingeringResult?.ok === false ? (
+                <button
+                  onClick={() => {
+                    if (
+                      !accountsFetch.lingeringResult ||
+                      accountsFetch.lingeringResult.ok
+                    ) {
+                      throw new Error('expected non-ok value')
+                    }
+                    openDialog(AlertDialog, {
+                      message: tx(
+                        'error_x',
+                        'Failed to load account IDs:\n' +
+                          unknownErrorToString(
+                            accountsFetch.lingeringResult.err
+                          )
+                      ),
+                    })
+                  }}
+                  aria-label={tx('error')}
+                  title={tx('error')}
+                >
+                  ⚠️
+                </button>
+              ) : (
+                accountsFetch.lingeringResult?.value.map(id => (
+                  <AccountItem
+                    key={id}
+                    accountId={id}
+                    isSelected={selectedAccountId === id}
+                    onSelectAccount={selectAccount}
+                    openAccountDeletionScreen={openAccountDeletionScreen}
+                    updateAccountForHoverInfo={updateAccountForHoverInfo}
+                    syncAllAccounts={syncAllAccounts}
+                    muted={noficationSettings[id]?.muted || false}
+                  />
+                ))
+              )}
+              {accountsFetch.lingeringResult?.value &&
+                accountsFetch.lingeringResult.value.length > 1 && (
+                  <li>
+                    <AddAccountButton onClick={onAddAccount} />
+                  </li>
+                )}
+            </RovingTabindexProvider>
+          </ul>
+        </nav>
+
+        {/* Rail Navigation Icons */}
+        <div className={styles.railNav}>
+          <div className={styles.railNavItemWrapper}>
+            {activeNav === 'chats' && <span className={styles.activeBar} />}
+            <button
+              className={classNames(styles.railNavButton, {
+                [styles.active]: activeNav === 'chats',
+              })}
+              onClick={handleChatNavClick}
+              title='Conversations'
+              aria-label='Conversations'
+              data-testid='rail-nav-chats'
+            >
+              <Icon icon='forum' size={22} className={styles.railNavIcon} />
+            </button>
+          </div>
+        </div>
+      </div>
+
       {window.__screen === Screens.Main && (
         <div className={styles.buttonsContainer}>
-          {/* TODO a11y: this button shoul probably be
-          inside a landmark / section.
-          But which? It doesn't really belong to "Profiles". */}
           <button
             aria-label={tx('menu_settings')}
             className={styles.settingsButton}
             onClick={openSettings}
             data-testid='open-settings-button'
+            title='Settings'
           >
             <Icon
-              size={38}
+              size={22}
               className={styles.settingsButtonIcon}
               icon={'settings'}
             />

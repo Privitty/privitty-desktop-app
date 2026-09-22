@@ -14,6 +14,7 @@ import { message2React } from '../message/MessageMarkdown'
 import { useRovingTabindex } from '../../contexts/RovingTabindex'
 import useTranslationFunction from '../../hooks/useTranslationFunction'
 import { privittyStore } from '../../privitty/privittyStore'
+import Icon from '../Icon'
 
 const log = getLogger('renderer/chatlist/item')
 
@@ -44,6 +45,8 @@ function Header({
   isMuted,
 }: Pick<ChatListItemType, 'lastUpdated' | 'name' | 'isPinned' | 'isMuted'>) {
   const tx = window.static_translate
+  const isScada = name.toLowerCase().includes('scada')
+
   return (
     <div className='header'>
       <div className='name'>
@@ -52,13 +55,18 @@ function Header({
         </span>
       </div>
       {isMuted && <div className='mute_icon' aria-label={tx('mute')} />}
-      <div>
-        {lastUpdated && lastUpdated !== 0 && (
-          <Timestamp
-            timestamp={lastUpdated}
-            extended={false}
-            module='timestamp'
-          />
+      <div className='header-trailing'>
+        {isScada ? (
+          <span className='scada-synced-badge'>Synced</span>
+        ) : (
+          lastUpdated &&
+          lastUpdated !== 0 && (
+            <Timestamp
+              timestamp={lastUpdated}
+              extended={false}
+              module='timestamp'
+            />
+          )
         )}
       </div>
       {isPinned && <div className='pin_icon' aria-label={tx('pin')} />}
@@ -400,18 +408,50 @@ function RegularChatListItem({
       })}
       data-testid={`chat${chat.isGroup ? '-group' : ''}-${chatTypeForTests}`}
     >
-      <Avatar
-        {...{
-          displayName: chat.name,
-          avatarPath: chat.avatarPath || undefined,
-          color: chat.color,
-          wasSeenRecently: chat.wasSeenRecently,
-          // Avatar is purely decorative here,
-          // and is redundant accessibility-wise,
-          // because we display the chat name below.
-          'aria-hidden': true,
-        }}
-      />
+      {chat.isDeviceTalk ? (
+        <div
+          className='avatar chat-avatar-special device-messages-avatar'
+          aria-hidden='true'
+        >
+          <div className='content special-avatar-content'>
+            <Icon icon='info' size={20} className='special-avatar-icon' />
+          </div>
+        </div>
+      ) : chat.isSelfTalk ? (
+        <div
+          className='avatar chat-avatar-special saved-messages-avatar'
+          aria-hidden='true'
+        >
+          <div className='content special-avatar-content'>
+            <Icon
+              icon='bookmark-line'
+              size={19}
+              className='special-avatar-icon'
+            />
+          </div>
+        </div>
+      ) : chat.name.toLowerCase().includes('scada') ? (
+        <div
+          className='avatar chat-avatar-special scada-avatar'
+          aria-hidden='true'
+        >
+          <div className='content special-avatar-content'>
+            <Icon
+              icon='shield-check'
+              size={20}
+              className='special-avatar-icon'
+            />
+          </div>
+        </div>
+      ) : (
+        <Avatar
+          displayName={chat.name}
+          avatarPath={chat.avatarPath || undefined}
+          color={chat.color}
+          wasSeenRecently={chat.wasSeenRecently}
+          aria-hidden={true}
+        />
+      )}
       <div className='content'>
         <Header
           lastUpdated={chat.lastUpdated}

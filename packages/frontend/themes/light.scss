@@ -1,12 +1,12 @@
 /* Set theme variables used for theme Generation */
 @use './_themebase' with (
   $themeDarkOrLight: light,
-  $accentColor: #2090ea,
+  $accentColor: #7f66c5,
   $bgChatView: #f8f5ff,
   $bgImage: url('./images/background_light.png'),
   $bgMessageBubbleIncoming: #e7e7e7,
   $bgMessageBubbleOutgoing: #7f66c5,
-  $bgNavBar: #6750a4,
+  $bgNavBar: #ac8eff,
   $bgPrimary: #fff,
   $bgSecondary: #f5f5f5,
   $chatListItemSelectedBg: #d2d2f4,
