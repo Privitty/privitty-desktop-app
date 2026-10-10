@@ -1,4 +1,8 @@
-import React, { createContext, useContext, useEffect } from 'react'
+import React, { createContext, useContext, useEffect, useState } from 'react'
+import WatchtowerAccessEnded from '../components/dialogs/WatchtowerAccessEnded'
+import ConnectWatchtowerScreen, {
+  WatchtowerStatusBody,
+} from '../components/screens/WelcomeScreen/ConnectWatchtowerScreen'
 import { runtime } from '@deltachat-desktop/runtime-interface'
 import { BackendRemote, onDCEvent } from '../backend-com'
 import { privittyStore } from '../privitty/privittyStore'
@@ -36,6 +40,12 @@ export function PrivittyChatProvider({
   accountId: number | undefined
   children: React.ReactNode
 }) {
+  const [reminderDays, setReminderDays] = useState<number | null>(null)
+  const [endedReason, setEndedReason] = useState<string | null>(null)
+  const [showConnect, setShowConnect] = useState(false)
+  const [enrollLink, setEnrollLink] = useState<string | undefined>()
+  const [status, setStatus] = useState<Record<string, unknown> | null>(null)
+  const [showStatus, setShowStatus] = useState(false)
   // Tell the store which account is active so it can load its cache.
   if (accountId != null) {
     privittyStore.setActiveAccount(accountId)
@@ -234,9 +244,130 @@ export function PrivittyChatProvider({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [accountId])
 
+  useEffect(() => {
+    const onEnroll = (event: Event) => {
+      setEnrollLink((event as CustomEvent<{ link?: string }>).detail?.link)
+      setShowConnect(true)
+    }
+    const onEnded = (event: Event) => {
+      setEndedReason(
+        (event as CustomEvent<{ reason?: string }>).detail?.reason ?? 'invalid'
+      )
+    }
+    window.addEventListener('watchtower-enroll', onEnroll)
+    window.addEventListener('watchtower-access-ended', onEnded)
+    return () => {
+      window.removeEventListener('watchtower-enroll', onEnroll)
+      window.removeEventListener('watchtower-access-ended', onEnded)
+    }
+  }, [])
+
+  useEffect(() => {
+    if (accountId == null) return
+    const onReminder = (event: { days_left?: number; daysLeft?: number }) => {
+      const days = event.days_left ?? event.daysLeft ?? 0
+      if (days === 30 || days === 7 || days === 1) setReminderDays(days)
+    }
+    const onExpired = (event: { reason?: string }) => {
+      setEndedReason(event.reason ?? 'invalid')
+    }
+    const unsubReminder = (onDCEvent as any)(
+      accountId,
+      'PrivittyEntitlementReminder',
+      onReminder
+    )
+    const unsubExpired = (onDCEvent as any)(
+      accountId,
+      'PrivittyEntitlementExpired',
+      onExpired
+    )
+    return () => {
+      unsubReminder()
+      unsubExpired()
+    }
+  }, [accountId])
+
+  async function loadStatus() {
+    if (accountId == null) return
+    const wrapping = await runtime.getWatchtowerWrappingKey()
+    const raw = await (BackendRemote.rpc as any).privittyWtStatus(
+      accountId,
+      wrapping
+    )
+    const parsed = typeof raw === 'string' ? JSON.parse(raw) : raw
+    if (parsed?.status === 'blocked') {
+      setEndedReason(String(parsed.reason ?? 'invalid'))
+      return
+    }
+    setStatus(parsed)
+    setShowStatus(true)
+  }
+
   return (
     <PrivittyChatContext.Provider value={{ markChatAsPrivitty }}>
       {children}
+      {reminderDays != null && (
+        <div
+          style={{
+            position: 'fixed',
+            top: 0,
+            left: 0,
+            right: 0,
+            zIndex: 9000,
+            background: '#b45309',
+            color: '#fff',
+            padding: '8px 16px',
+          }}
+        >
+          Access ends in {reminderDays} day{reminderDays === 1 ? '' : 's'}.{' '}
+          <button type='button' onClick={() => void loadStatus()}>
+            Status
+          </button>
+        </div>
+      )}
+      {showStatus && (
+        <div
+          style={{
+            position: 'fixed',
+            inset: 0,
+            zIndex: 9500,
+            background: 'rgba(0,0,0,0.45)',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+          }}
+        >
+          <div style={{ background: '#fff', color: '#111', padding: 24, maxWidth: 420 }}>
+            <h2>Watchtower</h2>
+            <WatchtowerStatusBody status={status} />
+            <button type='button' onClick={() => setShowStatus(false)}>
+              Close
+            </button>
+          </div>
+        </div>
+      )}
+      {showConnect && accountId != null && (
+        <div
+          style={{
+            position: 'fixed',
+            inset: 0,
+            zIndex: 9600,
+            background: 'rgba(0,0,0,0.45)',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+          }}
+        >
+          <div style={{ background: '#fff', width: 420 }}>
+            <ConnectWatchtowerScreen
+              initialLink={enrollLink}
+              onBack={() => setShowConnect(false)}
+              onDone={() => setShowConnect(false)}
+            />
+          </div>
+        </div>
+      )}
+      {endedReason != null && <WatchtowerAccessEnded reason={endedReason} />}
     </PrivittyChatContext.Provider>
   )
 }

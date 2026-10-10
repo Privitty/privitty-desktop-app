@@ -1,10 +1,11 @@
-import { copyFile, writeFile, mkdir, rm } from 'fs/promises'
+import { copyFile, readFile, writeFile, mkdir, rm } from 'fs/promises'
 import {
   app as rawApp,
   clipboard,
   dialog,
   ipcMain,
   nativeImage,
+  safeStorage,
   shell,
   NativeImage,
   systemPreferences,
@@ -24,6 +25,7 @@ import { platform } from 'os'
 import { existsSync } from 'fs'
 import { versions } from 'process'
 import { fileURLToPath } from 'url'
+import { randomBytes } from 'crypto'
 
 import { getLogger } from '../../shared/logger.js'
 import {
@@ -62,7 +64,6 @@ import {
 const __dirname = dirname(fileURLToPath(import.meta.url))
 
 const log = getLogger('main/ipc')
-const PLM_SERVER_URL = 'https://plm.privittytech.com'
 
 const app = rawApp as ExtendedAppMainProcess
 
@@ -209,7 +210,7 @@ async function initAndActivateLicense(
     await rpc.privittyLicenseInit(
       licDir,
       licPath,
-      PLM_SERVER_URL,
+      null,
       inviteLinkForInit ?? null
     )
     log.info('initAndActivateLicense: licenseInit completed', { licDir })
@@ -524,6 +525,22 @@ export async function init(cwd: string, logHandler: LogHandler) {
 
   // Check whether the Privitty license JWT file exists at the global path.
   // Used by WelcomeScreen to decide whether to show the ImportLicenseScreen.
+  ipcMain.handle('watchtower-wrapping-key', async () => {
+    if (!safeStorage.isEncryptionAvailable()) {
+      throw new Error('The OS keychain is not available')
+    }
+    const file = join(getConfigPath(), 'watchtower-wrapping.bin')
+    try {
+      const sealed = await readFile(file)
+      return safeStorage.decryptString(sealed)
+    } catch {
+      const key = randomBytes(32).toString('base64')
+      await mkdir(getConfigPath(), { recursive: true })
+      await writeFile(file, safeStorage.encryptString(key))
+      return key
+    }
+  })
+
   ipcMain.handle('privitty-has-license-file', async () => {
     const licPath = join(getConfigPath(), 'license', 'privitty.lic')
     try {

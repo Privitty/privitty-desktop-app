@@ -82,7 +82,7 @@ export interface Runtime {
    * Download the Privitty license JWT from the delivery URL, persist it to
    * <configPath>/license/privitty.lic, and return the customer name.
    *
-   * URL format: `https://plm.privittytech.com/v1/license/{token}`
+   * URL format: a licence delivery link. The Watchtower enroll link is `privitty://enroll`.
    * Throws if the URL is invalid, the server errors, or the JWT is absent.
    */
   importLicenseFromUrl(
@@ -93,6 +93,8 @@ export interface Runtime {
    * Use as a fallback when the delivery server is unreachable.
    */
   importLicenseFromFile(filePath: string): Promise<{ licensePath: string }>
+  /** 32-byte wrapping key, base64. Electron reads it from the OS keychain. */
+  getWatchtowerWrappingKey(): Promise<string>
   checkFileExists(filePath: string): Promise<boolean>
   /**
    * Read a local file into memory as raw bytes.

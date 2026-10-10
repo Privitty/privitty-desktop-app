@@ -35,6 +35,12 @@ export default function RuntimeAdapter({
 
   useEffect(() => {
     runtime.onOpenQrUrl = (url: string) => {
+      if (url.toLowerCase().startsWith('privitty://enroll')) {
+        window.dispatchEvent(
+          new CustomEvent('watchtower-enroll', { detail: { link: url } })
+        )
+        return
+      }
       if (!accountId) {
         throw new Error('accountId is not set')
       }

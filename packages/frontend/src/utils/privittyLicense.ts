@@ -39,7 +39,7 @@ export const PRIVITTY_STATUS_CLOCK_TAMPERED = 4
 export const PRIVITTY_STATUS_NOT_INITIALIZED = 5
 export const PRIVITTY_STATUS_BYPASS = 99
 
-export const PLM_SERVER_URL = 'https://plm.privittytech.com'
+export const PLM_SERVER_URL = ''
 
 /** In-flight / completed `licenseInit()` — not a license snapshot cache. */
 let licenseInitPromise: Promise<void> | null = null

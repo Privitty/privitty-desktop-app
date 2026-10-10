@@ -1,8 +1,8 @@
-import React, { useCallback, useLayoutEffect, useState } from 'react'
+import React, { useCallback, useEffect, useLayoutEffect, useState } from 'react'
 
 import Dialog from '../../Dialog'
 import ImageBackdrop from '../../ImageBackdrop'
-import ImportLicenseScreen from './ImportLicenseScreen'
+import ConnectWatchtowerScreen from './ConnectWatchtowerScreen'
 import InstantOnboardingScreen from './InstantOnboardingScreen'
 import OnboardingScreen from './OnboardingScreen'
 import ScanInvitationCodeScreen from './ScanInvitationCodeScreen'
@@ -12,7 +12,6 @@ import { BackendRemote, EffectfulBackendActions } from '../../../backend-com'
 import useDialog from '../../../hooks/dialog/useDialog'
 import AlertDialog from '../../dialogs/AlertDialog'
 import { unknownErrorToString } from '../../helpers/unknownErrorToString'
-import { runtime } from '@deltachat-desktop/runtime-interface'
 
 type Props = {
   selectedAccountId: number
@@ -33,23 +32,23 @@ export default function WelcomeScreen({ selectedAccountId, ...props }: Props) {
   } = useInstantOnboarding()
   const [hasConfiguredAccounts, setHasConfiguredAccounts] = useState(false)
   const [showScanInvitationCode, setShowScanInvitationCode] = useState(false)
-  const [showLicenseImport, setShowLicenseImport] = useState(false)
+  const [showWatchtower, setShowWatchtower] = useState(false)
+  const [enrollLink, setEnrollLink] = useState<string | undefined>()
   const { openDialog } = useDialog()
 
-  // Check whether a license file already exists; if not, show ImportLicenseScreen
-  // before letting the user proceed to profile creation.
+  // Connect to Watchtower before the invite scan.
   const handleNextStep = useCallback(async () => {
-    try {
-      const hasLicense = await runtime.hasLicenseFile()
-      if (hasLicense) {
-        setShowScanInvitationCode(true)
-      } else {
-        setShowLicenseImport(true)
-      }
-    } catch {
-      // If the check fails (e.g. browser runtime), fall through to profile creation.
-      setShowScanInvitationCode(true)
+    setShowWatchtower(true)
+  }, [])
+
+  useEffect(() => {
+    const onEnroll = (event: Event) => {
+      const link = (event as CustomEvent<{ link?: string }>).detail?.link
+      setEnrollLink(link)
+      setShowWatchtower(true)
     }
+    window.addEventListener('watchtower-enroll', onEnroll)
+    return () => window.removeEventListener('watchtower-enroll', onEnroll)
   }, [])
 
   useLayoutEffect(() => {
@@ -96,12 +95,13 @@ export default function WelcomeScreen({ selectedAccountId, ...props }: Props) {
         dataTestid='onboarding-dialog'
       >
         {!showInstantOnboarding ? (
-          showLicenseImport ? (
-            <ImportLicenseScreen
-              onBack={() => setShowLicenseImport(false)}
+          showWatchtower ? (
+            <ConnectWatchtowerScreen
+              initialLink={enrollLink}
+              onBack={() => setShowWatchtower(false)}
               onDone={() => {
-                setShowLicenseImport(false)
-                startInstantOnboardingFlow()
+                setShowWatchtower(false)
+                setShowScanInvitationCode(true)
               }}
             />
           ) : showScanInvitationCode ? (

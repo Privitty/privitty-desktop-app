@@ -6,7 +6,6 @@ import * as mainWindow from '../../frontend/src/components/windows/main.js'
 import { getConfigPath } from './application-constants.js'
 
 const log = getLogger('main/privittyLicenseEvents')
-const PLM_SERVER_URL = 'https://plm.privittytech.com'
 
 const SQLITE_SETTLE_MS = 250
 const WATCH_DEBOUNCE_MS = 400
@@ -57,7 +56,7 @@ export async function initLicenseManagerFromPersistedStore(
     licensePath,
   })
 
-  await rpc.privittyLicenseInit(licDir, licensePath, PLM_SERVER_URL, inviteLink)
+  await rpc.privittyLicenseInit(licDir, licensePath, null, inviteLink)
 
   log.info('Privitty license manager initialized')
 }
@@ -155,7 +154,7 @@ export async function reloadLicenseManagerFromDb(
 
     const licDir = join(getConfigPath(), 'license')
 
-    await rpc.privittyLicenseInit(licDir, null, PLM_SERVER_URL, inviteLink)
+    await rpc.privittyLicenseInit(licDir, null, null, inviteLink)
 
     const statusCode: number = await rpc.privittyLicenseGetStatus()
 

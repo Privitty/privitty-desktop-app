@@ -188,6 +188,10 @@ class ElectronRuntime implements Runtime {
     return ipcBackend.invoke('privitty-import-license-url', url)
   }
 
+  getWatchtowerWrappingKey(): Promise<string> {
+    return ipcBackend.invoke('watchtower-wrapping-key')
+  }
+
   importLicenseFromFile(filePath: string): Promise<{ licensePath: string }> {
     return ipcBackend.invoke('privitty-import-license-file', filePath)
   }

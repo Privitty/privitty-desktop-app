@@ -14,8 +14,7 @@ import useTranslationFunction from '../../../hooks/useTranslationFunction'
 import useAlertDialog from '../../../hooks/dialog/useAlertDialog'
 import { runtime } from '@deltachat-desktop/runtime-interface'
 
-// Match any HTTPS URL whose path starts with /v1/license/ — covers both the
-// production server (plm.privittytech.com) and any staging / on-prem server.
+// Old licence delivery URLs are no longer imported.
 const LICENSE_URL_RE = /^https?:\/\/[^/]+\/v1\/license\//i
 
 type LicenseStep = 'idle' | 'working' | 'success' | 'error'
@@ -65,26 +64,17 @@ export default function ScanInvitationCodeScreen({
       }
 
       // Intercept Privitty license delivery URLs before passing to DeltaChat QR handler.
+      if (data.toLowerCase().startsWith('privitty://enroll')) {
+        window.dispatchEvent(
+          new CustomEvent('watchtower-enroll', { detail: { link: data } })
+        )
+        return
+      }
+
       if (LICENSE_URL_RE.test(data)) {
-        processingQrCode.current = true
-        setLicenseStep('working')
-        try {
-          const { customerName } = await runtime.importLicenseFromUrl(data)
-          setLicenseCustomerName(customerName)
-          setLicenseStep('success')
-          // After a short pause to let the user see the success message,
-          // proceed to instant onboarding (if caller provided the callback).
-          if (onLicenseDone) {
-            window.setTimeout(onLicenseDone, 1500)
-          }
-        } catch (err) {
-          setLicenseError(
-            err instanceof Error ? err.message : 'License import failed.'
-          )
-          setLicenseStep('error')
-        } finally {
-          processingQrCode.current = false
-        }
+        handleError(
+          new Error('Use a privitty://enroll link to connect to Watchtower.')
+        )
         return
       }
 
