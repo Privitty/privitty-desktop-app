@@ -28,6 +28,9 @@ import { fileURLToPath } from 'url'
 import { randomBytes } from 'crypto'
 
 import { getLogger } from '../../shared/logger.js'
+import { watchtowerEnrollStart } from '../../shared/watchtower-enroll.js'
+import { nodeWatchtowerFetch } from './watchtower-fetch.js'
+import { watchtowerEnrollConfirm } from './watchtower-confirm.js'
 import {
   getDraftTempDir,
   getLogsPath,
@@ -525,6 +528,20 @@ export async function init(cwd: string, logHandler: LogHandler) {
 
   // Check whether the Privitty license JWT file exists at the global path.
   // Used by WelcomeScreen to decide whether to show the ImportLicenseScreen.
+  ipcMain.handle('watchtower-enroll-confirm', async (_ev, args: Parameters<typeof watchtowerEnrollConfirm>[0]) => {
+    /* ignore-console-log */
+    console.info('[watchtower-enroll] desktop confirm')
+    log.info('watchtower enroll confirm')
+    return watchtowerEnrollConfirm(args)
+  })
+
+  ipcMain.handle('watchtower-enroll-start', async (_ev, link: string) => {
+    /* ignore-console-log */
+    console.info('[watchtower-enroll] desktop is contacting Watchtower')
+    log.info('watchtower enroll start')
+    return watchtowerEnrollStart(link, nodeWatchtowerFetch)
+  })
+
   ipcMain.handle('watchtower-wrapping-key', async () => {
     if (!safeStorage.isEncryptionAvailable()) {
       throw new Error('The OS keychain is not available')

@@ -192,6 +192,23 @@ class ElectronRuntime implements Runtime {
     return ipcBackend.invoke('watchtower-wrapping-key')
   }
 
+  watchtowerEnrollStart(
+    link: string
+  ): Promise<{ challengeId: string; emailHint: string; trace: string[] }> {
+    return ipcBackend.invoke('watchtower-enroll-start', link)
+  }
+
+  watchtowerEnrollConfirm(args: {
+    accountId: number
+    link: string
+    challengeId: string
+    code: string
+    metadata: Record<string, unknown>
+    wrappingKeyB64: string
+  }): Promise<{ status: 'ok' | 'blocked'; reason?: string; wt_url?: string; trace: string[] }> {
+    return ipcBackend.invoke('watchtower-enroll-confirm', args)
+  }
+
   importLicenseFromFile(filePath: string): Promise<{ licensePath: string }> {
     return ipcBackend.invoke('privitty-import-license-file', filePath)
   }

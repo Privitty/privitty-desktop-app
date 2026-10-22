@@ -95,6 +95,26 @@ export interface Runtime {
   importLicenseFromFile(filePath: string): Promise<{ licensePath: string }>
   /** 32-byte wrapping key, base64. Electron reads it from the OS keychain. */
   getWatchtowerWrappingKey(): Promise<string>
+  /**
+   * Fetch `/enroll/bootstrap`, check the CA pin, and ask Watchtower to email
+   * the operator code. Used when the core binary has no enroll RPC.
+   */
+  watchtowerEnrollStart(
+    link: string
+  ): Promise<{ challengeId: string; emailHint: string; trace: string[] }>
+  /**
+   * Generate a P-256 device key + CSR, POST to `/enroll/app`, and persist the
+   * resulting cert / entitlement to the DeltaChat blob directory.
+   * Used when the core binary has no `privitty_wt_enroll_confirm` RPC.
+   */
+  watchtowerEnrollConfirm(args: {
+    accountId: number
+    link: string
+    challengeId: string
+    code: string
+    metadata: Record<string, unknown>
+    wrappingKeyB64: string
+  }): Promise<{ status: 'ok' | 'blocked'; reason?: string; wt_url?: string; trace: string[] }>
   checkFileExists(filePath: string): Promise<boolean>
   /**
    * Read a local file into memory as raw bytes.

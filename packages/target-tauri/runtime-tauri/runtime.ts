@@ -31,6 +31,7 @@ import type {
 
 import { BaseDeltaChat, yerpc } from '@privitty/jsonrpc-client'
 import type { LocaleData } from '@deltachat-desktop/shared/localize.js'
+import { watchtowerEnrollStart as contactWatchtower } from '@deltachat-desktop/shared/watchtower-enroll.js'
 import type {
   getLogger as getLoggerFunction,
   LogLevelString,
@@ -154,6 +155,21 @@ class TauriRuntime implements Runtime {
     return Promise.reject(
       new Error('License import not supported in Tauri runtime')
     )
+  }
+
+  watchtowerEnrollStart(link: string) {
+    return contactWatchtower(link, (input, init) => fetch(input, init))
+  }
+
+  watchtowerEnrollConfirm(_args: {
+    accountId: number
+    link: string
+    challengeId: string
+    code: string
+    metadata: Record<string, unknown>
+    wrappingKeyB64: string
+  }): Promise<{ status: 'ok' | 'blocked'; reason?: string; wt_url?: string; trace: string[] }> {
+    return Promise.reject(new Error('watchtowerEnrollConfirm is not supported in Tauri runtime'))
   }
 
   getWatchtowerWrappingKey(): Promise<string> {
