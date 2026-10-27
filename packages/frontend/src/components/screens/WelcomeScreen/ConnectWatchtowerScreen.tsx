@@ -14,6 +14,12 @@ import { QrReader } from '../../QrReader'
 
 type Phase = 'link' | 'code' | 'done' | 'error'
 
+type ConfirmBody = {
+  status: 'enrolled' | 'blocked'
+  reason?: string
+  chat_error?: string
+}
+
 function metadata(): string {
   return JSON.stringify({
     model: (navigator.userAgent || 'desktop').slice(0, 128),
@@ -56,24 +62,26 @@ function rpcMethodMissing(error: unknown): boolean {
   return code === -32601 || /method not found|unknown method|not a function/i.test(errorText(error))
 }
 
-async function requestEmailCode(link: string): Promise<Record<string, unknown>> {
-  logEnroll('rpc privitty_wt_enroll_start')
+async function callCore(method: string, params: unknown[]): Promise<unknown> {
+  logEnroll(`rpc ${method}`)
   try {
-    const raw = await BackendRemote.transport.request('privitty_wt_enroll_start', [link])
-    logEnroll('rpc result', raw)
-    return parseJson(raw)
+    return await BackendRemote.transport.request(method, params)
   } catch (error) {
-    logEnroll('rpc failed', errorText(error))
-    if (!rpcMethodMissing(error)) {
-      throw error
+    logEnroll(`rpc ${method} failed`, errorText(error))
+    if (rpcMethodMissing(error)) {
+      throw new Error(
+        'The bundled Privitty core is too old for Watchtower. Update the app to a build with Watchtower support.',
+        { cause: error }
+      )
     }
-    logEnroll('core has no enroll method; contacting Watchtower from the desktop')
-    const started = await runtime.watchtowerEnrollStart(link)
-    for (const line of started.trace) {
-      logEnroll(line)
-    }
-    return { challengeId: started.challengeId, emailHint: started.emailHint }
+    throw error
   }
+}
+
+async function requestEmailCode(
+  link: string
+): Promise<Record<string, unknown>> {
+  return parseJson(await callCore('privitty_wt_enroll_start', [link]))
 }
 
 function describeLink(link: string): Record<string, unknown> {
@@ -128,8 +136,11 @@ export default function ConnectWatchtowerScreen({
       setHint(email ? `Enter the code sent to ${email}` : 'Enter the code from your email.')
       setPhase('code')
     } catch (error) {
-      logEnroll('start failed', errorText(error))
-      setHint(errorText(error))
+      const text = errorText(error)
+      /* ignore-console-log */
+      console.error('[watchtower-enroll] start failed', text, error)
+      logEnroll('start failed', text)
+      setHint(text)
       setPhase('error')
     }
   }
@@ -156,42 +167,24 @@ export default function ConnectWatchtowerScreen({
 
   async function requestConfirm(
     wrapping: string
-  ): Promise<{ status: 'ok' | 'blocked'; reason?: string }> {
-    const accountId = selectedAccountId()
-    const meta = JSON.parse(metadata()) as Record<string, unknown>
-    logEnroll('rpc privitty_wt_enroll_confirm')
-    try {
-      const raw = await BackendRemote.transport.request('privitty_wt_enroll_confirm', [
-        accountId,
-        link.trim(),
-        challengeId,
-        code.trim(),
-        metadata(),
-        wrapping,
-      ])
-      logEnroll('rpc confirm result', raw)
-      return parseJson(raw) as { status: 'ok' | 'blocked'; reason?: string }
-    } catch (rpcError) {
-      logEnroll('rpc confirm failed', errorText(rpcError))
-      if (!rpcMethodMissing(rpcError)) throw rpcError
-      logEnroll('core has no confirm method; confirming from the desktop')
-      const result = await runtime.watchtowerEnrollConfirm({
-        accountId,
-        link: link.trim(),
-        challengeId,
-        code: code.trim(),
-        metadata: meta,
-        wrappingKeyB64: wrapping,
-      })
-      for (const line of result.trace) {
-        logEnroll(line)
-      }
-      return { status: result.status, reason: result.reason }
-    }
+  ): Promise<ConfirmBody> {
+    const raw = await callCore('privitty_wt_enroll_confirm', [
+      selectedAccountId(),
+      link.trim(),
+      challengeId,
+      code.trim(),
+      metadata(),
+      wrapping,
+    ])
+    return parseJson(raw) as ConfirmBody
   }
 
   async function confirm() {
-    logEnroll('confirm', { challengeId, codeLength: code.trim().length })
+    logEnroll('confirm', {
+      challengeId,
+      codeLength: code.trim().length,
+      host: describeLink(link).host,
+    })
     setHint('Confirming…')
     try {
       const wrapping = await runtime.getWatchtowerWrappingKey()
@@ -207,11 +200,22 @@ export default function ConnectWatchtowerScreen({
         setPhase('error')
         return
       }
+      if (body.chat_error) {
+        setHint(
+          `Enrolled. Chat setup needs the Watchtower chat relay: ${body.chat_error}`
+        )
+        setPhase('error')
+        return
+      }
       setPhase('done')
       setHint('Connected to Watchtower.')
+      onDone()
     } catch (error) {
-      logEnroll('confirm failed', errorText(error))
-      setHint(errorText(error))
+      const text = errorText(error)
+      /* ignore-console-log */
+      console.error('[watchtower-enroll] confirm failed', text, error)
+      logEnroll('confirm failed', text)
+      setHint(text)
       setPhase('error')
     }
   }

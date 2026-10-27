@@ -1,11 +1,3 @@
-.welcomeScreenBody {
-  padding-bottom: 0;
-}
-
-.inputError {
-  color: var(--colorDanger);
-}
-
 .welcomeScreenSection {
   display: flex;
   flex-direction: column;
@@ -48,16 +40,4 @@
   letter-spacing: 0.25px;
   margin: 7px 0;
   width: 100%;
-}
-
-.instantOnboardingAgreement {
-  display: flex;
-  justify-content: flex-start;
-  margin-bottom: 10px;
-  width: 100%;
-}
-
-.openExternalIcon {
-  background-color: var(--buttonSecondaryText);
-  margin-inline-start: 0.2em;
 }

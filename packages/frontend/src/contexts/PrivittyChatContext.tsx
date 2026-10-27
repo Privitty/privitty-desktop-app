@@ -6,13 +6,7 @@ import ConnectWatchtowerScreen, {
 import { runtime } from '@deltachat-desktop/runtime-interface'
 import { BackendRemote, onDCEvent } from '../backend-com'
 import { privittyStore } from '../privitty/privittyStore'
-import useDialog from '../hooks/dialog/useDialog'
-import PrivittyLicenseDialog from '../components/dialogs/PrivittyLicenseDialog'
-import {
-  PRIVITTY_STATUS_ACTIVE,
-  PRIVITTY_STATUS_BYPASS,
-  PRIVITTY_STATUS_NOT_INITIALIZED,
-} from '../utils/privittyLicense'
+import { getWatchtowerStatus } from '../privitty/watchtowerStatus'
 
 /**
  * PrivittyChatContext — orchestrates detection and populates privittyStore.
@@ -50,8 +44,6 @@ export function PrivittyChatProvider({
   if (accountId != null) {
     privittyStore.setActiveAccount(accountId)
   }
-
-  const { openDialog } = useDialog()
 
   const markChatAsPrivitty = (chatId: number) => {
     if (accountId != null) {
@@ -223,27 +215,6 @@ export function PrivittyChatProvider({
     )
   }, [accountId])
 
-  // License status: show PrivittyLicenseDialog when the license needs
-  // attention (not activated, expired, clock tampered, etc.).
-  // The license manager is a global singleton — we show the dialog regardless
-  // of which account triggered the event.
-  useEffect(() => {
-    return runtime.onPrivittyLicenseStatus((_eventAccountId, statusCode) => {
-      // Ignore status codes that require no user action.
-      if (
-        statusCode === PRIVITTY_STATUS_ACTIVE ||
-        statusCode === PRIVITTY_STATUS_BYPASS ||
-        statusCode === PRIVITTY_STATUS_NOT_INITIALIZED
-      ) {
-        return
-      }
-      openDialog(PrivittyLicenseDialog, {
-        initialStatusCode: statusCode,
-      })
-    })
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [accountId])
-
   useEffect(() => {
     const onEnroll = (event: Event) => {
       setEnrollLink((event as CustomEvent<{ link?: string }>).detail?.link)
@@ -261,6 +232,14 @@ export function PrivittyChatProvider({
       window.removeEventListener('watchtower-access-ended', onEnded)
     }
   }, [])
+
+  useEffect(() => {
+    if (accountId == null) return
+    // Uploads the SecureJoin invite if chat configure succeeded and the
+    // previous confirm never stored it. The composer hook only runs this
+    // after a chat is opened.
+    void getWatchtowerStatus(accountId).catch(() => {})
+  }, [accountId])
 
   useEffect(() => {
     if (accountId == null) return
@@ -289,13 +268,8 @@ export function PrivittyChatProvider({
 
   async function loadStatus() {
     if (accountId == null) return
-    const wrapping = await runtime.getWatchtowerWrappingKey()
-    const raw = await (BackendRemote.rpc as any).privittyWtStatus(
-      accountId,
-      wrapping
-    )
-    const parsed = typeof raw === 'string' ? JSON.parse(raw) : raw
-    if (parsed?.status === 'blocked') {
+    const parsed = await getWatchtowerStatus(accountId)
+    if (parsed.status === 'blocked') {
       setEndedReason(String(parsed.reason ?? 'invalid'))
       return
     }
@@ -308,20 +282,34 @@ export function PrivittyChatProvider({
       {children}
       {reminderDays != null && (
         <div
+          role='status'
           style={{
             position: 'fixed',
-            top: 0,
-            left: 0,
-            right: 0,
+            bottom: 16,
+            left: 16,
             zIndex: 9000,
+            display: 'flex',
+            alignItems: 'center',
+            gap: 8,
             background: '#b45309',
             color: '#fff',
-            padding: '8px 16px',
+            padding: '8px 12px',
+            borderRadius: 6,
+            boxShadow: '0 2px 8px rgba(0,0,0,0.25)',
           }}
         >
-          Access ends in {reminderDays} day{reminderDays === 1 ? '' : 's'}.{' '}
+          <span>
+            Access ends in {reminderDays} day{reminderDays === 1 ? '' : 's'}.
+          </span>
           <button type='button' onClick={() => void loadStatus()}>
             Status
+          </button>
+          <button
+            type='button'
+            aria-label='Dismiss'
+            onClick={() => setReminderDays(null)}
+          >
+            ✕
           </button>
         </div>
       )}
@@ -337,7 +325,14 @@ export function PrivittyChatProvider({
             justifyContent: 'center',
           }}
         >
-          <div style={{ background: '#fff', color: '#111', padding: 24, maxWidth: 420 }}>
+          <div
+            style={{
+              background: '#fff',
+              color: '#111',
+              padding: 24,
+              maxWidth: 420,
+            }}
+          >
             <h2>Watchtower</h2>
             <WatchtowerStatusBody status={status} />
             <button type='button' onClick={() => setShowStatus(false)}>

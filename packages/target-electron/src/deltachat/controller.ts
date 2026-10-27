@@ -13,15 +13,6 @@ import DCWebxdc from './webxdc.js'
 import { DesktopSettings } from '../desktop_settings.js'
 import { StdioServer } from './stdio_server.js'
 import { migrateAccountsIfNeeded } from './migration.js'
-import {
-  beginLicenseReload,
-  emitPrivittyLicenseStatus,
-  endLicenseReload,
-  initLicenseManagerFromPersistedStore,
-  licenseStoragePaths,
-  reloadLicenseManagerFromDb,
-  watchPrivittyLicenseDb,
-} from '../privittyLicenseEvents.js'
 
 const app = rawApp as ExtendedAppMainProcess
 const log = getLogger('main/deltachat')
@@ -218,10 +209,7 @@ export default class DeltaChatController extends EventEmitter {
    * internally by the server process. This method:
    *   1. Calls `privittyInitialize` via JSONRPC so the server sets up the
    *      per-account database context.
-   *   2. Initialises the global license manager and auto-activates if needed.
-   *   3. Reads back the license status and forwards it to the renderer so the
-   *      UI can show the PrivittyLicenseDialog when needed.
-   *   4. Notifies the renderer that Privitty is ready.
+   *   2. Notifies the renderer that Privitty is ready.
    *
    * Triggered by the ImapConnected core event.
    */
@@ -251,220 +239,6 @@ export default class DeltaChatController extends EventEmitter {
       )
     }
 
-    // Obtain the Delta Chat contact-invite URL.
-    // Mirrors Android's: isConfigured() == 1 → getSecurejoinQr(0)
-    //
-    // Prefer the account that just connected (contextId), but also check ALL
-    // configured accounts — the securejoin QR only needs the on-disk key pair,
-    // NOT active IMAP.  This means we get the link even if the triggering
-    // account is freshly configured and hasn't fully connected yet.
-    let inviteLink: string | null = null
-    let deviceName: string | null = null
-    const accountsToTry: number[] = [accountId]
-    try {
-      const allIds: number[] = await (
-        this.jsonrpcRemote.rpc as any
-      ).getAllAccountIds()
-      for (const id of allIds) {
-        if (!accountsToTry.includes(id)) accountsToTry.push(id)
-      }
-    } catch (_) {
-      /* ignore — we'll still try the primary account */
-    }
-
-    for (const tryId of accountsToTry) {
-      try {
-        const configured: boolean = await (
-          this.jsonrpcRemote.rpc as any
-        ).isConfigured(tryId)
-        if (!configured) continue
-        // Capture display name from the first configured account for WatchTower.
-        if (!deviceName) {
-          try {
-            const name: string | null = await (
-              this.jsonrpcRemote.rpc as any
-            ).getConfig(tryId, 'displayname')
-            if (name && name.trim().length > 0) {
-              deviceName = name.trim()
-            } else {
-              const addr: string | null = await (
-                this.jsonrpcRemote.rpc as any
-              ).getConfig(tryId, 'configured_addr')
-              if (addr && addr.trim().length > 0) deviceName = addr.trim()
-            }
-          } catch (_inner) {
-            /* ignore — name is optional */
-          }
-        }
-        // Retry once after 3 s: on a freshly created chatmail account the
-        // Ed25519 key pair may not be on disk yet when ImapConnected fires.
-        let link: string | null = null
-        for (let attempt = 0; attempt < 2; attempt++) {
-          if (attempt > 0) await new Promise(r => setTimeout(r, 3000))
-          try {
-            link = await (
-              this.jsonrpcRemote.rpc as any
-            ).getChatSecurejoinQrCode(tryId, null)
-            if (link) break
-          } catch (inner) {
-            log.info(
-              'openPrivittyVault: getChatSecurejoinQrCode attempt failed',
-              { tryId, attempt, reason: (inner as any)?.message ?? inner }
-            )
-          }
-        }
-        if (link) {
-          inviteLink = link
-          log.info('openPrivittyVault: invite link generated', {
-            accountId: tryId,
-            inviteLink,
-          })
-          break
-        }
-      } catch (error) {
-        log.info(
-          'openPrivittyVault: could not generate invite link for account (trying next):',
-          { tryId, error }
-        )
-      }
-    }
-    if (!inviteLink) {
-      log.warn(
-        'openPrivittyVault: no configured account has an invite link yet — will retry on next ImapConnected'
-      )
-    }
-    if (deviceName) {
-      log.info('openPrivittyVault: device name resolved', { deviceName })
-    }
-
-    // Initialise the global Privitty license manager.
-    //
-    // The license manager is a process-level singleton — there is NO accountId
-    // parameter on any license JSONRPC method.  The correct signature is:
-    //   privittyLicenseInit(dataDir, licensePath, serverUrl, inviteLink?)
-    //
-    // dataDir     = <configPath>/license  (where privitty_license.db is stored)
-    // licensePath = <configPath>/license/privitty.lic if the JWT file is present,
-    //               null otherwise (manager reads from the cached DB)
-    // serverUrl   = production PLM endpoint for activation / sync
-    // inviteLink  = OPENPGP4FPR contact invite URL forwarded to WatchTower
-    {
-      const { licenseDbPath, licFilePath } = licenseStoragePaths()
-      const hasInstalledLicense =
-        existsSync(licenseDbPath) || existsSync(licFilePath)
-
-      beginLicenseReload()
-      try {
-        try {
-          await initLicenseManagerFromPersistedStore(
-            this.jsonrpcRemote.rpc,
-            inviteLink
-          )
-          log.info('openPrivittyVault: license manager initialised')
-        } catch (error) {
-          log.warn('openPrivittyVault: license init failed (non-fatal):', error)
-        }
-
-        // Read back the license status.
-        // If the device is not yet activated and we have a JWT, attempt automatic
-        // activation (mirrors Android's auto-activate on first launch with JWT).
-        try {
-          let statusCode: number = await (
-            this.jsonrpcRemote.rpc as any
-          ).privittyLicenseGetStatus()
-          log.info('openPrivittyVault: license status before auto-activate', {
-            statusCode,
-          })
-
-          // Attempt activation for any status that is not already confirmed active.
-          // This covers NOT_ACTIVATED (3), BYPASS/debug (99), etc.
-          if (
-            statusCode !== 0 /* ACTIVE */ &&
-            statusCode !== 1 /* GRACE_PERIOD */ &&
-            hasInstalledLicense
-          ) {
-            try {
-              if (deviceName) {
-                await (
-                  this.jsonrpcRemote.rpc as any
-                ).privittyLicenseSetDeviceName(deviceName)
-                log.info('openPrivittyVault: device name set', { deviceName })
-              }
-              await (this.jsonrpcRemote.rpc as any).privittyLicenseActivate()
-              log.info('openPrivittyVault: auto-activation succeeded')
-              statusCode = await (
-                this.jsonrpcRemote.rpc as any
-              ).privittyLicenseGetStatus()
-              log.info(
-                'openPrivittyVault: license status after auto-activate',
-                {
-                  statusCode,
-                }
-              )
-            } catch (activateErr) {
-              log.warn(
-                'openPrivittyVault: auto-activation failed (user can retry via dialog):',
-                activateErr
-              )
-            }
-          } else if (statusCode === 0 || statusCode === 1) {
-            // Device is already activated — re-activate unconditionally so PLM
-            // and WatchTower always have an up-to-date record (PLM upserts on
-            // device_id, so no extra seat is consumed).
-            //
-            // If an invite link is available, set it first so WatchTower can
-            // link this device and show "Ready" for the invite status.
-            // We do NOT gate on inviteLink !== null: the device must appear in
-            // WatchTower's Connected Apps regardless of whether the securejoin
-            // QR is available at this moment.
-            try {
-              if (inviteLink !== null) {
-                await (
-                  this.jsonrpcRemote.rpc as any
-                ).privittyLicenseSetInviteLink(inviteLink)
-              }
-              if (deviceName) {
-                await (
-                  this.jsonrpcRemote.rpc as any
-                ).privittyLicenseSetDeviceName(deviceName)
-                log.info(
-                  'openPrivittyVault: device name set for re-activation',
-                  {
-                    deviceName,
-                  }
-                )
-              }
-              await (this.jsonrpcRemote.rpc as any).privittyLicenseActivate()
-              log.info('openPrivittyVault: re-activation pushed to PLM', {
-                inviteLinkPresent: inviteLink !== null,
-              })
-            } catch (syncErr) {
-              log.warn(
-                'openPrivittyVault: re-activation failed (non-fatal):',
-                syncErr
-              )
-            }
-          }
-
-          emitPrivittyLicenseStatus(accountId, statusCode)
-          watchPrivittyLicenseDb(() => {
-            void reloadLicenseManagerFromDb(
-              this.jsonrpcRemote.rpc,
-              accountId,
-              inviteLink
-            )
-          })
-        } catch (error) {
-          log.warn(
-            'openPrivittyVault: license status check failed (non-fatal):',
-            error
-          )
-        }
-      } finally {
-        endLicenseReload()
-      }
-    }
-
     // Notify the renderer that Privitty is ready for this account.
     // The frontend PrivittyChatContext listens for this to run its initial scan.
     mainWindow.send('privittyServerReady', {})
@@ -483,8 +257,11 @@ export default class DeltaChatController extends EventEmitter {
 
     log.debug('Initiating DeltaChatNode')
 
-    // Try custom resolver first (works in packaged apps)
-    let serverPath = findDeltaChatBinaryInPackagedApp()
+    // DELTA_CHAT_RPC_SERVER (read by getRPCServerPath) must win over the
+    // bundled binary so a locally built core can be used.
+    let serverPath = process.env.DELTA_CHAT_RPC_SERVER
+      ? null
+      : findDeltaChatBinaryInPackagedApp()
 
     // Fall back to the npm package's resolver if custom resolver failed
     if (!serverPath) {
@@ -640,35 +417,7 @@ export default class DeltaChatController extends EventEmitter {
         '1'
       )
     }
-
-    // Load the persisted license before the renderer window is created
-    // (ipc.init awaits this method, then mainWindow.init runs). File-sharing
-    // must not wait for ImapConnected / openPrivittyVault.
-    await this.initPersistedPrivittyLicense()
   }
 
-  /**
-   * Create the global license manager from privitty_license.db as soon as
-   * JSON-RPC is up. Activation / invite-link sync still happens later in
-   * openPrivittyVault.
-   */
-  private async initPersistedPrivittyLicense(): Promise<void> {
-    const rpc = this.jsonrpcRemote.rpc as any
-
-    beginLicenseReload()
-
-    try {
-      await initLicenseManagerFromPersistedStore(rpc, null)
-
-      log.info('initPersistedPrivittyLicense: license manager initialized')
-    } catch (error) {
-      log.warn(
-        'initPersistedPrivittyLicense: license init failed (non-fatal):',
-        error
-      )
-    } finally {
-      endLicenseReload()
-    }
-  }
   readonly webxdc = new DCWebxdc(this)
 }

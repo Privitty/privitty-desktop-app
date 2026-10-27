@@ -13,7 +13,6 @@ import {
 import '@deltachat-desktop/shared/global.d.ts'
 
 import { LocaleData } from '@deltachat-desktop/shared/localize.js'
-import { watchtowerEnrollStart as contactWatchtower } from '@deltachat-desktop/shared/watchtower-enroll.js'
 import {
   DropListener,
   MediaAccessStatus,
@@ -123,39 +122,6 @@ class BrowserRuntime implements Runtime {
     return () => {}
   }
 
-  onPrivittyLicenseStatus(
-    _callback: (accountId: number, statusCode: number) => void
-  ): () => void {
-    return () => {}
-  }
-
-  hasLicenseFile(): Promise<boolean> {
-    return Promise.resolve(true)
-  }
-
-  importLicenseFromUrl(
-    _url: string
-  ): Promise<{ customerName: string; licensePath: string }> {
-    return Promise.reject(
-      new Error('License import not supported in browser runtime')
-    )
-  }
-
-  watchtowerEnrollStart(link: string) {
-    return contactWatchtower(link, (input, init) => fetch(input, init))
-  }
-
-  watchtowerEnrollConfirm(_args: {
-    accountId: number
-    link: string
-    challengeId: string
-    code: string
-    metadata: Record<string, unknown>
-    wrappingKeyB64: string
-  }): Promise<{ status: 'ok' | 'blocked'; reason?: string; wt_url?: string; trace: string[] }> {
-    return Promise.reject(new Error('watchtowerEnrollConfirm is not supported in browser runtime'))
-  }
-
   getWatchtowerWrappingKey(): Promise<string> {
     const existing = localStorage.getItem('watchtower-wrapping')
     if (existing) return Promise.resolve(existing)
@@ -164,12 +130,6 @@ class BrowserRuntime implements Runtime {
     const key = btoa(String.fromCharCode(...bytes))
     localStorage.setItem('watchtower-wrapping', key)
     return Promise.resolve(key)
-  }
-
-  importLicenseFromFile(_filePath: string): Promise<{ licensePath: string }> {
-    return Promise.reject(
-      new Error('License file import not supported in browser runtime')
-    )
   }
 
   checkFileExists(_filePath: string): Promise<boolean> {

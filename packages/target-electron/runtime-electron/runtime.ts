@@ -160,57 +160,8 @@ class ElectronRuntime implements Runtime {
     return () => ipcBackend.removeListener('privittyServerReady', handler)
   }
 
-  onPrivittyLicenseStatus(
-    callback: (accountId: number, statusCode: number) => void
-  ): () => void {
-    const handler = (
-      _ev: any,
-      data?: { accountId: number; statusCode: number }
-    ) => {
-      try {
-        callback(data?.accountId ?? 0, data?.statusCode ?? -1)
-      } catch (err) {
-        /* ignore-console-log */
-        console.error('[onPrivittyLicenseStatus] callback failed', err)
-      }
-    }
-    ipcBackend.on('privittyLicenseStatus', handler)
-    return () => ipcBackend.removeListener('privittyLicenseStatus', handler)
-  }
-
-  hasLicenseFile(): Promise<boolean> {
-    return ipcBackend.invoke('privitty-has-license-file')
-  }
-
-  importLicenseFromUrl(
-    url: string
-  ): Promise<{ customerName: string; licensePath: string }> {
-    return ipcBackend.invoke('privitty-import-license-url', url)
-  }
-
   getWatchtowerWrappingKey(): Promise<string> {
     return ipcBackend.invoke('watchtower-wrapping-key')
-  }
-
-  watchtowerEnrollStart(
-    link: string
-  ): Promise<{ challengeId: string; emailHint: string; trace: string[] }> {
-    return ipcBackend.invoke('watchtower-enroll-start', link)
-  }
-
-  watchtowerEnrollConfirm(args: {
-    accountId: number
-    link: string
-    challengeId: string
-    code: string
-    metadata: Record<string, unknown>
-    wrappingKeyB64: string
-  }): Promise<{ status: 'ok' | 'blocked'; reason?: string; wt_url?: string; trace: string[] }> {
-    return ipcBackend.invoke('watchtower-enroll-confirm', args)
-  }
-
-  importLicenseFromFile(filePath: string): Promise<{ licensePath: string }> {
-    return ipcBackend.invoke('privitty-import-license-file', filePath)
   }
 
   onDrop: DropListener | null = null

@@ -7,11 +7,11 @@ settings:
 catalogs:
   default:
     '@privitty/jsonrpc-client':
-      specifier: 2.53.0
-      version: 2.53.0
+      specifier: 2.55.0
+      version: 2.55.0
     '@privitty/stdio-rpc-server':
-      specifier: 2.53.0
-      version: 2.53.0
+      specifier: 2.55.0
+      version: 2.55.0
     '@stackline/xlsx':
       specifier: ^1.0.6
       version: 1.0.6
@@ -110,10 +110,10 @@ importers:
     dependencies:
       '@privitty/jsonrpc-client':
         specifier: 'catalog:'
-        version: 2.53.0(ws@8.21.3)
+        version: 2.55.0(ws@8.21.3)
       '@privitty/stdio-rpc-server':
         specifier: 'catalog:'
-        version: 2.53.0(@privitty/jsonrpc-client@2.53.0(ws@8.21.3))
+        version: 2.55.0(@privitty/jsonrpc-client@2.55.0(ws@8.21.3))
       chart.js:
         specifier: ^4.5.1
         version: 4.5.1
@@ -207,7 +207,7 @@ importers:
         version: 1.7.0
       '@privitty/jsonrpc-client':
         specifier: 'catalog:'
-        version: 2.53.0(ws@7.5.11)
+        version: 2.55.0(ws@7.5.11)
       '@stackline/xlsx':
         specifier: 'catalog:'
         version: 1.0.6
@@ -337,7 +337,7 @@ importers:
         version: link:../shared
       '@privitty/jsonrpc-client':
         specifier: 'catalog:'
-        version: 2.53.0(ws@8.21.3)
+        version: 2.55.0(ws@8.21.3)
       '@types/node':
         specifier: 'catalog:'
         version: 20.19.37
@@ -346,7 +346,7 @@ importers:
     dependencies:
       '@privitty/jsonrpc-client':
         specifier: 'catalog:'
-        version: 2.53.0(ws@8.21.3)
+        version: 2.55.0(ws@8.21.3)
       error-stack-parser:
         specifier: ^2.1.4
         version: 2.1.4
@@ -383,10 +383,10 @@ importers:
         version: link:../shared
       '@privitty/jsonrpc-client':
         specifier: 'catalog:'
-        version: 2.53.0(ws@8.21.3)
+        version: 2.55.0(ws@8.21.3)
       '@privitty/stdio-rpc-server':
         specifier: 'catalog:'
-        version: 2.53.0(@privitty/jsonrpc-client@2.53.0(ws@8.21.3))
+        version: 2.55.0(@privitty/jsonrpc-client@2.55.0(ws@8.21.3))
       '@types/express-session':
         specifier: ^1.18.0
         version: 1.18.2
@@ -432,10 +432,10 @@ importers:
     dependencies:
       '@privitty/jsonrpc-client':
         specifier: 'catalog:'
-        version: 2.53.0(ws@7.5.11)
+        version: 2.55.0(ws@7.5.11)
       '@privitty/stdio-rpc-server':
         specifier: 'catalog:'
-        version: 2.53.0(@privitty/jsonrpc-client@2.53.0(ws@7.5.11))
+        version: 2.55.0(@privitty/jsonrpc-client@2.55.0(ws@7.5.11))
       calls-webapp:
         specifier: 'catalog:'
         version: https://codeload.github.com/deltachat/calls-webapp/tar.gz/283103f4dfedf78c6d3479b5b47081f64436a68a
@@ -523,7 +523,7 @@ importers:
     dependencies:
       '@privitty/stdio-rpc-server':
         specifier: 'catalog:'
-        version: 2.53.0(@privitty/jsonrpc-client@2.53.0(ws@8.21.3))
+        version: 2.55.0(@privitty/jsonrpc-client@2.55.0(ws@8.21.3))
       '@tauri-apps/api':
         specifier: ^2.5.0
         version: 2.10.1
@@ -545,7 +545,7 @@ importers:
         version: link:../shared
       '@privitty/jsonrpc-client':
         specifier: 'catalog:'
-        version: 2.53.0(ws@8.21.3)
+        version: 2.55.0(ws@8.21.3)
       '@tauri-apps/cli':
         specifier: ^2.7.0
         version: 2.10.1
@@ -1336,41 +1336,41 @@ packages:
     engines: {node: '>=18'}
     hasBin: true
 
-  '@privitty/jsonrpc-client@2.53.0':
-    resolution: {integrity: sha512-rqboZciwPMQPblFoCPzqyGToiRRtOi8YJHIYnhMpR10lvpIzuTK6XKJs8tkgkjynLcT2oNu4V2kSclEQ59zK0w==}
+  '@privitty/jsonrpc-client@2.55.0':
+    resolution: {integrity: sha512-tQ/P13IiJcZn1vS0iE6ItqhxX6mzM438g5kItrazwVl+utn54nJqFuWnh87cJJikNOvHzNXyHlScsdtEUY0KRg==}
 
-  '@privitty/stdio-rpc-server-darwin-arm64@2.53.0':
-    resolution: {integrity: sha512-ipOG63RSnuqY/YJE5nloImXmKGtU3PGQmoNIgiL/X4aupSpjtd3y9f4G+gphlRBUp3Y+iHPQ/Lyi8Vfpa+kNqA==}
+  '@privitty/stdio-rpc-server-darwin-arm64@2.55.0':
+    resolution: {integrity: sha512-QR04R22Hc0C5YusQp2J3/XFczs+UbYP9ZN5iWBu9EY1Yubp9nbsZvKFFIBo2kpRLQyiIlkKHg4W0PS9gfvQq5w==}
     cpu: [arm64]
     os: [darwin]
 
-  '@privitty/stdio-rpc-server-darwin-x64@2.53.0':
-    resolution: {integrity: sha512-FaeX7K/wrMIGabSFRix4OEsDkGCnqQA8F1WueZVI45JO0sxrpJkfiKuTZmIs4esJZ12sHoxzOZvnVTIGW+KlnQ==}
+  '@privitty/stdio-rpc-server-darwin-x64@2.55.0':
+    resolution: {integrity: sha512-x2lcoUfqgkm5+F8IBfqnpGfJmAxKmniNh2DAvX4wnYvdIvlVgFndzY+zwhSOUu7xD7BBJ/V5+z1fG/uVOP2qaA==}
     cpu: [x64]
     os: [darwin]
 
-  '@privitty/stdio-rpc-server-linux-arm64@2.53.0':
-    resolution: {integrity: sha512-BCfXMJ4nSv6hiP9p+ouT8YeT+n5BqmV90dInopUkLkvfUp2fONKwgUOfIy7weHLnIYwnrhlpnMiWYGXCkR/TnA==}
+  '@privitty/stdio-rpc-server-linux-arm64@2.55.0':
+    resolution: {integrity: sha512-WlmYCMHNMmsBFVFVyr3nMgAo9fb/U89v0QTcXQvp/D/5+lp/6MJP9w0KkmKhqLH5cykeQzmgRT9pMDZ/UmCe2w==}
     cpu: [arm64]
     os: [linux]
 
-  '@privitty/stdio-rpc-server-linux-x64@2.53.0':
-    resolution: {integrity: sha512-/Y5r6/AgtRd7Rqhw//McSr9bhERHw213otcAD0ugvRvQZLoT6HmgdoWKFFfQ7H4tG2Ej9eZ7WvK19AYeUsGVIQ==}
+  '@privitty/stdio-rpc-server-linux-x64@2.55.0':
+    resolution: {integrity: sha512-GXEe9/QBqksMM9899sSseg5EJYpSKK1jBp4oR5tRA+g+eO9jr+TBMf9x0XUVc1hXWkOe86ZWfmFUt/M6+XY0OA==}
     cpu: [x64]
     os: [linux]
 
-  '@privitty/stdio-rpc-server-win32-ia32@2.53.0':
-    resolution: {integrity: sha512-CLL5NhWWLOQuZ6wEAXcMnC+nW9Cf2th3Jb6cUzrP1JaNoXVyomAg2p3Pb9e+l3KdukmWUki5X6m1Qw3N5ONiVw==}
+  '@privitty/stdio-rpc-server-win32-ia32@2.55.0':
+    resolution: {integrity: sha512-YWgNdO3lfvdXmNcrS0HKoI9lYvaaHQlGP5Rtwts8zWwuycJBxPF8W/E6JPjPkGqMo02zaFVqxIuQ39G4daYjSQ==}
     cpu: [ia32]
     os: [win32]
 
-  '@privitty/stdio-rpc-server-win32-x64@2.53.0':
-    resolution: {integrity: sha512-857zZDzaPysFxH3DCOfSWVB3F+8T/lWFKfHbiEm7yQm4rZwi6cosQLBL+3nOw26Dpc0u8AIU6mw8vJ2sP3UM0g==}
+  '@privitty/stdio-rpc-server-win32-x64@2.55.0':
+    resolution: {integrity: sha512-hZBHLGbrDleekjl4as1B/g+8KCin5iGNRsW4dG7C6PdeY+1grs8g3h3fCq1jazrXkIqjZ+K6kw4MtfZR6JQ8sA==}
     cpu: [x64]
     os: [win32]
 
-  '@privitty/stdio-rpc-server@2.53.0':
-    resolution: {integrity: sha512-BDl9Puk+peicvO4/TF3LVEWu/pStJfvbRkRbrfnq+O07ZmFVXiaI5buve1qsso3nnTG+4s1y8C4zuoFm7FXFxA==}
+  '@privitty/stdio-rpc-server@2.55.0':
+    resolution: {integrity: sha512-cggtb3rYze7HSC4pTbkV6+FxQ1Ld3w+KcHVbIoQie3AEvcv/Oor58YZ283yryt0JLCgA6JJtt8kQowTHtpC7dg==}
     peerDependencies:
       '@privitty/jsonrpc-client': '*'
 
@@ -1892,7 +1892,7 @@ packages:
     engines: {node: '>= 0.4'}
 
   calls-webapp@https://codeload.github.com/deltachat/calls-webapp/tar.gz/283103f4dfedf78c6d3479b5b47081f64436a68a:
-    resolution: {gitHosted: true, tarball: https://codeload.github.com/deltachat/calls-webapp/tar.gz/283103f4dfedf78c6d3479b5b47081f64436a68a}
+    resolution: {gitHosted: true, integrity: sha512-k3S7KQNz5uwx1Y/FagGaR7B1oaC60VPeglx80hO6ol89djFa8pC0rTDcsEFYPvcHECX3GwBBJPB4AfoIql3C0A==, tarball: https://codeload.github.com/deltachat/calls-webapp/tar.gz/283103f4dfedf78c6d3479b5b47081f64436a68a}
     version: 0.0.0
 
   callsites@3.1.0:
@@ -4795,7 +4795,7 @@ snapshots:
     dependencies:
       playwright: 1.58.2
 
-  '@privitty/jsonrpc-client@2.53.0(ws@7.5.11)':
+  '@privitty/jsonrpc-client@2.55.0(ws@7.5.11)':
     dependencies:
       '@deltachat/tiny-emitter': 3.0.0
       isomorphic-ws: 5.0.0(ws@7.5.11)
@@ -4805,7 +4805,7 @@ snapshots:
       - utf-8-validate
       - ws
 
-  '@privitty/jsonrpc-client@2.53.0(ws@8.21.3)':
+  '@privitty/jsonrpc-client@2.55.0(ws@8.21.3)':
     dependencies:
       '@deltachat/tiny-emitter': 3.0.0
       isomorphic-ws: 5.0.0(ws@8.21.3)
@@ -4815,45 +4815,45 @@ snapshots:
       - utf-8-validate
       - ws
 
-  '@privitty/stdio-rpc-server-darwin-arm64@2.53.0':
+  '@privitty/stdio-rpc-server-darwin-arm64@2.55.0':
     optional: true
 
-  '@privitty/stdio-rpc-server-darwin-x64@2.53.0':
+  '@privitty/stdio-rpc-server-darwin-x64@2.55.0':
     optional: true
 
-  '@privitty/stdio-rpc-server-linux-arm64@2.53.0':
+  '@privitty/stdio-rpc-server-linux-arm64@2.55.0':
     optional: true
 
-  '@privitty/stdio-rpc-server-linux-x64@2.53.0':
+  '@privitty/stdio-rpc-server-linux-x64@2.55.0':
     optional: true
 
-  '@privitty/stdio-rpc-server-win32-ia32@2.53.0':
+  '@privitty/stdio-rpc-server-win32-ia32@2.55.0':
     optional: true
 
-  '@privitty/stdio-rpc-server-win32-x64@2.53.0':
+  '@privitty/stdio-rpc-server-win32-x64@2.55.0':
     optional: true
 
-  '@privitty/stdio-rpc-server@2.53.0(@privitty/jsonrpc-client@2.53.0(ws@7.5.11))':
+  '@privitty/stdio-rpc-server@2.55.0(@privitty/jsonrpc-client@2.55.0(ws@7.5.11))':
     dependencies:
-      '@privitty/jsonrpc-client': 2.53.0(ws@7.5.11)
+      '@privitty/jsonrpc-client': 2.55.0(ws@7.5.11)
     optionalDependencies:
-      '@privitty/stdio-rpc-server-darwin-arm64': 2.53.0
-      '@privitty/stdio-rpc-server-darwin-x64': 2.53.0
-      '@privitty/stdio-rpc-server-linux-arm64': 2.53.0
-      '@privitty/stdio-rpc-server-linux-x64': 2.53.0
-      '@privitty/stdio-rpc-server-win32-ia32': 2.53.0
-      '@privitty/stdio-rpc-server-win32-x64': 2.53.0
+      '@privitty/stdio-rpc-server-darwin-arm64': 2.55.0
+      '@privitty/stdio-rpc-server-darwin-x64': 2.55.0
+      '@privitty/stdio-rpc-server-linux-arm64': 2.55.0
+      '@privitty/stdio-rpc-server-linux-x64': 2.55.0
+      '@privitty/stdio-rpc-server-win32-ia32': 2.55.0
+      '@privitty/stdio-rpc-server-win32-x64': 2.55.0
 
-  '@privitty/stdio-rpc-server@2.53.0(@privitty/jsonrpc-client@2.53.0(ws@8.21.3))':
+  '@privitty/stdio-rpc-server@2.55.0(@privitty/jsonrpc-client@2.55.0(ws@8.21.3))':
     dependencies:
-      '@privitty/jsonrpc-client': 2.53.0(ws@8.21.3)
+      '@privitty/jsonrpc-client': 2.55.0(ws@8.21.3)
     optionalDependencies:
-      '@privitty/stdio-rpc-server-darwin-arm64': 2.53.0
-      '@privitty/stdio-rpc-server-darwin-x64': 2.53.0
-      '@privitty/stdio-rpc-server-linux-arm64': 2.53.0
-      '@privitty/stdio-rpc-server-linux-x64': 2.53.0
-      '@privitty/stdio-rpc-server-win32-ia32': 2.53.0
-      '@privitty/stdio-rpc-server-win32-x64': 2.53.0
+      '@privitty/stdio-rpc-server-darwin-arm64': 2.55.0
+      '@privitty/stdio-rpc-server-darwin-x64': 2.55.0
+      '@privitty/stdio-rpc-server-linux-arm64': 2.55.0
+      '@privitty/stdio-rpc-server-linux-x64': 2.55.0
+      '@privitty/stdio-rpc-server-win32-ia32': 2.55.0
+      '@privitty/stdio-rpc-server-win32-x64': 2.55.0
 
   '@sindresorhus/is@4.6.0': {}
 
@@ -5083,11 +5083,6 @@ snapshots:
   '@types/ws@8.18.1':
     dependencies:
       '@types/node': 20.19.37
-
-  '@types/yauzl@2.10.3':
-    dependencies:
-      '@types/node': 20.19.37
-    optional: true
 
   '@typescript-eslint/eslint-plugin@8.70.0(@typescript-eslint/parser@8.70.0(eslint@10.10.0(jiti@2.6.1))(typescript@6.0.3))(eslint@10.10.0(jiti@2.6.1))(typescript@6.0.3)':
     dependencies:

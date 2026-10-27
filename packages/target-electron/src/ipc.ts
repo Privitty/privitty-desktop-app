@@ -10,7 +10,6 @@ import {
   NativeImage,
   systemPreferences,
 } from 'electron'
-import https from 'node:https'
 import path, {
   basename,
   extname,
@@ -28,9 +27,6 @@ import { fileURLToPath } from 'url'
 import { randomBytes } from 'crypto'
 
 import { getLogger } from '../../shared/logger.js'
-import { watchtowerEnrollStart } from '../../shared/watchtower-enroll.js'
-import { nodeWatchtowerFetch } from './watchtower-fetch.js'
-import { watchtowerEnrollConfirm } from './watchtower-confirm.js'
 import {
   getDraftTempDir,
   getLogsPath,
@@ -56,13 +52,6 @@ import {
   startHandlingIncomingVideoCalls,
   startOutgoingVideoCall,
 } from './windows/video-call.js'
-import {
-  beginLicenseReload,
-  emitPrivittyLicenseStatus,
-  endLicenseReload,
-  reloadLicenseManagerFromDb,
-  watchPrivittyLicenseDb,
-} from './privittyLicenseEvents.js'
 
 const __dirname = dirname(fileURLToPath(import.meta.url))
 
@@ -73,212 +62,6 @@ const app = rawApp as ExtendedAppMainProcess
 let dcController: typeof DeltaChatController.prototype
 export function getDCJsonrpcRemote() {
   return dcController.jsonrpcRemote
-}
-
-/**
- * Initialise the global Privitty license manager with the JWT at `licPath`
- * and attempt automatic device activation against the PLM server.
- *
- * Called immediately after a JWT is written to disk so the license is active
- * without requiring an app restart.  `licenseInit` errors are re-thrown;
- * `licenseActivate` errors are logged and swallowed (the PrivittyLicenseDialog
- * lets the user retry manually).
- *
- * Returns the final status code (0 = ACTIVE, 99 = BYPASS/debug, etc.).
- */
-/**
- * Iterate every DeltaChat account and return the first contact-invite URL
- * from a *configured* (email-set-up) account.
- *
- * Mirrors Android's `dcContext.isConfigured() == 1 → getSecurejoinQr(0)`.
- * Importantly, this works WITHOUT active IMAP — the securejoin QR only
- * requires the key-pair that is written to disk during account setup.
- *
- * Returns null if no account is configured yet (first-run case).
- */
-async function getInviteLinkFromAnyConfiguredAccount(
-  rpc: any
-): Promise<string | null> {
-  try {
-    const allIds: number[] = await rpc.getAllAccountIds()
-    for (const id of allIds) {
-      try {
-        const configured: boolean = await rpc.isConfigured(id)
-        if (!configured) continue
-        // Retry once after 3 s — on a freshly created chatmail account
-        // the Ed25519 key pair may not be on disk yet.
-        for (let attempt = 0; attempt < 2; attempt++) {
-          if (attempt > 0) await new Promise(r => setTimeout(r, 3000))
-          try {
-            const link: string | null = await rpc.getChatSecurejoinQrCode(
-              id,
-              null
-            )
-            if (link) {
-              log.info('getInviteLinkFromAnyConfiguredAccount: found link', {
-                accountId: id,
-                attempt,
-              })
-              return link
-            }
-          } catch (inner) {
-            log.info('getInviteLinkFromAnyConfiguredAccount: attempt failed', {
-              id,
-              attempt,
-              reason: (inner as any)?.message ?? inner,
-            })
-          }
-        }
-      } catch (inner) {
-        log.info('getInviteLinkFromAnyConfiguredAccount: skipping account', {
-          id,
-          reason: (inner as any)?.message ?? inner,
-        })
-      }
-    }
-  } catch (e) {
-    log.warn(
-      'getInviteLinkFromAnyConfiguredAccount: failed to list accounts:',
-      e
-    )
-  }
-  return null
-}
-
-/**
- * Return the DC display name from the first configured account.
- * Falls back to `configured_addr` when displayname is empty.
- * Returns null if no configured account exists yet.
- */
-async function getDisplayNameFromAnyConfiguredAccount(
-  rpc: any
-): Promise<string | null> {
-  try {
-    const allIds: number[] = await rpc.getAllAccountIds()
-    for (const id of allIds) {
-      try {
-        const configured: boolean = await rpc.isConfigured(id)
-        if (!configured) continue
-        const name: string | null = await rpc.getConfig(id, 'displayname')
-        if (name && name.trim().length > 0) return name.trim()
-        const addr: string | null = await rpc.getConfig(id, 'configured_addr')
-        if (addr && addr.trim().length > 0) return addr.trim()
-      } catch (_inner) {
-        /* skip account */
-      }
-    }
-  } catch (e) {
-    log.warn(
-      'getDisplayNameFromAnyConfiguredAccount: failed to list accounts:',
-      e
-    )
-  }
-  return null
-}
-
-async function initAndActivateLicense(
-  licPath: string
-): Promise<{ statusCode: number }> {
-  const licDir = dirname(licPath)
-  const rpc = dcController?.jsonrpcRemote?.rpc as any
-
-  if (!rpc) {
-    log.warn(
-      'initAndActivateLicense: JSONRPC not ready, will activate on next ImapConnected'
-    )
-    return { statusCode: 5 /* NOT_INITIALIZED */ }
-  }
-
-  beginLicenseReload()
-  try {
-    // Mirror Android's ImportLicenseActivity flow:
-    //   1. Try to get the invite link from ANY configured account NOW (no IMAP needed)
-    //   2. Init the license manager with the link if we have it
-    //   3. Activate — device shows up in WatchTower with invite link "Ready" in one shot
-    //
-    // Android uses dcContext.isConfigured() == 1 → getSecurejoinQr(0).
-    // The securejoin QR only needs the key-pair on disk; active IMAP is NOT required.
-    // We iterate all accounts so this works regardless of which is "selected".
-    const inviteLinkForInit = await getInviteLinkFromAnyConfiguredAccount(rpc)
-    if (inviteLinkForInit) {
-      log.info('initAndActivateLicense: invite link obtained before init', {
-        inviteLinkForInit,
-      })
-    } else {
-      log.info(
-        'initAndActivateLicense: no configured account yet — invite link will be pushed on first ImapConnected'
-      )
-    }
-
-    await rpc.privittyLicenseInit(
-      licDir,
-      licPath,
-      null,
-      inviteLinkForInit ?? null
-    )
-    log.info('initAndActivateLicense: licenseInit completed', { licDir })
-
-    try {
-      const infoRaw = await rpc.privittyLicenseGetInfo()
-      const parsed = typeof infoRaw === 'string' ? JSON.parse(infoRaw) : infoRaw
-      log.info('initAndActivateLicense: GetInfo after init', {
-        expires_at: parsed?.expires_at ?? parsed?.expiresAt,
-        grace_period_days: parsed?.grace_period_days ?? parsed?.gracePeriodDays,
-        features: parsed?.features,
-        features_json: parsed?.features_json ?? parsed?.featuresJson,
-      })
-    } catch (e) {
-      log.warn('initAndActivateLicense: GetInfo after init failed', e)
-    }
-
-    // Check current status.
-    let statusCode: number = await rpc.privittyLicenseGetStatus()
-    log.info('initAndActivateLicense: status before activation', { statusCode })
-
-    // Attempt activation for any status that is not already confirmed active:
-    //   0 = ACTIVE (skip — already registered)
-    //   1 = GRACE_PERIOD (skip — still valid)
-    // All other statuses (NOT_ACTIVATED=3, BYPASS=99, etc.) trigger activation
-    // so the device is always registered with PLM when a JWT is present.
-    if (statusCode !== 0 /* ACTIVE */ && statusCode !== 1 /* GRACE_PERIOD */) {
-      log.info('initAndActivateLicense: calling privittyLicenseActivate …')
-      try {
-        const deviceName = await getDisplayNameFromAnyConfiguredAccount(rpc)
-        if (deviceName) {
-          await rpc.privittyLicenseSetDeviceName(deviceName)
-          log.info('initAndActivateLicense: device name set', { deviceName })
-        }
-        await rpc.privittyLicenseActivate()
-        log.info('initAndActivateLicense: privittyLicenseActivate succeeded')
-      } catch (activateErr) {
-        log.warn(
-          'initAndActivateLicense: privittyLicenseActivate failed:',
-          activateErr
-        )
-      }
-      statusCode = await rpc.privittyLicenseGetStatus()
-      log.info('initAndActivateLicense: status after activation', {
-        statusCode,
-      })
-    }
-
-    // Push the new status to the renderer after the manager has loaded
-    // the updated license (so licenseGetInfo sees the new expires_at).
-    const accountId =
-      await dcController.jsonrpcRemote.rpc.getSelectedAccountId()
-    emitPrivittyLicenseStatus(accountId ?? 0, statusCode)
-    watchPrivittyLicenseDb(() => {
-      void reloadLicenseManagerFromDb(
-        rpc,
-        accountId ?? 0,
-        inviteLinkForInit ?? null
-      )
-    })
-
-    return { statusCode }
-  } finally {
-    endLicenseReload()
-  }
 }
 
 /** returns shutdown function */
@@ -500,48 +283,6 @@ export async function init(cwd: string, logHandler: LogHandler) {
     return false
   })
 
-  // ── Privitty license import (mirrors Android ImportLicenseActivity) ────────
-
-  ipcMain.handle(
-    'privitty-import-license-file',
-    async (_ev, filePath: string) => {
-      const raw = await fs.readFile(filePath, 'utf-8')
-      const jwt = raw.trim()
-      // Basic sanity check: a JWT has exactly 3 base64url parts separated by dots.
-      if (jwt.split('.').length !== 3) {
-        throw new Error(
-          'File does not appear to be a valid license JWT.\n' +
-            'Expected a file containing a single JWT (three base64 parts separated by dots).'
-        )
-      }
-      const licDir = join(getConfigPath(), 'license')
-      await fs.mkdir(licDir, { recursive: true })
-      const licPath = join(licDir, 'privitty.lic')
-      await fs.writeFile(licPath, jwt, 'utf-8')
-      log.info('License JWT imported from file to', licPath)
-
-      // Immediately init and activate — no restart required.
-      const { statusCode } = await initAndActivateLicense(licPath)
-      return { licensePath: licPath, statusCode }
-    }
-  )
-
-  // Check whether the Privitty license JWT file exists at the global path.
-  // Used by WelcomeScreen to decide whether to show the ImportLicenseScreen.
-  ipcMain.handle('watchtower-enroll-confirm', async (_ev, args: Parameters<typeof watchtowerEnrollConfirm>[0]) => {
-    /* ignore-console-log */
-    console.info('[watchtower-enroll] desktop confirm')
-    log.info('watchtower enroll confirm')
-    return watchtowerEnrollConfirm(args)
-  })
-
-  ipcMain.handle('watchtower-enroll-start', async (_ev, link: string) => {
-    /* ignore-console-log */
-    console.info('[watchtower-enroll] desktop is contacting Watchtower')
-    log.info('watchtower enroll start')
-    return watchtowerEnrollStart(link, nodeWatchtowerFetch)
-  })
-
   ipcMain.handle('watchtower-wrapping-key', async () => {
     if (!safeStorage.isEncryptionAvailable()) {
       throw new Error('The OS keychain is not available')
@@ -555,88 +296,6 @@ export async function init(cwd: string, logHandler: LogHandler) {
       await mkdir(getConfigPath(), { recursive: true })
       await writeFile(file, safeStorage.encryptString(key))
       return key
-    }
-  })
-
-  ipcMain.handle('privitty-has-license-file', async () => {
-    const licPath = join(getConfigPath(), 'license', 'privitty.lic')
-    try {
-      await fs.access(licPath)
-      return true
-    } catch {
-      return false
-    }
-  })
-
-  ipcMain.handle('privitty-import-license-url', async (_ev, url: string) => {
-    // Validate URL — must be a /v1/license/ delivery link
-    let parsed: URL
-    try {
-      parsed = new URL(url)
-    } catch {
-      throw new Error('Not a valid URL.')
-    }
-    // Accept any URL whose path starts with /v1/license/ — covers both the
-    // production server and any staging / on-prem deployment.
-    if (!parsed.pathname.startsWith('/v1/license/')) {
-      throw new Error(
-        'Not a valid Privitty license link.\n' +
-          'Expected path: /v1/license/{token}\n' +
-          'Got: ' +
-          parsed.pathname
-      )
-    }
-
-    // Fetch the JWT from the delivery server using Node.js https (OS DNS)
-    // so it works independently of Chromium's network sandbox.
-    const body = await new Promise<string>((resolve, reject) => {
-      const req = https.request(url, { method: 'GET' }, res => {
-        if (res.statusCode && (res.statusCode < 200 || res.statusCode >= 300)) {
-          reject(new Error(`License server returned HTTP ${res.statusCode}`))
-          res.resume()
-          return
-        }
-        let raw = ''
-        res.setEncoding('utf8')
-        res.on('data', (chunk: string) => (raw += chunk))
-        res.on('end', () => resolve(raw))
-        res.on('error', reject)
-      })
-      req.on('error', reject)
-      req.setTimeout(15_000, () => {
-        req.destroy(new Error('License server request timed out (15 s)'))
-      })
-      req.end()
-    })
-
-    let data: { license_jwt?: string; customer_name?: string; error?: string }
-    try {
-      data = JSON.parse(body)
-    } catch {
-      throw new Error(
-        'License server returned non-JSON response. Is the URL correct?'
-      )
-    }
-    if (!data.license_jwt) {
-      throw new Error(
-        data.error ?? 'Unexpected server response (no license_jwt).'
-      )
-    }
-
-    // Persist the JWT to <configPath>/license/privitty.lic
-    const licDir = join(getConfigPath(), 'license')
-    await fs.mkdir(licDir, { recursive: true })
-    const licPath = join(licDir, 'privitty.lic')
-    await fs.writeFile(licPath, data.license_jwt, 'utf-8')
-    log.info('License JWT saved to', licPath)
-
-    // Immediately init and activate — no restart required.
-    const { statusCode } = await initAndActivateLicense(licPath)
-
-    return {
-      customerName: data.customer_name ?? 'Unknown',
-      licensePath: licPath,
-      statusCode,
     }
   })
 

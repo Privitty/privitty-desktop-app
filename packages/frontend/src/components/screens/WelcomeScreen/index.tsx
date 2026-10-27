@@ -3,10 +3,7 @@ import React, { useCallback, useEffect, useLayoutEffect, useState } from 'react'
 import Dialog from '../../Dialog'
 import ImageBackdrop from '../../ImageBackdrop'
 import ConnectWatchtowerScreen from './ConnectWatchtowerScreen'
-import InstantOnboardingScreen from './InstantOnboardingScreen'
 import OnboardingScreen from './OnboardingScreen'
-import ScanInvitationCodeScreen from './ScanInvitationCodeScreen'
-import useInstantOnboarding from '../../../hooks/useInstantOnboarding'
 import { getConfiguredAccounts } from '../../../backend/account'
 import { BackendRemote, EffectfulBackendActions } from '../../../backend-com'
 import useDialog from '../../../hooks/dialog/useDialog'
@@ -25,18 +22,11 @@ type Props = {
  */
 
 export default function WelcomeScreen({ selectedAccountId, ...props }: Props) {
-  const {
-    resetInstantOnboarding,
-    showInstantOnboarding,
-    startInstantOnboardingFlow,
-  } = useInstantOnboarding()
   const [hasConfiguredAccounts, setHasConfiguredAccounts] = useState(false)
-  const [showScanInvitationCode, setShowScanInvitationCode] = useState(false)
   const [showWatchtower, setShowWatchtower] = useState(false)
   const [enrollLink, setEnrollLink] = useState<string | undefined>()
   const { openDialog } = useDialog()
 
-  // Connect to Watchtower before the invite scan.
   const handleNextStep = useCallback(async () => {
     setShowWatchtower(true)
   }, [])
@@ -94,39 +84,19 @@ export default function WelcomeScreen({ selectedAccountId, ...props }: Props) {
         onClose={onClose}
         dataTestid='onboarding-dialog'
       >
-        {!showInstantOnboarding ? (
-          showWatchtower ? (
-            <ConnectWatchtowerScreen
-              initialLink={enrollLink}
-              onBack={() => setShowWatchtower(false)}
-              onDone={() => {
-                setShowWatchtower(false)
-                setShowScanInvitationCode(true)
-              }}
-            />
-          ) : showScanInvitationCode ? (
-            <ScanInvitationCodeScreen
-              selectedAccountId={selectedAccountId}
-              onBack={() => setShowScanInvitationCode(false)}
-              onScanDone={() => setShowScanInvitationCode(false)}
-              onLicenseDone={() => {
-                setShowScanInvitationCode(false)
-                startInstantOnboardingFlow()
-              }}
-            />
-          ) : (
-            <OnboardingScreen
-              onNextStep={handleNextStep}
-              selectedAccountId={selectedAccountId}
-              hasConfiguredAccounts={hasConfiguredAccounts}
-              onClose={onClose}
-              {...props}
-            />
-          )
+        {showWatchtower ? (
+          <ConnectWatchtowerScreen
+            initialLink={enrollLink}
+            onBack={() => setShowWatchtower(false)}
+            onDone={() => window.__selectAccount(selectedAccountId)}
+          />
         ) : (
-          <InstantOnboardingScreen
+          <OnboardingScreen
+            onNextStep={handleNextStep}
             selectedAccountId={selectedAccountId}
-            onCancel={() => resetInstantOnboarding()}
+            hasConfiguredAccounts={hasConfiguredAccounts}
+            onClose={onClose}
+            {...props}
           />
         )}
       </Dialog>

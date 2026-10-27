@@ -64,57 +64,8 @@ export interface Runtime {
    * Returns a cleanup/unsubscribe function (suitable for useEffect returns).
    */
   onPrivittyServerReady(callback: () => void): () => void
-  /**
-   * Subscribe to license status events emitted by the backend after each
-   * `privittyLicenseInit` call. The `statusCode` maps to the
-   * `PRIVITTY_STATUS_*` constants defined in `privittyLicense.ts`.
-   * Returns a cleanup/unsubscribe function (suitable for useEffect returns).
-   */
-  onPrivittyLicenseStatus(
-    callback: (accountId: number, statusCode: number) => void
-  ): () => void
-  /**
-   * Returns true if `<configPath>/license/privitty.lic` exists on disk.
-   * Used by WelcomeScreen to decide whether to show ImportLicenseScreen.
-   */
-  hasLicenseFile(): Promise<boolean>
-  /**
-   * Download the Privitty license JWT from the delivery URL, persist it to
-   * <configPath>/license/privitty.lic, and return the customer name.
-   *
-   * URL format: a licence delivery link. The Watchtower enroll link is `privitty://enroll`.
-   * Throws if the URL is invalid, the server errors, or the JWT is absent.
-   */
-  importLicenseFromUrl(
-    url: string
-  ): Promise<{ customerName: string; licensePath: string }>
-  /**
-   * Copy a local `.lic` / JWT file to <configPath>/license/privitty.lic.
-   * Use as a fallback when the delivery server is unreachable.
-   */
-  importLicenseFromFile(filePath: string): Promise<{ licensePath: string }>
   /** 32-byte wrapping key, base64. Electron reads it from the OS keychain. */
   getWatchtowerWrappingKey(): Promise<string>
-  /**
-   * Fetch `/enroll/bootstrap`, check the CA pin, and ask Watchtower to email
-   * the operator code. Used when the core binary has no enroll RPC.
-   */
-  watchtowerEnrollStart(
-    link: string
-  ): Promise<{ challengeId: string; emailHint: string; trace: string[] }>
-  /**
-   * Generate a P-256 device key + CSR, POST to `/enroll/app`, and persist the
-   * resulting cert / entitlement to the DeltaChat blob directory.
-   * Used when the core binary has no `privitty_wt_enroll_confirm` RPC.
-   */
-  watchtowerEnrollConfirm(args: {
-    accountId: number
-    link: string
-    challengeId: string
-    code: string
-    metadata: Record<string, unknown>
-    wrappingKeyB64: string
-  }): Promise<{ status: 'ok' | 'blocked'; reason?: string; wt_url?: string; trace: string[] }>
   checkFileExists(filePath: string): Promise<boolean>
   /**
    * Read a local file into memory as raw bytes.
