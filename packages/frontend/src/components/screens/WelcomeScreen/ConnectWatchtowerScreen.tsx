@@ -11,6 +11,9 @@ import {
   FooterActions,
 } from '../../Dialog'
 import { QrReader } from '../../QrReader'
+import { DeltaInput } from '../../Login-Styles'
+import ProfileImageSelector from '../../dialogs/EditProfileDialog/ProfileImageSelector'
+import useTranslationFunction from '../../../hooks/useTranslationFunction'
 
 type Phase = 'link' | 'code' | 'done' | 'error'
 
@@ -108,8 +111,11 @@ export default function ConnectWatchtowerScreen({
   onBack: () => void
   onDone: () => void
 }) {
+  const tx = useTranslationFunction()
   const [link, setLink] = useState(initialLink ?? '')
   const [code, setCode] = useState('')
+  const [displayname, setDisplayname] = useState('')
+  const [profilePicture, setProfilePicture] = useState<string | null>(null)
   const [challengeId, setChallengeId] = useState('')
   const [hint, setHint] = useState(
     'Paste a privitty://enroll link, or open one from a QR code.'
@@ -180,6 +186,11 @@ export default function ConnectWatchtowerScreen({
   }
 
   async function confirm() {
+    const name = displayname.trim()
+    if (!name) {
+      setHint(tx('please_enter_name'))
+      return
+    }
     logEnroll('confirm', {
       challengeId,
       codeLength: code.trim().length,
@@ -187,9 +198,28 @@ export default function ConnectWatchtowerScreen({
     })
     setHint('Confirming…')
     try {
+      // The core publishes an invite link carrying the display name during
+      // confirm, so the profile has to be saved first.
+      await BackendRemote.rpc.setConfig(
+        selectedAccountId(),
+        'displayname',
+        name
+      )
+      await BackendRemote.rpc.setConfig(
+        selectedAccountId(),
+        'selfavatar',
+        profilePicture
+      )
       const wrapping = await runtime.getWatchtowerWrappingKey()
       const body = await requestConfirm(wrapping)
       logEnroll('confirm done', body)
+      // Cores before the display-name fix overwrite it with the chat
+      // address prefix while configuring the relay account.
+      await BackendRemote.rpc.setConfig(
+        selectedAccountId(),
+        'displayname',
+        name
+      )
       if (body.status === 'blocked') {
         window.dispatchEvent(
           new CustomEvent('watchtower-access-ended', {
@@ -239,12 +269,30 @@ export default function ConnectWatchtowerScreen({
             />
           )}
           {phase === 'code' && (
-            <input
-              value={code}
-              onChange={event => setCode(event.target.value)}
-              placeholder='Email code'
-              style={{ width: '100%', marginTop: 8 }}
-            />
+            <>
+              <input
+                value={code}
+                onChange={event => setCode(event.target.value)}
+                placeholder='Email code'
+                style={{ width: '100%', marginTop: 8 }}
+              />
+              <p>{tx('set_name_and_avatar_explain')}</p>
+              <ProfileImageSelector
+                displayName={displayname}
+                profilePicture={profilePicture}
+                setProfilePicture={setProfilePicture}
+              />
+              <DeltaInput
+                id='displayname'
+                dataTestId='displayname-input'
+                placeholder={tx('pref_your_name')}
+                value={displayname}
+                onChange={(
+                  event: React.FormEvent<HTMLElement> &
+                    React.ChangeEvent<HTMLInputElement>
+                ) => setDisplayname(event.target.value)}
+              />
+            </>
           )}
         </DialogContent>
       </DialogBody>
