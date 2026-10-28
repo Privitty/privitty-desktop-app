@@ -178,11 +178,18 @@ build['mac'] = {
   identity: shouldSign ? undefined : null, // null = skip signing, undefined = auto-detect
   files: [...files, PREBUILD_FILTERS.NOT_LINUX, PREBUILD_FILTERS.NOT_WINDOWS],
   darkModeSupport: true,
-  // For lipo-based universal builds the fat binary already covers both archs,
-  // so x64ArchFiles / mergeASARs are not needed (and would confuse the merger).
-  // For single-arch or electron-builder-native universal builds, keep them.
+  // @electron/universal throws when a Mach-O is byte-identical in both slices
+  // and this pattern does not match it. Lipo fat binaries are already universal
+  // and are skipped before this check. Single-arch addons such as
+  // @parcel/watcher-darwin-arm64 are copied unchanged into both slices.
+  // mergeASARs stays off for the lipo build: arch-specific files are removed
+  // before packaging so the two ASARs already match, and merging them looks up
+  // files the afterPack hook deleted.
   ...(isUniversalBuild
-    ? {}
+    ? {
+        x64ArchFiles:
+          'Contents/Resources/app.asar.unpacked/node_modules/**/*-darwin-*/**',
+      }
     : {
         x64ArchFiles:
           'Contents/Resources/app.asar.unpacked/node_modules/**/*-darwin-x64/**',
