@@ -36,7 +36,7 @@ build['appId'] = 'chat.privitty.desktop.electron'
 build['productName'] = 'PrivittyChat'
 build['extraMetadata'] = {
   //@ts-ignore
-  // restore old name before mono-repo
+  // Packaged package name (root package.json name is not what electron-builder ships).
   name: 'privittychat-desktop',
 }
 
@@ -174,6 +174,7 @@ build['mac'] = {
   gatekeeperAssess: shouldSign,
   hardenedRuntime: shouldSign,
   icon: 'build/icon-mac.icns',
+  artifactName: 'privittychat-desktop-${version}-${arch}.${ext}',
   identity: shouldSign ? undefined : null, // null = skip signing, undefined = auto-detect
   files: [...files, PREBUILD_FILTERS.NOT_LINUX, PREBUILD_FILTERS.NOT_WINDOWS],
   darkModeSupport: true,
@@ -226,7 +227,7 @@ build['linux'] = {
 }
 
 build['appImage'] = {
-  artifactName: '${productName}-${version}-${arch}.${ext}',
+  artifactName: 'privittychat-desktop-${version}-${arch}.${ext}',
 }
 
 build['deb'] = {
@@ -255,7 +256,7 @@ build['win'] = {
   // the exe (visible in Start-menu search and the installer title bar).
   icon: 'build/icon.ico',
   // Use a fixed prefix for Windows installer filenames
-  artifactName: 'PrivittyChat-${version}-Setup.${arch}.${ext}', // specifying it inside of build['nsis'] does not work for unknown reasons.
+  artifactName: 'privittychat-desktop-${version}-Setup.${arch}.${ext}', // specifying it inside of build['nsis'] does not work for unknown reasons.
   files: [...files, PREBUILD_FILTERS.NOT_MAC, PREBUILD_FILTERS.NOT_LINUX],
   // Keep executable resource editing (icon + metadata) enabled even for unsigned
   // builds. Setting signAndEditExecutable to false skips rcedit entirely, which
@@ -264,7 +265,7 @@ build['win'] = {
 }
 
 build['portable'] = {
-  artifactName: 'PrivittyChat-${version}-Portable.${arch}.${ext}',
+  artifactName: 'privittychat-desktop-${version}-Portable.${arch}.${ext}',
 }
 
 // supported languages are on https://learn.microsoft.com/en-us/windows/apps/publish/publish-your-app/supported-languages?pivots=store-installer-msix
@@ -329,7 +330,7 @@ build['appx'] = {
   publisherDisplayName: 'merlinux',
   identityName: 'merlinux.privittyChat',
   languages,
-  artifactName: '${productName}-${version}-Package.${arch}.${ext}',
+  artifactName: 'privittychat-desktop-${version}-Package.${arch}.${ext}',
   // Dark tile background so the white Privitty logo is always clearly visible
   // regardless of whether the user has Windows light or dark mode enabled.
   backgroundColor: '#1a1a2e',

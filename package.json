@@ -1,8 +1,8 @@
 {
   "private": "true",
-  "name": "deltachat-desktop",
+  "name": "privittychat-desktop",
   "type": "module",
-  "version": "1.9.0",
+  "version": "2.0.0",
   "packageManager": "pnpm@10.34.5",
   "scripts": {
     "preinstall": "node ./bin/check-nodejs-version.js",
