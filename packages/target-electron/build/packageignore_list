@@ -62,12 +62,6 @@ build/
 runtime-electron/
 migration-tests/
 
-# @parcel/watcher ships one Mach-O per arch. electron-builder copies the same
-# file into both universal slices, and @electron/universal then refuses to merge.
-# The desktop app does not load this module at runtime.
-node_modules/@parcel/watcher-*${/*}
-**/node_modules/@parcel/watcher-*${/*}
-
 # Build artifacts
 tsc-dist/renderer/
 **/*.tsbuildinfo
