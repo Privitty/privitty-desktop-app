@@ -1,18 +1,14 @@
-import React, { useCallback, useLayoutEffect, useState } from 'react'
+import React, { useCallback, useEffect, useLayoutEffect, useState } from 'react'
 
 import Dialog from '../../Dialog'
 import ImageBackdrop from '../../ImageBackdrop'
-import ImportLicenseScreen from './ImportLicenseScreen'
-import InstantOnboardingScreen from './InstantOnboardingScreen'
+import ConnectWatchtowerScreen from './ConnectWatchtowerScreen'
 import OnboardingScreen from './OnboardingScreen'
-import ScanInvitationCodeScreen from './ScanInvitationCodeScreen'
-import useInstantOnboarding from '../../../hooks/useInstantOnboarding'
 import { getConfiguredAccounts } from '../../../backend/account'
 import { BackendRemote, EffectfulBackendActions } from '../../../backend-com'
 import useDialog from '../../../hooks/dialog/useDialog'
 import AlertDialog from '../../dialogs/AlertDialog'
 import { unknownErrorToString } from '../../helpers/unknownErrorToString'
-import { runtime } from '@deltachat-desktop/runtime-interface'
 
 type Props = {
   selectedAccountId: number
@@ -26,30 +22,23 @@ type Props = {
  */
 
 export default function WelcomeScreen({ selectedAccountId, ...props }: Props) {
-  const {
-    resetInstantOnboarding,
-    showInstantOnboarding,
-    startInstantOnboardingFlow,
-  } = useInstantOnboarding()
   const [hasConfiguredAccounts, setHasConfiguredAccounts] = useState(false)
-  const [showScanInvitationCode, setShowScanInvitationCode] = useState(false)
-  const [showLicenseImport, setShowLicenseImport] = useState(false)
+  const [showWatchtower, setShowWatchtower] = useState(false)
+  const [enrollLink, setEnrollLink] = useState<string | undefined>()
   const { openDialog } = useDialog()
 
-  // Check whether a license file already exists; if not, show ImportLicenseScreen
-  // before letting the user proceed to profile creation.
   const handleNextStep = useCallback(async () => {
-    try {
-      const hasLicense = await runtime.hasLicenseFile()
-      if (hasLicense) {
-        setShowScanInvitationCode(true)
-      } else {
-        setShowLicenseImport(true)
-      }
-    } catch {
-      // If the check fails (e.g. browser runtime), fall through to profile creation.
-      setShowScanInvitationCode(true)
+    setShowWatchtower(true)
+  }, [])
+
+  useEffect(() => {
+    const onEnroll = (event: Event) => {
+      const link = (event as CustomEvent<{ link?: string }>).detail?.link
+      setEnrollLink(link)
+      setShowWatchtower(true)
     }
+    window.addEventListener('watchtower-enroll', onEnroll)
+    return () => window.removeEventListener('watchtower-enroll', onEnroll)
   }, [])
 
   useLayoutEffect(() => {
@@ -95,38 +84,19 @@ export default function WelcomeScreen({ selectedAccountId, ...props }: Props) {
         onClose={onClose}
         dataTestid='onboarding-dialog'
       >
-        {!showInstantOnboarding ? (
-          showLicenseImport ? (
-            <ImportLicenseScreen
-              onBack={() => setShowLicenseImport(false)}
-              onDone={() => {
-                setShowLicenseImport(false)
-                startInstantOnboardingFlow()
-              }}
-            />
-          ) : showScanInvitationCode ? (
-            <ScanInvitationCodeScreen
-              selectedAccountId={selectedAccountId}
-              onBack={() => setShowScanInvitationCode(false)}
-              onScanDone={() => setShowScanInvitationCode(false)}
-              onLicenseDone={() => {
-                setShowScanInvitationCode(false)
-                startInstantOnboardingFlow()
-              }}
-            />
-          ) : (
-            <OnboardingScreen
-              onNextStep={handleNextStep}
-              selectedAccountId={selectedAccountId}
-              hasConfiguredAccounts={hasConfiguredAccounts}
-              onClose={onClose}
-              {...props}
-            />
-          )
+        {showWatchtower ? (
+          <ConnectWatchtowerScreen
+            initialLink={enrollLink}
+            onBack={() => setShowWatchtower(false)}
+            onDone={() => window.__selectAccount(selectedAccountId)}
+          />
         ) : (
-          <InstantOnboardingScreen
+          <OnboardingScreen
+            onNextStep={handleNextStep}
             selectedAccountId={selectedAccountId}
-            onCancel={() => resetInstantOnboarding()}
+            hasConfiguredAccounts={hasConfiguredAccounts}
+            onClose={onClose}
+            {...props}
           />
         )}
       </Dialog>

@@ -20,6 +20,7 @@ if (platform() !== 'linux') {
   app.setAsDefaultProtocolClient('DCACCOUNT')
   app.setAsDefaultProtocolClient('dclogin')
   app.setAsDefaultProtocolClient('DCLOGIN')
+  app.setAsDefaultProtocolClient('privitty')
   // do not forcefully set DC as standard email handler to not annoy users
 }
 

@@ -21,7 +21,9 @@ import useDialog from '../../hooks/dialog/useDialog'
 import useMessage from '../../hooks/chat/useMessage'
 import { useSharedData } from '../../contexts/FileAttribContext'
 import { encryptFileForChat } from '../../utils/privittyEncryptFile'
-import useFileSharingEnabled from '../../hooks/useFileSharingEnabled'
+import useFileSharingEnabled, {
+  FILE_SHARING_BLOCKED_TEXT,
+} from '../../hooks/useFileSharingEnabled'
 import SmallSelectDialogPrivitty, {
   SelectedValue,
 } from '../SmallSelectDialogPrivitty'
@@ -143,10 +145,7 @@ function MessageListAndComposerInner({ accountId, chat }: Props) {
       if (!fileSharing.enabled) {
         runtime.showNotification({
           title: 'Privitty',
-          body:
-            fileSharing.reason === 'expired'
-              ? 'File sharing is unavailable because the license has expired.'
-              : 'File sharing is not included in your license.',
+          body: FILE_SHARING_BLOCKED_TEXT,
           icon: null,
           chatId: chat.id,
           messageId: 0,
@@ -304,7 +303,6 @@ function MessageListAndComposerInner({ accountId, chat }: Props) {
       addFileToDraft,
       chat,
       fileSharing.enabled,
-      fileSharing.reason,
       hasOpenDialogs,
       openDialog,
       sendMessage,

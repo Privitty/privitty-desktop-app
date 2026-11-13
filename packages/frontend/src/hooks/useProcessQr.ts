@@ -1,22 +1,19 @@
-import { useCallback, useContext } from 'react'
+import { useCallback } from 'react'
 
 import CopyContentAlertDialog from '../components/CopyContentAlertDialog'
 import useAlertDialog from './dialog/useAlertDialog'
 import useConfirmationDialog from './dialog/useConfirmationDialog'
 import useDialog from './dialog/useDialog'
-import useInstantOnboarding from './useInstantOnboarding'
 import useOpenMailtoLink from './useOpenMailtoLink'
 import useSecureJoin from './useSecureJoin'
 import useTranslationFunction from './useTranslationFunction'
 import { BackendRemote } from '../backend-com'
 import { ReceiveBackupProgressDialog } from '../components/dialogs/SetupMultiDevice'
-import { ScreenContext } from '../contexts/ScreenContext'
 import { getLogger } from '../../../shared/logger'
 import { processQr } from '../backend/qr'
 
 import type { T } from '@privitty/jsonrpc-client'
 import type { QrWithUrl } from '../backend/qr'
-import type { WelcomeQrWithUrl } from '../contexts/InstantOnboardingContext'
 import useChat from './chat/useChat'
 import { unknownErrorToString } from '../components/helpers/unknownErrorToString'
 
@@ -44,13 +41,11 @@ const log = getLogger('renderer/hooks/useProcessQr')
  */
 export default function useProcessQR() {
   const tx = useTranslationFunction()
-  const { addAndSelectAccount } = useContext(ScreenContext)
   const { openDialog } = useDialog()
   const openAlertDialog = useAlertDialog()
   const openConfirmationDialog = useConfirmationDialog()
 
   const openMailtoLink = useOpenMailtoLink()
-  const { startInstantOnboardingFlow } = useInstantOnboarding()
   const { secureJoinGroup, secureJoinContact } = useSecureJoin()
 
   const { selectChat } = useChat()
@@ -72,63 +67,15 @@ export default function useProcessQR() {
     [openAlertDialog]
   )
 
-  // Users can enter the "Instant Onboarding" flow by scanning a QR code of these types:
-  // DCACCOUNT (new transport from the included chatmail instance)
-  // DCLOGIN ()
-  // DC_ASK_VERIFYGROUP
-  // DC_ASK_VERIFYCONTACT
-  // which essentially creates
-  // a new "chatmail" profile for them and connects them with the regarding
-  // contact or group if given.
-  //
-  // We ask the user if they really want to proceed with this action and
-  // accordingly prepare the onboarding.
-  const startInstantOnboarding = useCallback(
-    async (accountId: number, qrWithUrl: WelcomeQrWithUrl) => {
-      const { qr } = qrWithUrl
-
-      if (await BackendRemote.rpc.isConfigured(accountId)) {
-        throw new Error(
-          'Instant onboarding can not be started on already configured account'
-        )
-      }
-
-      if (qr.kind === 'askVerifyGroup') {
-        // Ask the user if they want to create a new account and join the group
-        const userConfirmed = await openConfirmationDialog({
-          message: tx('instant_onboarding_confirm_group', qr.grpname),
-          confirmLabel: tx('ok'),
-          dataTestid: 'ask-join-group',
-        })
-
-        if (!userConfirmed) {
-          return
-        }
-      } else if (qr.kind === 'askVerifyContact') {
-        // Ask the user if they want to create a new account and start
-        // chatting with contact
-        const contact = await BackendRemote.rpc.getContact(
-          accountId,
-          qr.contact_id
-        )
-
-        const userConfirmed = await openConfirmationDialog({
-          message: tx(
-            'instant_onboarding_confirm_contact',
-            contact.displayName
-          ),
-          confirmLabel: tx('ok'),
-          dataTestid: 'ask-create-profile-and-join-chat',
-        })
-
-        if (!userConfirmed) {
-          return
-        }
-      }
-
-      await startInstantOnboardingFlow(qrWithUrl)
-    },
-    [openConfirmationDialog, startInstantOnboardingFlow, tx]
+  // Profiles are created only through Connect to Watchtower, so QR codes that
+  // would create a chat profile (DCACCOUNT, DCLOGIN, or an invite scanned
+  // before setup) point the user there instead.
+  const showWatchtowerOnboardingHint = useCallback(
+    () =>
+      openAlertDialog({
+        message: 'Set up your profile with Connect to Watchtower.',
+      }),
+    [openAlertDialog]
   )
 
   return useCallback(
@@ -189,23 +136,7 @@ export default function useProcessQR() {
        *
        */
       if (qr.kind === 'account') {
-        if (isLoggedIn) {
-          const userConfirmed = await openConfirmationDialog({
-            message: tx('qraccount_ask_create_and_login_another', qr.domain),
-            confirmLabel: tx('login_title'),
-            dataTestid: 'ask-create-account',
-          })
-
-          if (!userConfirmed) {
-            return callback?.()
-          }
-
-          const new_accountId = await addAndSelectAccount()
-          await startInstantOnboarding(new_accountId, { ...parsed, qr })
-        } else {
-          await startInstantOnboarding(accountId, { ...parsed, qr })
-        }
-
+        await showWatchtowerOnboardingHint()
         return callback?.()
       }
 
@@ -219,22 +150,7 @@ export default function useProcessQR() {
        * and create a profile based on that transport
        */
       if (qr.kind === 'login') {
-        if (isLoggedIn) {
-          const userConfirmed = await openConfirmationDialog({
-            message: tx('qrlogin_ask_login_another', qr.address),
-            confirmLabel: tx('login_title'),
-          })
-
-          if (!userConfirmed) {
-            return callback?.()
-          }
-
-          const new_accountId = await addAndSelectAccount()
-          await startInstantOnboarding(new_accountId, { ...parsed, qr })
-        } else {
-          await startInstantOnboarding(accountId, { ...parsed, qr })
-        }
-
+        await showWatchtowerOnboardingHint()
         return callback?.()
       }
 
@@ -252,9 +168,7 @@ export default function useProcessQR() {
        */
       if (qr.kind === 'askVerifyContact') {
         if (!isLoggedIn) {
-          // Ask user to create a new account with instant onboarding flow before they
-          // can start chatting with the given contact
-          await startInstantOnboarding(accountId, { ...parsed, qr })
+          await showWatchtowerOnboardingHint()
         } else {
           const chatId = await secureJoinContact(accountId, { ...parsed, qr })
           if (chatId) {
@@ -272,9 +186,7 @@ export default function useProcessQR() {
        */
       if (qr.kind === 'askVerifyGroup') {
         if (!isLoggedIn) {
-          // Ask user to create a new account with instant onboarding flow before they
-          // can join the given group
-          await startInstantOnboarding(accountId, { ...parsed, qr })
+          await showWatchtowerOnboardingHint()
         } else {
           const chatId = await secureJoinGroup(accountId, { ...parsed, qr })
           if (chatId) {
@@ -424,8 +336,7 @@ export default function useProcessQR() {
       secureJoinContact,
       secureJoinGroup,
       processQrCode,
-      startInstantOnboarding,
-      addAndSelectAccount,
+      showWatchtowerOnboardingHint,
       selectChat,
       tx,
     ]

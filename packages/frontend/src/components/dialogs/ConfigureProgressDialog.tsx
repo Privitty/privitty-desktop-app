@@ -30,7 +30,6 @@ interface ConfigureProgressDialogProps {
 /**
  * Shows a progress bar while configuring the account
  * This dialog is called after editing an existing account
- * or when creating a new account in InstantOnboarding flow
  */
 export function ConfigureProgressDialog({
   credentials,

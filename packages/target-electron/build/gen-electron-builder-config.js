@@ -36,7 +36,7 @@ build['appId'] = 'chat.privitty.desktop.electron'
 build['productName'] = 'PrivittyChat'
 build['extraMetadata'] = {
   //@ts-ignore
-  // restore old name before mono-repo
+  // Packaged package name (root package.json name is not what electron-builder ships).
   name: 'privittychat-desktop',
 }
 
@@ -159,6 +159,28 @@ const PREBUILD_FILTERS = {
   NOT_WINDOWS: '!node_modules/@privitty/stdio-rpc-server-win32-*${/*}',
 }
 
+// For universal DMG builds, electron-builder traverses up to the pnpm workspace
+// root and picks up arch-specific darwin packages from the virtual store even
+// after the pre-cleanup CI step removes them from packages/target-electron/node_modules.
+// They end up in app.asar.unpacked; the afterPackHook then deletes them; but the ASAR
+// header still references them, so @electron/universal's mergeASARs fails with ENOENT.
+// Explicit exclusions here are the only reliable guard against workspace-root leakage.
+// @parcel/watcher-darwin-* binaries also land in app.asar.unpacked automatically (electron
+// builder unpacks .node files) and cause the "same in both builds" merge rejection.
+const UNIVERSAL_STRIP_FILTERS = isUniversalBuild
+  ? [
+      // single-arch @privitty prebuilds (replaced by the -darwin-universal fat binary)
+      '!node_modules/@privitty/stdio-rpc-server-darwin-arm64${/*}',
+      '!node_modules/@privitty/stdio-rpc-server-darwin-x64${/*}',
+      '!node_modules/@privitty/privitty-core-darwin-arm64${/*}',
+      '!node_modules/@privitty/privitty-core-darwin-x64${/*}',
+      // @parcel/watcher native addons are ARM64-only or x64-only and must not
+      // appear in app.asar.unpacked of a universal build
+      '!node_modules/@parcel/watcher-darwin-arm64${/*}',
+      '!node_modules/@parcel/watcher-darwin-x64${/*}',
+    ]
+  : []
+
 build['mac'] = {
   appId: previewBuild
     ? 'chat.privitty.desktop.electron.devbuild'
@@ -174,14 +196,30 @@ build['mac'] = {
   gatekeeperAssess: shouldSign,
   hardenedRuntime: shouldSign,
   icon: 'build/icon-mac.icns',
+  artifactName: 'privittychat-desktop-${version}-${arch}.${ext}',
   identity: shouldSign ? undefined : null, // null = skip signing, undefined = auto-detect
-  files: [...files, PREBUILD_FILTERS.NOT_LINUX, PREBUILD_FILTERS.NOT_WINDOWS],
+  files: [
+    ...files,
+    PREBUILD_FILTERS.NOT_LINUX,
+    PREBUILD_FILTERS.NOT_WINDOWS,
+    ...UNIVERSAL_STRIP_FILTERS,
+  ],
   darkModeSupport: true,
-  // For lipo-based universal builds the fat binary already covers both archs,
-  // so x64ArchFiles / mergeASARs are not needed (and would confuse the merger).
-  // For single-arch or electron-builder-native universal builds, keep them.
+  // electron-builder 26.x defaults mergeASARs=true for universal builds.
+  // With mergeASARs=true, @electron/universal tries to read every file that the
+  // ASAR header lists as "unpacked" from app.asar.unpacked. The afterPackHook
+  // deletes arch-specific prebuilds from that dir, causing ENOENT.
+  // UNIVERSAL_STRIP_FILTERS above prevent those packages from entering the ASAR
+  // at all; with them gone, both architecture slices produce identical ASARs so
+  // mergeASARs=false (ASAR deduplication path) is safe and much simpler.
+  // x64ArchFiles is kept as a safety net for any Mach-O that still appears
+  // identically in both slices (would otherwise cause a merge rejection).
   ...(isUniversalBuild
-    ? {}
+    ? {
+        mergeASARs: false,
+        x64ArchFiles:
+          'Contents/Resources/app.asar.unpacked/node_modules/**/*-darwin-*/**',
+      }
     : {
         x64ArchFiles:
           'Contents/Resources/app.asar.unpacked/node_modules/**/*-darwin-x64/**',
@@ -226,7 +264,7 @@ build['linux'] = {
 }
 
 build['appImage'] = {
-  artifactName: '${productName}-${version}-${arch}.${ext}',
+  artifactName: 'privittychat-desktop-${version}-${arch}.${ext}',
 }
 
 build['deb'] = {
@@ -255,7 +293,7 @@ build['win'] = {
   // the exe (visible in Start-menu search and the installer title bar).
   icon: 'build/icon.ico',
   // Use a fixed prefix for Windows installer filenames
-  artifactName: 'PrivittyChat-${version}-Setup.${arch}.${ext}', // specifying it inside of build['nsis'] does not work for unknown reasons.
+  artifactName: 'privittychat-desktop-${version}-Setup.${arch}.${ext}', // specifying it inside of build['nsis'] does not work for unknown reasons.
   files: [...files, PREBUILD_FILTERS.NOT_MAC, PREBUILD_FILTERS.NOT_LINUX],
   // Keep executable resource editing (icon + metadata) enabled even for unsigned
   // builds. Setting signAndEditExecutable to false skips rcedit entirely, which
@@ -264,7 +302,7 @@ build['win'] = {
 }
 
 build['portable'] = {
-  artifactName: 'PrivittyChat-${version}-Portable.${arch}.${ext}',
+  artifactName: 'privittychat-desktop-${version}-Portable.${arch}.${ext}',
 }
 
 // supported languages are on https://learn.microsoft.com/en-us/windows/apps/publish/publish-your-app/supported-languages?pivots=store-installer-msix
@@ -329,7 +367,7 @@ build['appx'] = {
   publisherDisplayName: 'merlinux',
   identityName: 'merlinux.privittyChat',
   languages,
-  artifactName: '${productName}-${version}-Package.${arch}.${ext}',
+  artifactName: 'privittychat-desktop-${version}-Package.${arch}.${ext}',
   // Dark tile background so the white Privitty logo is always clearly visible
   // regardless of whether the user has Windows light or dark mode enabled.
   backgroundColor: '#1a1a2e',

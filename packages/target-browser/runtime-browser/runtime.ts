@@ -122,28 +122,14 @@ class BrowserRuntime implements Runtime {
     return () => {}
   }
 
-  onPrivittyLicenseStatus(
-    _callback: (accountId: number, statusCode: number) => void
-  ): () => void {
-    return () => {}
-  }
-
-  hasLicenseFile(): Promise<boolean> {
-    return Promise.resolve(true)
-  }
-
-  importLicenseFromUrl(
-    _url: string
-  ): Promise<{ customerName: string; licensePath: string }> {
-    return Promise.reject(
-      new Error('License import not supported in browser runtime')
-    )
-  }
-
-  importLicenseFromFile(_filePath: string): Promise<{ licensePath: string }> {
-    return Promise.reject(
-      new Error('License file import not supported in browser runtime')
-    )
+  getWatchtowerWrappingKey(): Promise<string> {
+    const existing = localStorage.getItem('watchtower-wrapping')
+    if (existing) return Promise.resolve(existing)
+    const bytes = new Uint8Array(32)
+    crypto.getRandomValues(bytes)
+    const key = btoa(String.fromCharCode(...bytes))
+    localStorage.setItem('watchtower-wrapping', key)
+    return Promise.resolve(key)
   }
 
   checkFileExists(_filePath: string): Promise<boolean> {

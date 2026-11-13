@@ -50,7 +50,7 @@ function parseDeviceCapabilities(json: string): DeviceCapabilities | null {
  * enabled when the cached manifest contains at least one command.
  */
 function capabilitiesEnablePalette(caps: DeviceCapabilities | null): boolean {
-  return (caps?.commands?.length ?? 0) > 0
+  return caps?.commands_enabled !== false && (caps?.commands?.length ?? 0) > 0
 }
 
 export function useDeviceCommands(chatId: number | null): {

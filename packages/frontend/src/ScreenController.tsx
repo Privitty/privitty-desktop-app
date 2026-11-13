@@ -21,12 +21,7 @@ import AccountDeletionScreen from './components/screens/AccountDeletionScreen/Ac
 import RuntimeAdapter from './components/RuntimeAdapter'
 import { ChatProvider, UnselectChat } from './contexts/ChatContext'
 import { ContextMenuProvider } from './contexts/ContextMenuContext'
-import { InstantOnboardingProvider } from './contexts/InstantOnboardingContext'
 import { SmallScreenModeMacOSTitleBar } from './components/SmallScreenModeMacOSTitleBar'
-import {
-  ensureLicenseInitialized,
-  licenseGetInfo,
-} from './utils/privittyLicense'
 
 const log = getLogger('renderer/ScreenController')
 
@@ -88,16 +83,6 @@ export default class ScreenController extends Component {
   }
 
   private async startup() {
-    try {
-      await ensureLicenseInitialized()
-      await licenseGetInfo()
-    } catch (err) {
-      log.warn(
-        'startup: licenseInit / licenseGetInfo failed (will retry from UI)',
-        err
-      )
-    }
-
     const lastLoggedInAccountId = await this._getLastUsedAccount()
     if (lastLoggedInAccountId) {
       await this.selectAccount(lastLoggedInAccountId)
@@ -394,37 +379,35 @@ export default class ScreenController extends Component {
             smallScreenMode: this.state.smallScreenMode,
           }}
         >
-          <InstantOnboardingProvider>
-            <ChatProvider
-              accountId={this.selectedAccountId}
-              unselectChatRef={this.unselectChatRef}
-            >
-              <ContextMenuProvider>
-                <DialogContextProvider>
-                  <RuntimeAdapter accountId={this.selectedAccountId} />
-                  <KeybindingsContextProvider>
-                    <div className='main-container-container'>
-                      {this.state.smallScreenMode &&
-                        runtime.getRuntimeInfo().isMac && (
-                          <SmallScreenModeMacOSTitleBar />
+          <ChatProvider
+            accountId={this.selectedAccountId}
+            unselectChatRef={this.unselectChatRef}
+          >
+            <ContextMenuProvider>
+              <DialogContextProvider>
+                <RuntimeAdapter accountId={this.selectedAccountId} />
+                <KeybindingsContextProvider>
+                  <div className='main-container-container'>
+                    {this.state.smallScreenMode &&
+                      runtime.getRuntimeInfo().isMac && (
+                        <SmallScreenModeMacOSTitleBar />
+                      )}
+                    <div className='main-container'>
+                      <AccountListSidebar
+                        selectedAccountId={this.selectedAccountId}
+                        onAddAccount={this.addAndSelectAccount}
+                        onSelectAccount={this.selectAccount.bind(this)}
+                        openAccountDeletionScreen={this.openAccountDeletionScreen.bind(
+                          this
                         )}
-                      <div className='main-container'>
-                        <AccountListSidebar
-                          selectedAccountId={this.selectedAccountId}
-                          onAddAccount={this.addAndSelectAccount}
-                          onSelectAccount={this.selectAccount.bind(this)}
-                          openAccountDeletionScreen={this.openAccountDeletionScreen.bind(
-                            this
-                          )}
-                        />
-                        {this.renderScreen(this.selectedAccountId)}
-                      </div>
+                      />
+                      {this.renderScreen(this.selectedAccountId)}
                     </div>
-                  </KeybindingsContextProvider>
-                </DialogContextProvider>
-              </ContextMenuProvider>
-            </ChatProvider>
-          </InstantOnboardingProvider>
+                  </div>
+                </KeybindingsContextProvider>
+              </DialogContextProvider>
+            </ContextMenuProvider>
+          </ChatProvider>
         </ScreenContext.Provider>
       </div>
     )

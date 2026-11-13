@@ -280,7 +280,7 @@ jobs:
         run: |
           VERSION=$(node -p "require('./package.json').version")
           if [ -d "dist/linux-unpacked" ]; then
-            TARBALL="dist/PrivittyChat-${VERSION}-linux-unpacked.tar.gz"
+            TARBALL="dist/privittychat-desktop-${VERSION}-linux-unpacked.tar.gz"
             tar -czf "$TARBALL" -C dist linux-unpacked
             echo "Created $TARBALL for Flathub manifest"
           fi
@@ -292,5 +292,5 @@ jobs:
           path: |
             packages/target-electron/dist/*.AppImage
             packages/target-electron/dist/*.deb
-            packages/target-electron/dist/PrivittyChat-*-linux*-unpacked.tar.gz
+            packages/target-electron/dist/privittychat-desktop-*-linux*-unpacked.tar.gz
           retention-days: 45

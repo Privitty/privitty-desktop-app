@@ -2,8 +2,8 @@ packages:
   - packages/*
 catalog:
   # deltachat specific
-  '@privitty/jsonrpc-client': 2.53.0
-  '@privitty/stdio-rpc-server': 2.53.0
+  '@privitty/jsonrpc-client': 2.55.0
+  '@privitty/stdio-rpc-server': 2.55.0
 
   # dependencies
   '@types/mime-types': ^2.1.4

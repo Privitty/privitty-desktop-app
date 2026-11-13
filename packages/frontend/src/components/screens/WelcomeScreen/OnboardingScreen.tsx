@@ -62,7 +62,7 @@ export default function OnboardingScreen(props: Props) {
               onClick={props.onNextStep}
               data-testid='create-account-button'
             >
-              {tx('onboarding_create_instant_account')}
+              Connect to Watchtower
             </Button>
             <Button
               className={styles.welcomeScreenButton}

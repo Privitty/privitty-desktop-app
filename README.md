@@ -49,6 +49,7 @@
     - [macOS](#mac-os-)
     - [Windows](#windows-)
     - [From Source](#from-source-)
+    - [Using a locally built core](#using-a-locally-built-core-)
     - [Troubleshooting](#troubleshooting-)
   - [Configuration and Databases](#configuration-and-databases-)
   - [How to Contribute](#how-to-contribute-)
@@ -100,6 +101,22 @@ pnpm -w start:electron
 > The `-w` flag runs the command at the workspace root; you can run it from any folder in the repo.
 
 For details on building installers (DMG, Windows, Linux) and signing, see [PRIVITTY_BUILD.md](./PRIVITTY_BUILD.md). For working with a local core/RPC server, see [docs/UPDATE_CORE.md](docs/UPDATE_CORE.md).
+
+### Using a locally built core <a id="local-core"></a>
+
+The app normally runs the `deltachat-rpc-server` binary bundled through `@privitty/stdio-rpc-server`. To run a core you built from `privitty-core-rust` instead, point `DELTA_CHAT_RPC_SERVER` at the binary's absolute path. When it is set, it takes precedence over the bundled binary.
+
+```sh
+# Build the core (in privitty-core-rust)
+cargo build --release -p deltachat-rpc-server
+
+# Build the desktop app, then start it with the local core
+pnpm -w build:electron
+DELTA_CHAT_RPC_SERVER=/Users/milinddeore/PROJECTS/side-projects/privitty-android-app/core-sdk/jni/privitty-core-rust/target/release/deltachat-rpc-server \
+  pnpm -w start:electron
+```
+
+The log line `using stdio-rpc-server at` shows which binary was started.
 
 ### Troubleshooting <a id="troubleshooting"></a>
 
