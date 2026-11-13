@@ -1,4 +1,5 @@
 import React, { useRef, useState } from 'react'
+import classNames from 'classnames'
 import { BackendRemote } from '../../../backend-com'
 import { selectedAccountId } from '../../../ScreenController'
 import { runtime } from '@deltachat-desktop/runtime-interface'
@@ -14,6 +15,8 @@ import { QrReader } from '../../QrReader'
 import { DeltaInput } from '../../Login-Styles'
 import ProfileImageSelector from '../../dialogs/EditProfileDialog/ProfileImageSelector'
 import useTranslationFunction from '../../../hooks/useTranslationFunction'
+
+import styles from './styles.module.scss'
 
 type Phase = 'link' | 'code' | 'done' | 'error'
 
@@ -62,7 +65,10 @@ function rpcMethodMissing(error: unknown): boolean {
     error && typeof error === 'object' && 'code' in error
       ? (error as { code: unknown }).code
       : undefined
-  return code === -32601 || /method not found|unknown method|not a function/i.test(errorText(error))
+  return (
+    code === -32601 ||
+    /method not found|unknown method|not a function/i.test(errorText(error))
+  )
 }
 
 async function callCore(method: string, params: unknown[]): Promise<unknown> {
@@ -118,7 +124,7 @@ export default function ConnectWatchtowerScreen({
   const [profilePicture, setProfilePicture] = useState<string | null>(null)
   const [challengeId, setChallengeId] = useState('')
   const [hint, setHint] = useState(
-    'Paste a privitty://enroll link, or open one from a QR code.'
+    'Paste a privitty://enroll link, or scan its QR code.'
   )
   const [phase, setPhase] = useState<Phase>('link')
   const scanning = useRef(false)
@@ -138,8 +144,15 @@ export default function ConnectWatchtowerScreen({
       const started = await requestEmailCode(value)
       setChallengeId(String(started.challengeId ?? ''))
       const email = String(started.emailHint ?? '')
-      logEnroll('email code requested', { challengeId: started.challengeId, emailHint: email })
-      setHint(email ? `Enter the code sent to ${email}` : 'Enter the code from your email.')
+      logEnroll('email code requested', {
+        challengeId: started.challengeId,
+        emailHint: email,
+      })
+      setHint(
+        email
+          ? `Enter the code sent to ${email}`
+          : 'Enter the code from your email.'
+      )
       setPhase('code')
     } catch (error) {
       const text = errorText(error)
@@ -171,9 +184,7 @@ export default function ConnectWatchtowerScreen({
     }
   }
 
-  async function requestConfirm(
-    wrapping: string
-  ): Promise<ConfirmBody> {
+  async function requestConfirm(wrapping: string): Promise<ConfirmBody> {
     const raw = await callCore('privitty_wt_enroll_confirm', [
       selectedAccountId(),
       link.trim(),
@@ -254,34 +265,58 @@ export default function ConnectWatchtowerScreen({
     <>
       <DialogHeader title='Connect to Watchtower' />
       <DialogBody>
+        <DialogContent paddingTop>
+          <p
+            className={classNames(
+              phase === 'error' ? styles.hintError : styles.hint
+            )}
+          >
+            {hint}
+          </p>
+        </DialogContent>
+        {phase !== 'code' && phase !== 'done' && (
+          <div className={styles.qrReaderWrap}>
+            <QrReader
+              onScanSuccess={data => void onScan(data)}
+              onError={message => setHint(message)}
+            />
+          </div>
+        )}
         <DialogContent>
-          <p>{hint}</p>
-          {phase !== 'code' && phase !== 'done' && (
-            <QrReader onScanSuccess={data => void onScan(data)} onError={message => setHint(message)} />
-          )}
           {phase !== 'done' && (
-            <textarea
-              value={link}
-              onChange={event => setLink(event.target.value)}
+            <DeltaInput
+              id='watchtower-enroll-link'
+              label='Invite link'
               placeholder='privitty://enroll?wt=…'
-              rows={3}
-              style={{ width: '100%' }}
+              value={link}
+              onChange={(
+                event: React.FormEvent<HTMLElement> &
+                  React.ChangeEvent<HTMLInputElement>
+              ) => setLink(event.target.value)}
             />
           )}
           {phase === 'code' && (
             <>
-              <input
+              <DeltaInput
+                id='watchtower-email-code'
+                label='Email code'
+                placeholder='Enter the code from your email'
                 value={code}
-                onChange={event => setCode(event.target.value)}
-                placeholder='Email code'
-                style={{ width: '100%', marginTop: 8 }}
+                onChange={(
+                  event: React.FormEvent<HTMLElement> &
+                    React.ChangeEvent<HTMLInputElement>
+                ) => setCode(event.target.value)}
               />
-              <p>{tx('set_name_and_avatar_explain')}</p>
-              <ProfileImageSelector
-                displayName={displayname}
-                profilePicture={profilePicture}
-                setProfilePicture={setProfilePicture}
-              />
+              <p className={styles.explain}>
+                {tx('set_name_and_avatar_explain')}
+              </p>
+              <div className={styles.profileSelector}>
+                <ProfileImageSelector
+                  displayName={displayname}
+                  profilePicture={profilePicture}
+                  setProfilePicture={setProfilePicture}
+                />
+              </div>
               <DeltaInput
                 id='displayname'
                 dataTestId='displayname-input'
@@ -300,17 +335,22 @@ export default function ConnectWatchtowerScreen({
         <FooterActions>
           <FooterActionButton onClick={onBack}>Back</FooterActionButton>
           {phase !== 'done' && phase !== 'code' && (
-            <FooterActionButton onClick={() => void start()}>
+            <FooterActionButton styling='primary' onClick={() => void start()}>
               Send email code
             </FooterActionButton>
           )}
           {phase === 'code' && (
-            <FooterActionButton onClick={() => void confirm()}>
+            <FooterActionButton
+              styling='primary'
+              onClick={() => void confirm()}
+            >
               Confirm
             </FooterActionButton>
           )}
           {phase === 'done' && (
-            <FooterActionButton onClick={onDone}>Done</FooterActionButton>
+            <FooterActionButton styling='primary' onClick={onDone}>
+              Done
+            </FooterActionButton>
           )}
         </FooterActions>
       </DialogFooter>
@@ -323,7 +363,7 @@ export function WatchtowerStatusBody({
 }: {
   status: Record<string, unknown> | null
 }) {
-  if (!status) return <p>Loading status…</p>
+  if (!status) return <p className={styles.hint}>Loading status…</p>
   const host = String(status.wt_url ?? '—')
   const expires = Number(status.expires_at ?? 0)
   const days = Number(status.days_left ?? 0)
@@ -334,21 +374,18 @@ export function WatchtowerStatusBody({
   const renewed = String(status.last_renewal ?? 'Not reported')
   return (
     <div>
-      <p>
-        <strong>Watchtower host</strong>
-        <br />
-        {host}
-      </p>
-      <p>
-        <strong>Licence end</strong>
-        <br />
-        {end}
-      </p>
-      <p>
-        <strong>Last renewal</strong>
-        <br />
-        {renewed}
-      </p>
+      <div className={styles.statusField}>
+        <div className={styles.statusLabel}>Watchtower host</div>
+        <div className={styles.statusValue}>{host}</div>
+      </div>
+      <div className={styles.statusField}>
+        <div className={styles.statusLabel}>Licence end</div>
+        <div className={styles.statusValue}>{end}</div>
+      </div>
+      <div className={styles.statusField}>
+        <div className={styles.statusLabel}>Last renewal</div>
+        <div className={styles.statusValue}>{renewed}</div>
+      </div>
     </div>
   )
 }

@@ -41,3 +41,57 @@
   margin: 7px 0;
   width: 100%;
 }
+
+.hint {
+  color: var(--textLessContrast);
+  font-size: 14px;
+  line-height: 20px;
+  margin: 0 0 16px;
+  user-select: text;
+}
+
+.hintError {
+  background-color: #f9d7d7;
+  border-radius: 5px;
+  color: #c70404;
+  font-size: 14px;
+  line-height: 20px;
+  margin: 0 0 16px;
+  padding: 10px;
+  user-select: text;
+}
+
+.explain {
+  color: var(--textLessContrast);
+  font-size: 14px;
+  line-height: 20px;
+  margin: 6px 0 16px;
+}
+
+.qrReaderWrap {
+  border-radius: 8px;
+  margin-bottom: 16px;
+  overflow: hidden;
+}
+
+.profileSelector {
+  margin: 8px 0 20px;
+}
+
+.statusField {
+  margin: 0 0 16px;
+}
+
+.statusLabel {
+  color: var(--deltaChatPrimaryFgLight);
+  font-size: 13px;
+  line-height: 16px;
+  margin-bottom: 6px;
+}
+
+.statusValue {
+  color: var(--globalText);
+  font-size: 16px;
+  line-height: 22px;
+  word-break: break-word;
+}
